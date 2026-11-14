@@ -1,0 +1,55 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The publisher marks the advert paused by Northbank Example Lettings Ltd after its viewing slots filled.",
+        "title": "paused advert record"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/paused_advert_record"
+    },
+    {
+      "json": {
+        "content": "Mira Vale confirms the signed letting mandate naming Rowan Pike for Flat 2, 71 Example Mews, London W12 8QT.",
+        "title": "owner mandate"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/owner_mandate"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_2500da052da6_x1",
+      "key": "paused_advert_record",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "https://listings.example/homes/3641",
+        "Flat 2, 71 Example Mews, London W12 8QT"
+      ],
+      "snippet": "The publisher marks the advert paused by Northbank Example Lettings Ltd after its viewing slots filled.",
+      "title": "paused advert record",
+      "url": "https://records.example/paused_advert_record"
+    },
+    {
+      "company_status": null,
+      "id": "c_2500da052da6_x2",
+      "key": "owner_mandate",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Mira Vale",
+        "Rowan Pike"
+      ],
+      "snippet": "Mira Vale confirms the signed letting mandate naming Rowan Pike for Flat 2, 71 Example Mews, London W12 8QT.",
+      "title": "owner mandate",
+      "url": "https://records.example/owner_mandate"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

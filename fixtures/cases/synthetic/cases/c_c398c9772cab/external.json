@@ -1,0 +1,47 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The register returned a temporary service error. Company existence and status could not be checked.",
+        "title": "company register"
+      },
+      "method": "GET",
+      "status": 503,
+      "url": "https://records.example/company_register"
+    },
+    {
+      "json": {
+        "error": "unavailable"
+      },
+      "method": "GET",
+      "status": 503,
+      "url": "https://api.company-information.service.gov.uk/company/96779816"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_c398c9772cab_x1",
+      "key": "company_register",
+      "outcome": "unavailable",
+      "query_alternatives": [
+        [
+          "96779816"
+        ],
+        [
+          "Northbank Example Lettings Ltd"
+        ]
+      ],
+      "query_terms": [
+        "96779816",
+        "Northbank Example Lettings Ltd"
+      ],
+      "snippet": "The register returned a temporary service error. Company existence and status could not be checked.",
+      "title": "company register",
+      "url": "https://records.example/company_register"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

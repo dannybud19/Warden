@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "No independently indexed payment-processor details were returned for this agency.",
+        "title": "payment processor"
+      },
+      "method": "GET",
+      "status": 404,
+      "url": "https://records.example/payment_processor"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_594d491cf146_x1",
+      "key": "payment_processor",
+      "outcome": "not_found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Northbank Example Lettings Ltd",
+        "payment processor"
+      ],
+      "snippet": "No independently indexed payment-processor details were returned for this agency.",
+      "title": "payment processor",
+      "url": "https://records.example/payment_processor"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "base_key": "deceptive_short_let_genuine",
+    "rewrites": [
+      {
+        "message_index": 3,
+        "text": "It is a smaller room overlooking the railway. You can inspect it on {viewing_date}; no payment is required before the viewing."
+      }
+    ],
+    "quote_replacements": {
+      "The room is smaller and overlooks the railway.": "It is a smaller room overlooking the railway."
+    }
+  },
+  {
+    "base_key": "unavailable_advert_genuine",
+    "rewrites": [
+      {
+        "message_index": 3,
+        "text": "No. Please inspect the flat before deciding. The owner {owner_name} is abroad, and I have their signed letting mandate."
+      }
+    ],
+    "quote_replacements": {}
+  },
+  {
+    "base_key": "fake_agency_genuine",
+    "rewrites": [
+      {
+        "message_index": 3,
+        "text": "No payment. Your reply helps us allocate the staffed viewing slots on {viewing_date}; if you need more time we can offer another day."
+      }
+    ],
+    "quote_replacements": {}
+  },
+  {
+    "base_key": "transfer_pressure_genuine",
+    "rewrites": [
+      {
+        "message_index": 1,
+        "text": "That is our agreed date for the tenancy starting {start_date}. Tell us if your bank needs extra checks and we can discuss the timing."
+      }
+    ],
+    "quote_replacements": {
+      "If the bank needs extra checks, tell us and we can discuss timing.": "Tell us if your bank needs extra checks and we can discuss the timing."
+    }
+  },
+  {
+    "base_key": "fake_platform_link_genuine",
+    "rewrites": [
+      {
+        "message_index": 1,
+        "text": "It is {company_name}'s own tenant portal, not an Airbnb page. Our independently listed agency contact can direct you to it."
+      }
+    ],
+    "quote_replacements": {}
+  },
+  {
+    "base_key": "prepaid_payment_genuine",
+    "rewrites": [
+      {
+        "message_index": 1,
+        "text": "You can choose your own budgeting card. We never request gift cards, voucher codes or card photos."
+      }
+    ],
+    "quote_replacements": {}
+  },
+  {
+    "base_key": "property_for_sale_genuine",
+    "rewrites": [
+      {
+        "message_index": 1,
+        "text": "{owner_name} is marketing both options. {company_name} is authorised for each route; sale marketing will stop if this tenancy is agreed."
+      }
+    ],
+    "quote_replacements": {}
+  },
+  {
+    "base_key": "overpayment_genuine",
+    "rewrites": [
+      {
+        "message_index": 3,
+        "text": "No. We will return GBP 200 to the same originating account ending {account_suffix}. Also, there is no release fee."
+      }
+    ],
+    "quote_replacements": {}
+  }
+]
