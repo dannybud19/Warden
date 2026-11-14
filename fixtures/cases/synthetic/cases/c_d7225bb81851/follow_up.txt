@@ -1,0 +1,1 @@
+The agent confirmed the chat figure of GBP 1400 was a typo and sent a corrected message: monthly rent is GBP 1300, excluding bills, matching the contract. Please keep the earlier message in the history.

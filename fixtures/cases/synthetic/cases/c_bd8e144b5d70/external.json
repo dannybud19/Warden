@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The independently listed Northbank Example Lettings Ltd office confirms the rent client account ends 2891 and allows time for bank verification.",
+        "title": "confirmed client account"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/confirmed_client_account"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_bd8e144b5d70_x1",
+      "key": "confirmed_client_account",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Northbank Example Lettings Ltd",
+        "2891"
+      ],
+      "snippet": "The independently listed Northbank Example Lettings Ltd office confirms the rent client account ends 2891 and allows time for bank verification.",
+      "title": "confirmed client account",
+      "url": "https://records.example/confirmed_client_account"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

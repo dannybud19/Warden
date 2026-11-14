@@ -1,0 +1,563 @@
+{
+  "case_id": "c_c398c9772cab",
+  "family": "fake_agency",
+  "variant": "unresolved",
+  "truth": "unknown",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 8427,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 94.0,
+  "suspicious_checks": [
+    "landlord_identity"
+  ],
+  "cleared_checks": [
+    "no_pressure"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/company/96779816 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_c398c9772cab",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/96779816",
+        "classification": "scenario_unavailable",
+        "status": 503,
+        "method": "GET",
+        "reason": null,
+        "fixture_ids": [
+          "c_c398c9772cab_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_c398c9772cab_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "The register returned a temporary service error. Company existence and status could not be checked.",
+            "outcome": "unavailable"
+          }
+        ],
+        "fixture_route": "https://api.company-information.service.gov.uk/company/96779816",
+        "response_body": {
+          "error": "scenario_unavailable"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/96779816",
+        "classification": "scenario_unavailable",
+        "status": 503,
+        "method": "GET",
+        "reason": null,
+        "fixture_ids": [
+          "c_c398c9772cab_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_c398c9772cab_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "The register returned a temporary service error. Company existence and status could not be checked.",
+            "outcome": "unavailable"
+          }
+        ],
+        "fixture_route": "https://api.company-information.service.gov.uk/company/96779816",
+        "response_body": {
+          "error": "scenario_unavailable"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/96779816",
+        "classification": "scenario_unavailable",
+        "status": 503,
+        "method": "GET",
+        "reason": null,
+        "fixture_ids": [
+          "c_c398c9772cab_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_c398c9772cab_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "The register returned a temporary service error. Company existence and status could not be checked.",
+            "outcome": "unavailable"
+          }
+        ],
+        "fixture_route": "https://api.company-information.service.gov.uk/company/96779816",
+        "response_body": {
+          "error": "scenario_unavailable"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_c398c9772cab",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/9816",
+      "platform": "rental listing",
+      "address": "Flat 2, 66 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": "96779816",
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_c398c9772cab_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: Can you give me Northbank Example Lettings Ltd's company number?\nRowan Pike: It is 96779816. I am Rowan Pike, the viewing coordinator.\nAlex Reed: The register is not loading. Is there another way to verify your agency?\nRowan Pike: Please try again later or contact the office through its independently listed details. No payment is needed now.\n",
+        "note": null
+      },
+      {
+        "id": "c_c398c9772cab_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 66 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_c398c9772cab_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 66 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/9816\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_c398c9772cab_m1",
+        "evidence_id": "c_c398c9772cab_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "Can you give me Northbank Example Lettings Ltd's company number?"
+      },
+      {
+        "id": "c_c398c9772cab_m2",
+        "evidence_id": "c_c398c9772cab_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "It is 96779816. I am Rowan Pike, the viewing coordinator."
+      },
+      {
+        "id": "c_c398c9772cab_m3",
+        "evidence_id": "c_c398c9772cab_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "The register is not loading. Is there another way to verify your agency?"
+      },
+      {
+        "id": "c_c398c9772cab_m4",
+        "evidence_id": "c_c398c9772cab_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Please try again later or contact the office through its independently listed details. No payment is needed now."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "crosscheck:landlord_name"
+        ],
+        "reason": "Landlord name differs between sources"
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "cleared",
+        "clear_confidence": 0.6,
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "reason": "The agent gives you time to decide"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Rowan Pike exactly how and when you would pay the £1,500 deposit and the first month's rent for Flat 2, 66 Example Mews. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:12:44.748357Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Rowan Pike for proof that Mira Vale owns Flat 2, 66 Example Mews, or that Rowan has her permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:12:44.748357Z"
+      },
+      {
+        "id": "act_viewing",
+        "check_id": "in_person_viewing",
+        "kind": "action",
+        "text": "Ask Rowan Pike to let you view Flat 2, 66 Example Mews in person, or to send someone you trust, before you pay anything. Did the agent agree?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:12:44.748357Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "b3106466ef9a05fe",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "82d0a5080c95a9e2",
+        "findings": [],
+        "facts": [
+          {
+            "key": "landlord_name",
+            "value": "Rowan Pike",
+            "source": "c_c398c9772cab_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "The listing names Mira Vale as the landlord, but you are dealing with Rowan Pike. Has anyone explained how they are connected?"
+        ],
+        "error": null,
+        "duration_ms": 3555
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "2c9fc05d258b255e",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The amount-cap pass is correctly limited. Rent of GBP 1300 per calendar month gives annual rent of GBP 15,600, and five weeks of that is GBP 1,500.00. The stated deposit of GBP 1,500 is therefore at the cap, not above it. Nothing in the contract contradicts that arithmetic. It remains conditional because jurisdiction and tenancy type are unknown. The contract also does not confirm that the rent and deposit cover the same whole tenancy, or that the arrangement is not an excluded one. This result says nothing about deposit protection or authenticity, and it is not evidence of a breach. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_c398c9772cab_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_c398c9772cab_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 66 Example Mews, London W12 8QT",
+            "source": "c_c398c9772cab_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_c398c9772cab_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_c398c9772cab_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_c398c9772cab_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_c398c9772cab_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 6288
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "6bad840e0ef5f9dc",
+        "findings": [
+          {
+            "id": "emotion_classifier:no_pressure_stated",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "The agent gives you time to decide",
+            "detail": "The agent explicitly takes time pressure off, and no pressure language was found.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "c_c398c9772cab_e1",
+                "quote": "No payment is needed now."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The company number given for Northbank Example Lettings Ltd is ****9816. • The sender says their name is Rowan Pike and their role is viewing coordinator. • No payment is being requested at this stage. • The agent says the office can be contacted through independently listed details.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_c398c9772cab_e1",
+                "quote": "It is 96779816."
+              },
+              {
+                "evidence_id": "c_c398c9772cab_e1",
+                "quote": "I am Rowan Pike, the viewing coordinator."
+              },
+              {
+                "evidence_id": "c_c398c9772cab_e1",
+                "quote": "No payment is needed now."
+              },
+              {
+                "evidence_id": "c_c398c9772cab_e1",
+                "quote": "contact the office through its independently listed details"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 4726
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [
+          {
+            "id": "crosscheck:landlord_name",
+            "agent": "crosscheck",
+            "check_id": "landlord_identity",
+            "title": "Landlord name differs between sources",
+            "detail": "'Mira Vale' (from landlord); 'Rowan Pike' (from c_c398c9772cab_e1); 'Mira Vale' (from c_c398c9772cab_e2)",
+            "category": "consistency",
+            "severity": "high",
+            "confidence": 0.9,
+            "evidence": [
+              {
+                "evidence_id": "landlord",
+                "quote": "Mira Vale"
+              },
+              {
+                "evidence_id": "c_c398c9772cab_e1",
+                "quote": "Rowan Pike"
+              },
+              {
+                "evidence_id": "c_c398c9772cab_e2",
+                "quote": "Mira Vale"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:12:42.612311Z",
+        "score": 94.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 4.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false
+}

@@ -1,0 +1,33 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Owner Mira Vale appointed Rowan Pike of Northbank Example Lettings Ltd to arrange viewings and the periodic tenancy at Flat 2, 94 Example Mews, London W12 8QT.",
+        "title": "letting mandate"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/letting_mandate"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_14c60e282afe_x1",
+      "key": "letting_mandate",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 94 Example Mews, London W12 8QT",
+        "Mira Vale",
+        "Rowan Pike"
+      ],
+      "snippet": "Owner Mira Vale appointed Rowan Pike of Northbank Example Lettings Ltd to arrange viewings and the periodic tenancy at Flat 2, 94 Example Mews, London W12 8QT.",
+      "title": "letting mandate",
+      "url": "https://records.example/letting_mandate"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

@@ -4,6 +4,7 @@ import re
 from typing import Literal
 
 from app.contracts import Action, ActionStatus, Case
+from app.orchestrator.payment_confirmation import PREFIX as PAYMENT_CONFIRMATION_PREFIX
 
 CLEARS = ("yes", "confirmed", "verified", "they did", "it is", "registered")
 FLAGS = ("no", "refused", "won't", "wouldn't", "can't", "declined", "abroad")
@@ -55,14 +56,23 @@ def parse(
         open_actions = [a for a in actions if a.status == ActionStatus.OPEN]
         if not open_actions:
             return actions
-        target = open_actions[0]  # actions are stored oldest first
+        target = next(
+            (a for a in open_actions if a.id.startswith(PAYMENT_CONFIRMATION_PREFIX)),
+            open_actions[0],
+        )
 
     if status in ("skipped", "impossible"):
         target.status = ActionStatus(status)
         target.outcome = "neutral"
     else:
         target.status = ActionStatus.DONE
-        target.outcome = _keyword_outcome(text)
+        if target.id.startswith(PAYMENT_CONFIRMATION_PREFIX):
+            # This question asks about a concern, so yes confirms a flag. A denial/uncertainty
+            # must never clear the whole payment check or be inferred from loose keywords.
+            answer = text.strip().lower().rstrip(".! ")
+            target.outcome = "flags" if answer == "yes" else "neutral"
+        else:
+            target.outcome = _keyword_outcome(text)
     target.answer = text
     target.answer_evidence_ids = list(evidence_ids)
     return actions

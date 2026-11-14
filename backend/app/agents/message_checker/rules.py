@@ -264,6 +264,50 @@ _DEPOSIT = re.compile(
     _I,
 )
 
+# Keep denials local: "never gift cards; pay in Bitcoin" still contains a request.
+_CLAUSE_BREAK = re.compile(
+    r"(?<=[.!?;])(?:\s+|$)|\n+|\b(?:but|however|instead)\b|"
+    r",\s*(?=(?:please\s+)?(?:pay|send|transfer|buy|load|use)\b)",
+    _I,
+)
+_DENIED_REQUEST = re.compile(
+    r"\b(?:never|don't|do not|won't|will not|cannot|can't|avoid|not)\s+"
+    r"(?:(?:ever|normally|usually|personally)\s+)?"
+    r"\b(?:request|ask|accept|require|take|pay|send|transfer|buy|load|use)\b|"
+    r"\bno (?:payment|deposit|money|transfer)\b.{0,30}\b(?:required|needed|due)\b|"
+    r"\b(?:pay|send|transfer)\b.{0,15}\b(?:nothing|no money)\b",
+    _I,
+)
+_METHOD_REQUEST = re.compile(
+    r"\b(?:pay|send|wire|transfer|buy|purchase|load|top up|accepts?|takes?|"
+    r"requests?|requires?|use)\b|"
+    r"\b(?:payment|deposit)\b.{0,30}\b(?:by|via|in|using)\b|\bonly\b",
+    _I,
+)
+_PREPAID_DEBIT = re.compile(r"\bpre[- ]?paid debit cards?\b", _I)
+_VALUE_HANDOVER = re.compile(r"\b(?:codes?|photos?|pictures?|vouchers?|load|top up)\b", _I)
+_PRE_VIEWING = re.compile(
+    r"\b(?:pay|paid|payment|deposit|transfer|money|funds)\b.{0,70}"
+    r"\b(?:before|prior to)\s+(?:(?:any|a|the|your|first|initial|in-person|physical)\s+){0,4}"
+    r"(?:(?:you|we)\s+(?:can\s+)?)?(?:view|viewings?|see|visit)\b|"
+    r"\b(?:view|viewings?|show|visit)\b.{0,60}\b(?:until|after|once)\b.{0,45}"
+    r"\b(?:pay|paid|payment|deposit|transfer|money|funds)\b|"
+    r"\bonce\b.{0,35}\b(?:paid|payment|deposit|funds)\b.{0,70}\b(?:view|viewings?|show|visit)\b",
+    _I,
+)
+_AFTER_VIEWING = re.compile(
+    r"\b(?:pay|payment|deposit|transfer|money|funds)\b.{0,55}\b(?:after|following)\b"
+    r".{0,35}\b(?:view|viewing|viewed|visited|seen)\b|"
+    r"\b(?:after|once)\b.{0,40}\b(?:viewed|visited|seen|viewing)\b.{0,50}"
+    r"\b(?:pay|payment|deposit|transfer)\b",
+    _I,
+)
+_REMOTE_KEYS = re.compile(
+    r"\b(?:post|mail|courier|dhl|fedex)\b.{0,35}\bkeys?\b|"
+    r"\bkeys?\b.{0,35}\b(?:post|mail|courier|after|once)\b",
+    _I,
+)
+
 
 # ---------------------------------------------------------------- rule pieces
 
@@ -274,10 +318,103 @@ def _agent(messages: Sequence[Message]) -> list[Message]:
 
 def is_payment_request(message: Message) -> bool:
     """An agent message that asks for money: a payment word plus an instruction or bank details."""
-    text = norm(message.text)
-    if not _PAYMENT_WORD.search(text) or _NO_PAYMENT_YET.search(text):
+    return bool(payment_requests(message))
+
+
+def clauses(message: Message) -> list[str]:
+    """Exact source spans so a denial cannot suppress a separate positive demand."""
+    spans = []
+    start = 0
+    for boundary in _CLAUSE_BREAK.finditer(message.text):
+        preceding = message.text[start : boundary.start()]
+        # "After you have viewed, transfer ..." is one conditional instruction.
+        if boundary.group().startswith(",") and re.search(
+            r"^\s*(?:after|once)\b.{0,60}\b(?:viewing|viewed|visited|seen)\b",
+            norm(preceding),
+            _I,
+        ):
+            continue
+        if preceding.strip():
+            spans.append(preceding.strip())
+        start = boundary.end()
+    if message.text[start:].strip():
+        spans.append(message.text[start:].strip())
+    return spans
+
+
+def payment_requests(message: Message) -> list[Hit]:
+    """Payment instructions, excluding explicit denials and post-viewing-only terms."""
+    hits = []
+    for clause in clauses(message):
+        text = norm(clause)
+        if _NO_PAYMENT_YET.search(text) or _DENIED_REQUEST.search(text):
+            continue
+        if _AFTER_VIEWING.search(text) and not _PRE_VIEWING.search(text):
+            continue
+        request = _PRE_VIEWING.search(text) or _PAYMENT_INSTRUCTION.search(text)
+        if _PRE_VIEWING.search(text) or (
+            _PAYMENT_WORD.search(text)
+            and (_PAYMENT_INSTRUCTION.search(text) or _SORT_CODE.search(text) or _IBAN.search(text))
+        ):
+            match = request or _SORT_CODE.search(text) or _IBAN.search(text)
+            assert match is not None
+            hits.append(Hit(message, quote_around(clause, match.start(), match.end())))
+    return hits
+
+
+def untraceable_requests(message: Message) -> list[Hit]:
+    """Requested payment methods, not refusals, warnings or a student's budgeting card."""
+    hits = []
+    for clause in clauses(message):
+        text = norm(clause)
+        if not _UNTRACEABLE.search(text) or _DENIED_REQUEST.search(text):
+            continue
+        if _PREPAID_DEBIT.search(text) and not _VALUE_HANDOVER.search(text):
+            continue
+        request = _METHOD_REQUEST.search(text)
+        if request:
+            hits.append(Hit(message, quote_around(clause, request.start(), request.end())))
+    return hits
+
+
+def landlord_name_supported(value: str, message: Message) -> bool:
+    """Only a name explicitly assigned the owner/landlord role may enter cross-source facts."""
+    name = re.escape(value.strip())
+    if len(value.split()) < 2:
         return False
-    return bool(_PAYMENT_INSTRUCTION.search(text) or _SORT_CODE.search(text) or _IBAN.search(text))
+    pattern = (
+        rf"\b(?:owner|landlord)(?:'s name)?\s*(?:is\s+|:\s*)?{name}\b|"
+        rf"\b{name}\s*(?:,\s*|is\s+)(?:(?:the|your|our|a)\s+)?"
+        r"(?:owner|landlord)\b(?!'s|\s+(?:agent|representative))"
+    )
+    return any(
+        re.search(pattern, norm(clause), _I)
+        and not re.search(r"\bnot (?:the |your |our |an? )?(?:owner|landlord)\b", norm(clause), _I)
+        for clause in clauses(message)
+    )
+
+
+def viewing_available(messages: Sequence[Message]) -> bool:
+    """A visit, offered slot or local proxy; none verifies identity or authority."""
+    return viewing_done_index(messages) is not None or any(
+        (
+            (_VIEWING_WORD.search(norm(m.text)) and _DAY_OR_TIME.search(norm(m.text)))
+            or _PROXY_VIEWING.search(norm(m.text))
+        )
+        and not _REFUSED.search(norm(m.text))
+        for m in _agent(messages)
+    )
+
+
+def abroad_concern_supported(messages: Sequence[Message]) -> bool:
+    """Being abroad alone is not a refusal; require an access barrier or remote key handover."""
+    return not viewing_available(messages) and (
+        bool(_refusal_hits(messages))
+        or any(
+            _REMOTE_KEYS.search(norm(m.text)) or _KEYS_HANDOFF.search(norm(m.text))
+            for m in _agent(messages)
+        )
+    )
 
 
 def viewing_done_index(messages: Sequence[Message]) -> int | None:
@@ -435,30 +572,34 @@ def run_rules(case: Case) -> RuleResult:
     away = _hits(_AWAY, agent)
     handoff = _hits(_KEYS_HANDOFF, agent)
     refused = _refusal_hits(messages)
-    proxy = _hits(_PROXY_VIEWING, agent)
-    # away is a concern only when nobody will show the flat: a refusal, or keys only after payment
-    no_one_shows = (refused or handoff) and not proxy
-    abroad = [*handoff, *refused, *away] if (away or handoff) and no_one_shows else []
+    # Cite the access barrier first, and use the same context guard as the LLM pass.
+    abroad = (
+        [*handoff, *refused, *away]
+        if (away or handoff) and abroad_concern_supported(messages)
+        else []
+    )
     done = viewing_done_index(messages)
 
     # payment before viewing: explicit (hard) when a viewing is ruled out or money buys the keys
     requests = [
-        m
+        hit
         for i, m in enumerate(messages)
-        if m.sender == "agent" and is_payment_request(m) and (done is None or i < done)
+        if m.sender == "agent" and (done is None or i < done)
+        for hit in payment_requests(m)
     ]
     if requests:
-        explicit = bool(away or handoff or refused) or any(
-            _HOLD_OR_KEYS.search(norm(m.text)) for m in requests
+        explicit = bool(refused) or any(
+            _HOLD_OR_KEYS.search(norm(hit.quote)) or _PRE_VIEWING.search(norm(hit.quote))
+            for hit in requests
         )
         flag(
             "payment_before_viewing",
-            [Hit(m, quote_around(m.text, 0, len(m.text))) for m in requests],
+            requests + refused,
             confidence=0.9 if explicit else 0.7,
             hard_flag=explicit,
         )
 
-    flag("untraceable_payment", _hits(_UNTRACEABLE, agent), hard_flag=True)
+    flag("untraceable_payment", [h for m in agent for h in untraceable_requests(m)], hard_flag=True)
     flag("personal_emoney_transfer", _emoney_hits(agent))
     flag("overseas_bank_account", _overseas_bank_hits(agent))
     flag("lookalike_link", _lookalike_hits(agent))

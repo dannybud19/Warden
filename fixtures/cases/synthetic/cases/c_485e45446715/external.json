@@ -1,0 +1,54 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "An archived short-stay advert shows Flat 2, 94 Example Mews, London W12 8QT; current letting authority is not recorded.",
+        "title": "short stay history"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/short_stay_history"
+    },
+    {
+      "json": {
+        "content": "The authority-document service is temporarily unavailable; no authority result was returned.",
+        "title": "authority service"
+      },
+      "method": "GET",
+      "status": 503,
+      "url": "https://records.example/authority_service"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_485e45446715_x1",
+      "key": "short_stay_history",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 94 Example Mews, London W12 8QT"
+      ],
+      "snippet": "An archived short-stay advert shows Flat 2, 94 Example Mews, London W12 8QT; current letting authority is not recorded.",
+      "title": "short stay history",
+      "url": "https://records.example/short_stay_history"
+    },
+    {
+      "company_status": null,
+      "id": "c_485e45446715_x2",
+      "key": "authority_service",
+      "outcome": "unavailable",
+      "query_alternatives": [],
+      "query_terms": [
+        "Mira Vale",
+        "authority"
+      ],
+      "snippet": "The authority-document service is temporarily unavailable; no authority result was returned.",
+      "title": "authority service",
+      "url": "https://records.example/authority_service"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

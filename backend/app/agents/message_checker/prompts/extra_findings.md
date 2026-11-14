@@ -52,13 +52,22 @@ Also report these when you see them, as `clears`:
   right-to-rent checks, a tenancy deposit of up to five weeks' rent, viewing slots, an office address.
 - Anything the student says, except as evidence that a viewing happened.
 - Your own guesses. If the messages do not show it, do not flag it.
+- A denied or merely mentioned payment method. "We never request gift cards" is not a request.
+  A student's own prepaid debit card for budgeting is not an instruction to hand over stored value.
+  Read each clause: a denial followed by a separate real demand does not cancel that demand.
+- An owner being abroad when a local agent offers a viewing, or a viewing has already happened.
+  Distinct owner and managing-agent names are normal when their roles are explained. This does not
+  verify either person's identity, authority or a claimed mandate; leave those checks unresolved.
+- A payment explicitly due only after a viewing. When timing is unclear, ask rather than inventing it.
 
 ## Facts
 
 Report a fact only when a message states it outright:
 
-- `landlord_name`: the full name (first name and surname) the agent goes by. Skip it if only a
-  first name is given.
+- `landlord_name`: a full name explicitly identified in that message as the owner or landlord.
+  Never use the correspondent's name merely because their sender is "agent". Do not substitute the
+  managing agent, company contact or representative for the owner. If the role or name is unstated,
+  omit the fact. The full name and its owner/landlord role must both be present in the source message.
 - `rent_pcm`: monthly rent, digits only (`850`).
 - `deposit`: tenancy deposit, digits only. Not the holding deposit.
 - `move_in_date`: as `YYYY-MM-DD` if a full date is given.

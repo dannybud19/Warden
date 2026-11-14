@@ -1,0 +1,31 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The listing-status endpoint timed out; no reason for the unavailable page could be retrieved.",
+        "title": "advert status"
+      },
+      "method": "GET",
+      "status": 503,
+      "url": "https://records.example/advert_status"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_80b9f7524472_x1",
+      "key": "advert_status",
+      "outcome": "unavailable",
+      "query_alternatives": [],
+      "query_terms": [
+        "https://listings.example/homes/3641"
+      ],
+      "snippet": "The listing-status endpoint timed out; no reason for the unavailable page could be retrieved.",
+      "title": "advert status",
+      "url": "https://records.example/advert_status"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

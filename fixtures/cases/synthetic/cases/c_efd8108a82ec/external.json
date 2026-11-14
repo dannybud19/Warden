@@ -1,0 +1,49 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+        "title": "Synthetic company register record"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/companies/31143720"
+    },
+    {
+      "json": {
+        "company_name": "Northbank Example Lettings Ltd",
+        "company_number": "31143720",
+        "company_status": "active"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://api.company-information.service.gov.uk/company/31143720"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": "active",
+      "id": "c_efd8108a82ec_x1",
+      "key": "active_company_register",
+      "outcome": "found",
+      "query_alternatives": [
+        [
+          "31143720"
+        ],
+        [
+          "Northbank Example Lettings Ltd"
+        ]
+      ],
+      "query_terms": [
+        "31143720",
+        "Northbank Example Lettings Ltd"
+      ],
+      "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+      "title": "Synthetic company register record",
+      "url": "https://records.example/companies/31143720"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

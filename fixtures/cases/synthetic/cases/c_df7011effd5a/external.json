@@ -1,0 +1,49 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+        "title": "company register"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/company_register"
+    },
+    {
+      "json": {
+        "company_name": "Northbank Example Lettings Ltd",
+        "company_number": "96779816",
+        "company_status": "dissolved"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://api.company-information.service.gov.uk/company/96779816"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": "dissolved",
+      "id": "c_df7011effd5a_x1",
+      "key": "company_register",
+      "outcome": "found",
+      "query_alternatives": [
+        [
+          "96779816"
+        ],
+        [
+          "Northbank Example Lettings Ltd"
+        ]
+      ],
+      "query_terms": [
+        "96779816",
+        "Northbank Example Lettings Ltd"
+      ],
+      "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+      "title": "company register",
+      "url": "https://records.example/company_register"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}
