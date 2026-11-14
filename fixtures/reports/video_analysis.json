@@ -1,0 +1,11 @@
+{
+  "agent": "video_analysis",
+  "version": "0.1.0-stub",
+  "status": "skipped",
+  "input_hash": "",
+  "findings": [],
+  "facts": [],
+  "questions": [],
+  "error": "missing: video",
+  "duration_ms": 0
+}

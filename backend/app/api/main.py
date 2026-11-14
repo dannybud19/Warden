@@ -1,0 +1,71 @@
+"""FastAPI app factory."""
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.aggregators.scoring.scoring import load_weights
+from app.api import routes_cases, routes_stream
+from app.core.factory import build_context
+from app.core.settings import Settings, get_settings
+from app.orchestrator.events import EventBus
+from app.orchestrator.registry import build_agents
+from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService
+from app.storage.memory import InMemoryCaseRepo
+from app.storage.repository import CaseRepository
+
+
+def _build_repo(settings: Settings) -> CaseRepository:
+    if settings.storage == "mongo":
+        from app.storage.mongo import MongoCaseRepo
+
+        return MongoCaseRepo(settings.mongodb_uri, settings.mongodb_db)
+    return InMemoryCaseRepo()
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """Build the app: settings, repo, event bus, agents, context and CaseService on app.state."""
+    settings = settings or get_settings()
+    ctx = build_context(settings)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        await ctx.http.aclose()
+
+    app = FastAPI(title="Rental Scam Shield", lifespan=lifespan)
+    bus = EventBus()
+    app.state.settings = settings
+    app.state.bus = bus
+    app.state.service = CaseService(
+        repo=_build_repo(settings),
+        bus=bus,
+        agents=build_agents(settings),
+        ctx=ctx,
+        weights=load_weights(),
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.exception_handler(CaseNotFoundError)
+    async def _not_found(_: Request, exc: CaseNotFoundError) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": f"case not found: {exc}"})
+
+    @app.exception_handler(CaseClosedError)
+    async def _closed(_: Request, exc: CaseClosedError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": f"case already decided: {exc}"})
+
+    app.include_router(routes_cases.router)
+    app.include_router(routes_stream.router)
+    return app
+
+
+app = create_app()

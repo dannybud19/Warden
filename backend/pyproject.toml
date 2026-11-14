@@ -1,0 +1,80 @@
+[project]
+name = "rss-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.8",
+  "pydantic-settings>=2.4",
+  "httpx>=0.27",
+  "python-multipart>=0.0.9",
+  "pyyaml>=6.0",
+  "anthropic>=0.40",
+  "motor>=3.5",
+  "pypdf>=4.3",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.6",
+  "pyright>=1.1.380",
+  "import-linter>=2.1",
+  "pre-commit>=3.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["app", "tests"]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+include = ["app", "scripts", "tests"]
+
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "Checker agents are independent of each other"
+type = "independence"
+modules = [
+  "app.agents.companies_house",
+  "app.agents.message_checker",
+  "app.agents.contract_checker",
+  "app.agents.emotion_classifier",
+  "app.agents.video_analysis",
+]
+
+[[tool.importlinter.contracts]]
+name = "Agents and aggregators only use contracts and core"
+type = "forbidden"
+source_modules = ["app.agents", "app.aggregators"]
+forbidden_modules = ["app.orchestrator", "app.api", "app.storage", "app.intake"]
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture"
+type = "layers"
+layers = [
+  "app.api",
+  "app.orchestrator",
+  "app.aggregators | app.agents | app.intake | app.storage",
+  "app.core",
+  "app.contracts",
+]

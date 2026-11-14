@@ -1,0 +1,8 @@
+landlord_identity: 0.20
+payment_safety: 0.20
+right_to_let: 0.15
+in_person_viewing: 0.10
+contract_consistency: 0.10
+deposit_protection: 0.10
+no_pressure: 0.10
+fair_price: 0.05

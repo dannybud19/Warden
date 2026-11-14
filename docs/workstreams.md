@@ -1,0 +1,228 @@
+# Workstreams
+
+Who builds what after Phase 0, the timeline, and the brief to hand each coding agent.
+Architecture: `docs/architecture.md`. Rules: `AGENTS.md`. Codebase overview: `CLAUDE.md`.
+
+---
+
+## 1. Parallel workstreams
+
+Each workstream runs in its own git worktree and branch, with its own coding agent if wanted:
+
+```bash
+git pull
+git worktree add ../rss-<ws> -b feat/<ws>-<short>
+cd ../rss-<ws> && cp ../Warden/.env .env 2>/dev/null; make install && claude
+# first prompt: "Read AGENTS.md, then do workstream <letter> in docs/workstreams.md"
+```
+
+| Person | Branches |
+| --- | --- |
+| Danny | `feat/a-orchestrator`, `feat/b-companies-house`, `feat/c-intake`, `contracts/ts-types`, `feat/web-shell` |
+| Georgi | `feat/d-message-checker`, `feat/e-emotion`, `feat/f-consultant` |
+| Bill | `feat/g-contract-checker`, `feat/h-scoring-eval` |
+| Audrey | `feat/i-web` (after the web shell merges and `docs/design.md` exists) |
+
+Flip an agent to real locally with `AGENT_MODE_<NAME>=real` in `.env`. To see the question loop without
+any real agents, run `DEFAULT_AGENT_MODE=real make dev`.
+
+A workstream may edit ONLY its owned paths. Anything else is a contract change (see "Changing contracts" in AGENTS.md) or a message to the owner.
+
+| WS | Owner | Owned paths | Deliverable | Done when |
+| --- | --- | --- | --- | --- |
+| A Orchestrator + API | Danny | `orchestrator/`, `api/`, `storage/mongo.py` | Real conversation parsing (LLM maps reply to actions), MongoDB wired, rerun-on-change verified | Full loop on a fixture with real agents flipped on |
+| B Companies House | Danny | `agents/companies_house/` | Search by name/number, status, incorporation date, officers, virtual office check; redress scheme via Linkup with cited urls | Flags dissolved/missing agency in `fake_agency.json`; clears it in `genuine_flat.json` |
+| C Intake | Danny | `intake/` | Screenshot OCR via `LLMClient.describe_image`, then message extraction; audio later | A WhatsApp screenshot becomes `Message`s with sender and text |
+| D Message checker | Georgi | `agents/message_checker/` | Rules (links, sort codes, payment words) + one LLM pass; facts: bank_account, email_domain, address, rent, deposit | Catches payment-before-viewing, pre-paid card, off-platform, overseas landlord in fixtures |
+| E Emotion classifier | Georgi | `agents/emotion_classifier/` | Facts vs feelings for both sides; pricing fact vs area rent table | Splits pressure language from facts on fixtures |
+| F Consultant | Georgi | `aggregators/consultant/` | `action_library.yaml` (candidate actions per check) + LLM ranking by score impact; returns [] when nothing useful remains | Picks sensible top 3 on each fixture; returns [] when all checks settled |
+| G Contract checker | Bill | `agents/contract_checker/` | PDF text to clauses; address/landlord mismatch, deposit > 5 weeks' rent, banned fees, no deposit protection clause; red flags vs "check with agency" | Flags mismatches in fixtures |
+| H Scoring + evaluation | Bill | `aggregators/scoring/`, `backend/eval/` | Tune weights; synthetic case generator; eval script reporting catches and false positives. Danny's real case stays in `fixtures/private/` as the held-out test | Eval prints a table over all synthetic cases |
+| I Web app | Audrey | `web/` | Starting from the web shell, keeping `src/lib/`, per `docs/design.md`: open case, upload, live agent progress, score + checks, chat with orchestrator, final decision | Works on mocks, then on the live API |
+
+Agents that are not ready keep running as stubs, so the integrated app always works.
+
+---
+
+## 2. Timeline (Sat 14 to Sun 15 Nov)
+
+| Time | Danny | Georgi | Bill | Audrey |
+| --- | --- | --- | --- | --- |
+| 15:15 to 16:15 | Phase 0 (done 15:15), review, push, web shell session, contracts/ts-types | Red flag lists + prompts for messages and emotion (no code needed) | Contract checklist + 6 synthetic cases | design.md, frontend plan, Figma |
+| 16:15 to 18:00 | WS A, B, C | WS D, E | WS G | WS I from the web shell |
+| 18:00 to 20:30 | Flip real agents on, integrate | WS F | WS H | WS I on live API |
+| 20:30 | **Gate: full live run on Danny's case** | | | |
+| Overnight (optional) | Fixes | Prompt tuning | Eval numbers | Polish |
+| Sun 10:00 to 11:00 | Feature freeze. Record 2-min video, write-up, README | | | Video edit |
+| 11:00 to 11:45 | Buffer. **Submit to Devpost by 11:45** (hard close 12:00) | | | |
+
+---
+
+## 3. Out of scope for the MVP
+
+Landlord side, property video analysis (stub only), call audio transcription (stub until WS C is done),
+Synthesia avatar, user accounts, deployment beyond what the demo needs.
+
+---
+
+## 4. Workstream briefs (hand one to each coding agent)
+
+Rules for every brief:
+
+- Start with: read `CLAUDE.md`, `AGENTS.md`, this brief and `docs/architecture.md`, then the code in `backend/app/contracts/` and `backend/app/core/`. Do not edit outside the owned paths.
+- LLM prompts live as Markdown files in the agent's `prompts/` folder and are loaded with
+  `Path(__file__).parent / "prompts" / "<name>.md"`. Never inline long prompts in Python.
+- Structured LLM output uses a Pydantic model defined inside the agent package (e.g. `agents/message_checker/models.py`),
+  never a new type in `app/contracts`. Convert it to `Finding`/`Fact` before returning.
+- Rules first, LLM second: anything a regex or lookup can catch reliably must not depend on the LLM.
+- Every Finding needs at least one `EvidenceRef` with a short quote (under 200 characters). Web results
+  must put the URL in the quote or the detail.
+- Finding ids are stable: `f"{self.name}:{slug}"`, so reruns replace rather than duplicate.
+- Use `supports="cleared"` when the evidence shows the check is fine (e.g. company active, 10+ years old,
+  officers match). Clearing is as important as flagging: the score only drops through clears.
+- Tests run offline with `FakeLLM`/`FakeSearch` and canned HTTP (`httpx.MockTransport`).
+- Flip your agent to real with `AGENT_MODE_<NAME>=real` in your local `.env` once its tests pass.
+- Finish with `make check` green, then a PR.
+
+### WS A: Orchestrator conversation + MongoDB (Danny)
+
+Owned: `app/orchestrator/`, `app/api/`, `app/storage/mongo.py`.
+1. Replace `conversation.parse` with an LLM version. Input: open actions (id, check, text) and the
+   student's message. Output model: `list[{action_id, status: done|skipped|impossible, answer, outcome}]`.
+   Prompt rules: only mark an action done if the message answers it; "the agent refused" means `flags`;
+   unclear means `neutral`. Keep the keyword version as a fallback when the LLM call fails.
+2. Have `parse` also return structured updates when the student gives them (company number, landlord
+   name, rent, deposit, viewing date) and apply them to `case.landlord`, `case.listing` and `case.student`.
+3. Add an `orchestrator_message` composer: one short, plain message per round that tells the student
+   what changed and what to do next (LLM, max 60 words, from score delta + new actions).
+4. `MongoCaseRepo`: one collection `cases`, `_id = case_id`, store `case.model_dump(mode="json")`,
+   upsert on save. Same test suite as the memory repo, skipped when `MONGODB_URI` is empty.
+5. Tests: parse fallback, structured updates, mongo repo (skippable), e2e loop with real conversation on FakeLLM.
+
+### WS B: Companies House agent (Danny)
+
+Owned: `app/agents/companies_house/`.
+1. Client in `client.py`: `GET https://api.company-information.service.gov.uk/search/companies?q=<name>`,
+   `/company/{number}` and `/company/{number}/officers`, with HTTP basic auth (API key as username, empty password).
+2. Resolve the company: use `landlord.company_number` if given, else search by `company_name` and take
+   the best match (normalised names equal, else the top result with a lower confidence).
+3. Findings (check `landlord_identity`):
+   - not found: critical, hard_flag only if the landlord presented as a company or agency
+   - status not "active": critical, hard_flag
+   - incorporated in the last 12 months: medium
+   - no officer name matches `landlord.name` (when it is a person's name): medium
+   - registered office is a known virtual-office address (small list in `virtual_offices.yaml`): low
+   - active, older than 3 years, SIC code starting 68 (real estate): `supports="cleared"`, confidence 0.8
+4. Redress scheme check via `ctx.search`: query `"<company_name>" property redress scheme OR "property ombudsman"`.
+   No credible result: medium finding. A result from tpos.co.uk or theprs.co.uk naming the company: cleared, 0.7. Cite the URL.
+5. Facts: `company_number`, `landlord_name` (from officers), `address` (registered office).
+6. Questions when the name is ambiguous: "Ask the agent for their Companies House number."
+7. Tests with canned JSON responses for: active old agency, dissolved, not found, new company.
+
+### WS C: Intake OCR (Danny)
+
+Owned: `app/intake/`.
+1. `ocr.py`: `async def screenshot_to_messages(image: bytes, llm) -> list[ExtractedMessage]` using
+   `llm.describe_image` with a prompt that returns JSON `[{side: "left"|"right", time, text}]`.
+   Right-hand bubbles are the student, left-hand bubbles the agent. Validate with a local Pydantic model.
+2. Keep the raw OCR text in `Evidence.extracted_text` and create `Message`s with `channel="whatsapp"`
+   unless the student's note says otherwise.
+3. Later, if time allows: `audio.py` with a speech-to-text provider, making each speaker turn a Message with `channel="call"`.
+4. Tests: FakeLLM returns canned JSON; assert Messages and sender mapping.
+
+### WS D: Message checker (Georgi)
+
+Owned: `app/agents/message_checker/`.
+1. `rules.py`: pure functions over `case.messages`, each returning findings:
+   - payment before viewing: payment words (deposit, transfer, pay, holding fee, bank details) in agent
+     messages AND no evidence of a completed viewing. payment_safety, critical, hard_flag when explicit.
+   - pre-paid or untraceable payment: Western Union, MoneyGram, gift card, crypto, "pre-paid", Revolut/Wise
+     to a personal name. payment_safety, critical.
+   - sort code + account number pattern: extract a `bank_account` fact (mask all but the last 4 digits).
+   - links: extract URLs; flag domains that imitate known sites (airbnb, spareroom, rightmove, zoopla,
+     openrent) without being them. payment_safety, high.
+   - off-platform move: "WhatsApp me", "email me directly", "text me on". in_person_viewing, low.
+   - abroad, overseas, "out of the country", "my agent will give you the keys": in_person_viewing, high.
+   - pose as a buyer, overpayment, refund the difference: payment_safety, critical.
+2. `llm.py`: one LLM pass over the agent's messages, returning extra findings that the rules missed, with
+   quotes. Drop any LLM finding whose quote is not a substring of a real message.
+3. Clearing: messages that confirm an in-person viewing happened, or payment through a known agency portal:
+   `supports="cleared"` on in_person_viewing or payment_safety.
+4. Facts: bank_account, email_domain, address, rent_pcm, deposit, landlord_name when stated.
+5. Tests: one per rule on small hand-written message lists, plus the full fixture.
+
+### WS E: Emotional influence classifier (Georgi)
+
+Owned: `app/agents/emotion_classifier/`.
+1. LLM pass over all messages and `student.notes`, returning for each relevant message: `facts: list[str]`
+   and `influence: list[{kind, quote, explanation}]`, where `kind` is one of
+   urgency, scarcity, flattery, guilt, authority, jargon, sunk_cost, desperation.
+2. Agent-side influence (urgency, scarcity, authority, jargon) gives findings on `no_pressure`
+   (medium, raised to high if 3 or more distinct kinds).
+3. Student-side desperation or sunk cost does not make the place more suspicious. Emit it as an `info`
+   finding (category pressure) so the UI can show "how you might be feeling vs the facts".
+4. Pricing: `area_rents.yaml` with median monthly room rent for about 15 London postcode districts
+   (hand-built for the demo, labelled "approximate" in the UI). Rent 25% or more below the district median:
+   fair_price, medium. Within plus or minus 15%: `supports="cleared"`, 0.6.
+5. Tests: FakeLLM canned output; pricing thresholds.
+
+### WS F: Consultant (Georgi)
+
+Owned: `app/aggregators/consultant/`.
+1. `action_library.yaml`: for each of the 8 checks, 2 to 4 candidate actions with `id`, `kind`, `text`
+   and `why` (one line). Examples: ask for the company number; insist on an in-person viewing or send a
+   friend; ask which deposit protection scheme and look it up; reverse image search the listing photos;
+   ask for the landlord's ID and match it to the Land Registry title.
+2. `propose_actions`: build candidates from the library for checks that are not CLEARED and have no
+   open action and no action already asked. Rank by `contribution[check]` from the ScoreResult (largest
+   first), then use one LLM call to reword the top `max_actions` to fit this case (mentioning the agent's
+   name or the specific claim). If the LLM fails, use library text as is.
+3. Return `[]` when no candidates are left (all checks settled, or every candidate already asked,
+   skipped or impossible). This is what triggers the final decision, so test it.
+4. Tests: ranking order, no duplicates, the `[]` case, LLM failure fallback.
+
+### WS G: Contract checker (Bill)
+
+Owned: `app/agents/contract_checker/`.
+1. LLM extraction from contract text into a local model: parties, landlord name, property address,
+   rent, deposit, holding deposit, fees listed, deposit protection clause (yes/no + scheme name),
+   break clause, tenancy start and end.
+2. Rules over the extraction:
+   - deposit greater than 5 weeks' rent (rent_pcm * 12 / 52 * 5): deposit_protection, high
+   - holding deposit greater than 1 week's rent: payment_safety, medium
+   - fees other than rent, deposits, and permitted default fees (Tenant Fees Act 2019): contract_consistency, high
+   - no deposit protection clause: deposit_protection, high; a named scheme (DPS, TDS, mydeposits): cleared, 0.6
+   - clauses that do not fit the property type (garden for a flat, parking with none listed): contract_consistency, low, tagged "check with the agency"
+3. Facts: address, landlord_name, rent_pcm, deposit, move_in_date (the crosscheck does the comparing, not this agent).
+4. Tests: two synthetic contract texts (clean and dodgy) with FakeLLM canned extractions.
+
+### WS H: Scoring tuning + evaluation (Bill)
+
+Owned: `app/aggregators/scoring/`, `backend/eval/`.
+1. `eval/generate.py`: create synthetic cases as Case JSON (messages + contract text + listing) for each
+   SpareRoom scam type (short-term let, fake Airbnb link, no live advert, fake agency, pre-paid card,
+   "for sale", overpayment, bank transfer pressure) and 6 or more genuine cases. Save to `fixtures/cases/synthetic/`
+   with a label file `labels.json` ({case_id: "scam"|"genuine"}).
+2. `eval/run.py`: runs `CaseService` with real agents (or stubs) over every case, auto-answering no
+   questions, and prints a table: case, label, final score, checks suspicious, verdict, correct?. Summary
+   line: scams caught, genuine wrongly flagged.
+3. Tune `weights.yaml` and the hard-flag list only through this table. Record the final numbers in
+   `eval/RESULTS.md` for the write-up.
+4. Danny's real case (`fixtures/private/`) is run once at the end as the held-out test, never tuned on.
+
+### WS I: Web app (Audrey)
+
+Owned: `web/`. Audrey works from `docs/design.md` (her design and frontend plan), starting from the web shell
+already in `web/`. Keep `src/lib/api.ts` and the generated types as the data layer; replace everything else
+freely. Functional checklist the final UI should still cover:
+1. Screens: open case (property link, landlord or agency name, your name), case view, final decision.
+2. Case view: upload area (drag and drop, kind picker, optional note); live agent list (started, finished,
+   skipped, error) from the WebSocket; score with history sparkline; the 8 checks with state and reason;
+   findings grouped by check, each with its quoted evidence; chat panel with orchestrator messages and
+   open actions as cards the student can answer, skip, or mark impossible.
+3. Facts vs feelings view for the emotion classifier findings.
+4. Data layer `src/lib/api.ts` with two implementations behind one interface: mock (reads
+   `fixtures/reports/full_case.json` and replays it as events) and live (`NEXT_PUBLIC_API_URL`).
+   Switch with `NEXT_PUBLIC_USE_MOCK`.
+5. Only types from `src/types/contracts.ts`. Never hand-write a contract type.
+6. Design in Figma for the Best-Designed AI Product prize, and link the file in the README.

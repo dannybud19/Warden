@@ -1,0 +1,1119 @@
+{
+  "$defs": {
+    "Action": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "check_id": {
+          "$ref": "#/$defs/CheckId"
+        },
+        "kind": {
+          "$ref": "#/$defs/ActionKind"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ActionStatus",
+          "default": "open"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        },
+        "answer_evidence_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Answer Evidence Ids",
+          "type": "array"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "enum": [
+                "clears",
+                "flags",
+                "neutral"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outcome"
+        },
+        "asked_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asked At"
+        }
+      },
+      "required": [
+        "id",
+        "check_id",
+        "kind",
+        "text"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "ActionKind": {
+      "enum": [
+        "question",
+        "action"
+      ],
+      "title": "ActionKind",
+      "type": "string"
+    },
+    "ActionStatus": {
+      "enum": [
+        "open",
+        "done",
+        "skipped",
+        "impossible"
+      ],
+      "title": "ActionStatus",
+      "type": "string"
+    },
+    "ActionsProposed": {
+      "properties": {
+        "type": {
+          "const": "actions_proposed",
+          "default": "actions_proposed",
+          "title": "Type",
+          "type": "string"
+        },
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
+          "title": "Actions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "actions"
+      ],
+      "title": "ActionsProposed",
+      "type": "object"
+    },
+    "AgentFinished": {
+      "properties": {
+        "type": {
+          "const": "agent_finished",
+          "default": "agent_finished",
+          "title": "Type",
+          "type": "string"
+        },
+        "report": {
+          "$ref": "#/$defs/AgentReport"
+        }
+      },
+      "required": [
+        "report"
+      ],
+      "title": "AgentFinished",
+      "type": "object"
+    },
+    "AgentReport": {
+      "properties": {
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AgentStatus"
+        },
+        "input_hash": {
+          "title": "Input Hash",
+          "type": "string"
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "facts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Fact"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "questions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "duration_ms": {
+          "default": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "agent",
+        "version",
+        "status",
+        "input_hash"
+      ],
+      "title": "AgentReport",
+      "type": "object"
+    },
+    "AgentStarted": {
+      "properties": {
+        "type": {
+          "const": "agent_started",
+          "default": "agent_started",
+          "title": "Type",
+          "type": "string"
+        },
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent"
+      ],
+      "title": "AgentStarted",
+      "type": "object"
+    },
+    "AgentStatus": {
+      "enum": [
+        "ok",
+        "skipped",
+        "needs_input",
+        "error"
+      ],
+      "title": "AgentStatus",
+      "type": "string"
+    },
+    "Case": {
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "decided"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "student": {
+          "$ref": "#/$defs/StudentContext",
+          "default": {
+            "budget_pcm": null,
+            "move_in_date": null,
+            "university": null,
+            "notes": null
+          }
+        },
+        "listing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Listing"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "landlord": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Landlord"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "messages": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "title": "Messages",
+          "type": "array"
+        },
+        "checks": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "actions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "reports": {
+          "additionalProperties": {
+            "$ref": "#/$defs/AgentReport"
+          },
+          "default": {},
+          "title": "Reports",
+          "type": "object"
+        },
+        "score_history": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ScoreResult"
+          },
+          "title": "Score History",
+          "type": "array"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Decision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "case_id",
+        "created_at"
+      ],
+      "title": "Case",
+      "type": "object"
+    },
+    "Category": {
+      "enum": [
+        "identity",
+        "payment",
+        "pressure",
+        "document",
+        "pricing",
+        "property",
+        "consistency"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "Check": {
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CheckId"
+        },
+        "state": {
+          "$ref": "#/$defs/CheckState",
+          "default": "unverified"
+        },
+        "clear_confidence": {
+          "default": 0.0,
+          "title": "Clear Confidence",
+          "type": "number"
+        },
+        "finding_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Ids",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "CheckId": {
+      "enum": [
+        "landlord_identity",
+        "payment_safety",
+        "right_to_let",
+        "in_person_viewing",
+        "contract_consistency",
+        "deposit_protection",
+        "no_pressure",
+        "fair_price"
+      ],
+      "title": "CheckId",
+      "type": "string"
+    },
+    "CheckState": {
+      "enum": [
+        "unverified",
+        "suspicious",
+        "cleared"
+      ],
+      "title": "CheckState",
+      "type": "string"
+    },
+    "Decision": {
+      "properties": {
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "verdict",
+        "decided_at",
+        "summary",
+        "reasons",
+        "finding_ids"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "DecisionMade": {
+      "properties": {
+        "type": {
+          "const": "decision_made",
+          "default": "decision_made",
+          "title": "Type",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/Decision"
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "title": "DecisionMade",
+      "type": "object"
+    },
+    "Evidence": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "uploaded_at": {
+          "format": "date-time",
+          "title": "Uploaded At",
+          "type": "string"
+        },
+        "filename": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filename"
+        },
+        "file_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Url"
+        },
+        "extracted_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extracted Text"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "uploaded_at"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "EvidenceKind": {
+      "enum": [
+        "chat_screenshot",
+        "chat_export",
+        "email",
+        "call_recording",
+        "video",
+        "document",
+        "contract",
+        "listing"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "EvidenceRef": {
+      "properties": {
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        }
+      },
+      "required": [
+        "evidence_id"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Fact": {
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/FactKey"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "value",
+        "source",
+        "agent"
+      ],
+      "title": "Fact",
+      "type": "object"
+    },
+    "FactKey": {
+      "enum": [
+        "address",
+        "landlord_name",
+        "company_number",
+        "rent_pcm",
+        "deposit",
+        "bank_account",
+        "email_domain",
+        "move_in_date"
+      ],
+      "title": "FactKey",
+      "type": "string"
+    },
+    "Finding": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        },
+        "check_id": {
+          "$ref": "#/$defs/CheckId"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/Category"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "supports": {
+          "default": "suspicious",
+          "enum": [
+            "suspicious",
+            "cleared"
+          ],
+          "title": "Supports",
+          "type": "string"
+        },
+        "hard_flag": {
+          "default": false,
+          "title": "Hard Flag",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "agent",
+        "check_id",
+        "title",
+        "detail",
+        "category",
+        "severity",
+        "confidence"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "Landlord": {
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "company_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Company Name"
+        },
+        "company_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Company Number"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Email"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phone"
+        }
+      },
+      "title": "Landlord",
+      "type": "object"
+    },
+    "Listing": {
+      "properties": {
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "platform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Platform"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Address"
+        },
+        "postcode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Postcode"
+        },
+        "rent_pcm": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rent Pcm"
+        },
+        "deposit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deposit"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "title": "Listing",
+      "type": "object"
+    },
+    "Message": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "sender": {
+          "enum": [
+            "student",
+            "agent",
+            "unknown"
+          ],
+          "title": "Sender",
+          "type": "string"
+        },
+        "sent_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sent At"
+        },
+        "channel": {
+          "enum": [
+            "whatsapp",
+            "email",
+            "sms",
+            "call",
+            "platform",
+            "other"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "evidence_id",
+        "sender",
+        "channel",
+        "text"
+      ],
+      "title": "Message",
+      "type": "object"
+    },
+    "OrchestratorMessage": {
+      "properties": {
+        "type": {
+          "const": "orchestrator_message",
+          "default": "orchestrator_message",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "OrchestratorMessage",
+      "type": "object"
+    },
+    "ScoreResult": {
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "contributions": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/CheckId"
+          },
+          "title": "Contributions",
+          "type": "object"
+        }
+      },
+      "required": [
+        "at",
+        "score",
+        "contributions"
+      ],
+      "title": "ScoreResult",
+      "type": "object"
+    },
+    "ScoreUpdated": {
+      "properties": {
+        "type": {
+          "const": "score_updated",
+          "default": "score_updated",
+          "title": "Type",
+          "type": "string"
+        },
+        "score": {
+          "$ref": "#/$defs/ScoreResult"
+        }
+      },
+      "required": [
+        "score"
+      ],
+      "title": "ScoreUpdated",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "StudentContext": {
+      "properties": {
+        "budget_pcm": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Budget Pcm"
+        },
+        "move_in_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Move In Date"
+        },
+        "university": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "University"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "StudentContext",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "likely_scam",
+        "not_verified",
+        "proceed_with_care",
+        "no_red_flags_remaining"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "description": "Root that references every type the frontend needs.",
+  "properties": {
+    "case": {
+      "$ref": "#/$defs/Case"
+    },
+    "decision": {
+      "$ref": "#/$defs/Decision"
+    },
+    "event": {
+      "discriminator": {
+        "mapping": {
+          "actions_proposed": "#/$defs/ActionsProposed",
+          "agent_finished": "#/$defs/AgentFinished",
+          "agent_started": "#/$defs/AgentStarted",
+          "decision_made": "#/$defs/DecisionMade",
+          "orchestrator_message": "#/$defs/OrchestratorMessage",
+          "score_updated": "#/$defs/ScoreUpdated"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AgentStarted"
+        },
+        {
+          "$ref": "#/$defs/AgentFinished"
+        },
+        {
+          "$ref": "#/$defs/ScoreUpdated"
+        },
+        {
+          "$ref": "#/$defs/ActionsProposed"
+        },
+        {
+          "$ref": "#/$defs/OrchestratorMessage"
+        },
+        {
+          "$ref": "#/$defs/DecisionMade"
+        }
+      ],
+      "title": "Event"
+    }
+  },
+  "required": [
+    "case",
+    "decision",
+    "event"
+  ],
+  "title": "Contracts",
+  "type": "object"
+}

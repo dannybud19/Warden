@@ -1,0 +1,36 @@
+{
+  "agent": "companies_house",
+  "version": "0.1.0-stub",
+  "status": "ok",
+  "input_hash": "",
+  "findings": [
+    {
+      "id": "companies_house:company_not_found",
+      "agent": "companies_house",
+      "check_id": "landlord_identity",
+      "title": "Prime City Lettings Ltd not found on Companies House",
+      "detail": "No company with this name exists in the Companies House register, yet the agent asks for payment to it.",
+      "category": "identity",
+      "severity": "critical",
+      "confidence": 0.9,
+      "evidence": [
+        {
+          "evidence_id": "ev_chat1",
+          "quote": "Bank transfer to Prime City Lettings Ltd"
+        }
+      ],
+      "supports": "suspicious",
+      "hard_flag": true
+    }
+  ],
+  "facts": [
+    {
+      "key": "landlord_name",
+      "value": "Mark Evans",
+      "source": "landlord",
+      "agent": "companies_house"
+    }
+  ],
+  "questions": [],
+  "duration_ms": 0
+}

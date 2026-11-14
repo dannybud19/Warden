@@ -1,0 +1,229 @@
+# Architecture
+
+How the system fits together. The code is the source of truth: `backend/app/contracts/` for every
+shared schema, `backend/app/core/` for the agent base class and clients. Read `CLAUDE.md` first for the
+short version.
+
+---
+
+## 1. What we are building (one paragraph)
+
+A student who has already picked a property uploads every piece of communication with the property agent
+as it happens (chat screenshots, WhatsApp/email text, call recordings, videos, documents, the contract).
+The case starts at maximum suspicion (score 100, every check unverified). Independent checker agents flag
+every suspicious signal. An orchestrator tracks 8 checks, asks the student clarifying questions or suggests
+actions, and adjusts the score from their answers. When nothing useful is left to ask, or a hard red flag
+is confirmed, it gives a final decision with the full evidence trail.
+
+---
+
+## 2. Architecture principles (non-negotiable)
+
+1. **Contracts are the only shared code.** Every agent reads a `Case` and returns an `AgentReport`.
+   All schemas live in `backend/app/contracts/`. They are frozen after Phase 0 and changed only by the
+   process in section 9 below.
+2. **Agents never import each other.** An agent may import only `app.contracts` and `app.core`.
+   This is enforced by `import-linter` (section 8 below), not by good intentions.
+3. **Dependencies are injected.** Agents get LLM, web search and HTTP clients through `AgentContext`,
+   so every agent runs and tests offline with fakes.
+4. **Every agent has a stub.** A stub returns a fixed report. The orchestrator and UI work end to end
+   before any real agent logic exists, and any agent can be switched back to its stub by env var.
+5. **Storage behind an interface.** `CaseRepository` has an in-memory implementation (default for dev and
+   tests) and a MongoDB Atlas implementation. Nobody waits on database setup.
+6. **The orchestrator core is deterministic.** It decides which agents run, tracks checks, computes the
+   score and decides when to close. LLMs are used inside agents, the consultant and the chat layer only.
+7. **Frontend builds against mocks.** The web app can run fully on `fixtures/reports/*.json` with
+   `NEXT_PUBLIC_USE_MOCK=1`, using TypeScript types generated from the Python contracts.
+
+---
+
+## 3. Tech stack
+
+| Layer | Choice |
+| --- | --- |
+| Backend | Python 3.12, FastAPI, Pydantic v2, asyncio, managed with `uv` |
+| Quality | ruff (lint + format), pyright (basic), pytest + pytest-asyncio, import-linter, pre-commit |
+| LLM | One `LLMClient` protocol in `app/core/llm.py`; Anthropic adapter first, provider set by env. `FakeLLM` for tests |
+| Live web | Linkup via `WebSearchClient` protocol in `app/core/search.py`; `FakeSearch` for tests |
+| Registers | Companies House public API (key in `.env`) |
+| Storage | `CaseRepository` protocol: `InMemoryCaseRepo` (default), `MongoCaseRepo` (MongoDB Atlas, motor) |
+| Frontend | Next.js (App Router) + TypeScript, pnpm. Types generated from contracts' JSON Schema |
+| Streaming | WebSocket `/cases/{id}/stream` for agent status and orchestrator messages |
+
+---
+
+## 4. Repository layout
+
+```text
+Warden/
+  AGENTS.md                      rules for every coding agent and person
+  CLAUDE.md                      Claude Code entry point (imports AGENTS.md)
+  README.md                      what it is, how to run it, where the docs are
+  docs/                          team docs (architecture, workstreams, decisions, design, brief)
+  plan/                          Danny's private planning files. GITIGNORED
+  .env.example
+  .pre-commit-config.yaml
+  Makefile                       dev, test, lint, types, check
+  backend/
+    pyproject.toml               deps, ruff, pyright, pytest, import-linter config
+    app/
+      contracts/                 FROZEN after Phase 0 (section 9 below)
+        __init__.py              re-exports everything below
+        evidence.py              Evidence, EvidenceKind, Message
+        case.py                  Case, StudentContext, Listing, Landlord, CaseStatus
+        findings.py              Fact, FactKey, Finding, Severity, Category
+        checks.py                CheckId, Check, CheckState, Action, ActionKind, ActionStatus
+        reports.py               AgentReport, AgentStatus, ScoreResult, Decision, Verdict
+        events.py                StreamEvent (WebSocket payloads)
+      core/                      shared infrastructure, no business logic
+        agent.py                 BaseAgent, AgentContext, Need, has_need, slice_for, hash_slice
+        stub.py                  FixtureStub base class used by every agent's stub.py
+        ids.py                   new_id(prefix) helper
+        llm.py                   LLMClient protocol, AnthropicLLM, FakeLLM
+        search.py                WebSearchClient protocol, LinkupSearch, FakeSearch
+        settings.py              pydantic-settings, reads .env
+        logging.py
+      agents/                    one folder per checker agent, owned by one person
+        companies_house/         agent.py, stub.py, prompts/, tests/, README.md
+        message_checker/
+        contract_checker/
+        emotion_classifier/
+        video_analysis/          stub only until later
+      aggregators/
+        scoring/                 scoring.py, weights.yaml, tests/
+        consultant/              consultant.py, action_library.yaml, prompts/, tests/
+      orchestrator/
+        registry.py              the ONE list of agents; stub/real switch per agent
+        events.py                in-process EventBus (per-case pub/sub for the WebSocket)
+        runner.py                select, run in parallel, timeouts, input hashing
+        crosscheck.py            fact comparison rules
+        checks.py                check tracker: findings and answers to check states
+        conversation.py          chat with the student, answer parsing
+        decision.py              final decision rules
+        service.py               CaseService: the use cases the API calls
+      intake/
+        service.py               upload to Evidence + extracted text
+        whatsapp.py              WhatsApp .txt export parser
+        ocr.py                   screenshot to text (vision model)
+        pdf.py                   PDF to text
+        audio.py                 call recording to transcript (later)
+      storage/
+        repository.py            CaseRepository protocol
+        memory.py                InMemoryCaseRepo
+        mongo.py                 MongoCaseRepo
+      api/
+        main.py                  FastAPI app factory
+        routes_cases.py
+        routes_stream.py
+    tests/                       cross-cutting tests (orchestrator, api, import rules)
+    scripts/
+      export_schema.py           contracts to JSON Schema for the frontend
+      run_agent.py               python -m scripts.run_agent <agent> <case.json>
+  fixtures/
+    cases/                       synthetic Case JSON, committed
+    reports/                     AgentReports + full case report for UI mocks, committed
+    private/                     REAL data incl. Danny's case. GITIGNORED, never committed
+  web/                           Next.js app (Audrey)
+    src/types/contracts.ts       GENERATED, do not edit
+    src/mocks/                   loads fixtures/reports
+```
+
+---
+
+## 7. Orchestrator behaviour
+
+`CaseService` methods, each persists the Case and emits `StreamEvent`s:
+
+1. `open_case(student, listing, landlord) -> Case`: all 8 checks UNVERIFIED, first ScoreResult = 100.
+2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages, then `analyse()`.
+3. `analyse(case_id)`:
+   1. For each agent in the registry: skip if a `Need` is missing (`SKIPPED` report). Skip if
+      `input_hash` equals the last report's (no rerun). Otherwise schedule.
+   2. Run scheduled agents with `asyncio.gather`, each under `asyncio.wait_for(timeout_s)`.
+      Exceptions and timeouts become `ERROR` reports; the run continues.
+   3. `crosscheck.compare(facts)` adds CONSISTENCY findings (rule-based).
+   4. `checks.update(case)`: a check becomes SUSPICIOUS if it has any `supports="suspicious"` finding with
+      severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
+      answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
+   5. `scoring.score()` appends a ScoreResult.
+   6. If any confirmed `hard_flag` finding: `decide()` and stop.
+   7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
+      Else store and emit the actions and an `orchestrator_message`.
+4. `reply(case_id, text, evidence_ids)`: `conversation.parse()` maps the student's free text onto open
+   actions (status + answer). Answers can clear or flag checks directly via `checks.update`. Then `analyse()`.
+5. `decide(case_id)`: `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
+
+Scoring formula (team doc): `score = 100 * sum(w_i * s_i) / sum(w_i)`, with s = 1 for UNVERIFIED or
+SUSPICIOUS and s = 1 - clear_confidence for CLEARED. Weights in `aggregators/scoring/weights.yaml`:
+
+```yaml
+landlord_identity: 0.20
+payment_safety: 0.20
+right_to_let: 0.15
+in_person_viewing: 0.10
+contract_consistency: 0.10
+deposit_protection: 0.10
+no_pressure: 0.10
+fair_price: 0.05
+```
+
+Verdict rules (`decision.py`):
+
+| Verdict | Rule |
+| --- | --- |
+| likely_scam | Any hard flag, or 2+ of {landlord_identity, payment_safety, right_to_let} SUSPICIOUS |
+| not_verified | Otherwise, if any of those three is not CLEARED |
+| proceed_with_care | Those three CLEARED, some other check not CLEARED |
+| no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
+
+API (`api/`):
+
+| Method | Path | Body / returns |
+| --- | --- | --- |
+| POST | /cases | `{student, listing?, landlord?}` -> Case |
+| POST | /cases/{id}/evidence | multipart file + kind + note -> Case |
+| POST | /cases/{id}/messages | `{text, evidence_ids?}` -> Case |
+| GET | /cases/{id} | Case |
+| GET | /cases/{id}/decision | Decision or 404 |
+| WS | /cases/{id}/stream | StreamEvent JSON |
+
+### API details
+
+- `api/main.py`: `create_app() -> FastAPI` builds Settings, repo (memory or mongo), EventBus, agents,
+  context and `CaseService`, stores them on `app.state`, adds CORS from settings, and includes both routers.
+  Module-level `app = create_app()`.
+- Request models live in `api/` (not in contracts): `OpenCaseRequest(student, listing, landlord)`,
+  `ReplyRequest(text, evidence_ids=[], action_id: str | None = None,
+  status: Literal["done", "skipped", "impossible"] | None = None)`. The web app's action cards send
+  `action_id` and `status`, while free chat sends only `text`. `CaseService.reply` passes both through
+  to `conversation.parse`.
+- `POST /cases/{id}/evidence`: multipart fields `file` (optional), `text` (optional, for pasted
+  email), `kind`, `note`, `student_name`. Exactly one of `file` and `text` is required (422 otherwise).
+- `WS /cases/{id}/stream`: on connect, send a `score_updated` with the latest score, then forward bus
+  events as `event.model_dump_json()` until disconnect, then unsubscribe.
+- Errors: unknown case gives 404, decided case gives 409, validation gives 422.
+
+---
+
+## 8. Quality gates
+
+- `make check` = ruff check, ruff format --check, pyright, import-linter, pytest. Must pass before any push to `main`.
+- import-linter contracts in `backend/pyproject.toml`:
+  - **independence**: `app.agents.companies_house`, `app.agents.message_checker`,
+    `app.agents.contract_checker`, `app.agents.emotion_classifier`, `app.agents.video_analysis`.
+  - **forbidden**: `app.agents` and `app.aggregators` must not import `app.orchestrator`, `app.api`,
+    `app.storage`, `app.intake`.
+  - **layers**: `app.api` > `app.orchestrator` > (`app.aggregators`, `app.agents`, `app.intake`, `app.storage`) > `app.core` > `app.contracts`.
+- Every agent folder has at least: one test that runs the real agent on a fixture case with `FakeLLM`
+  and `FakeSearch`, and one test that its stub returns a valid `AgentReport`.
+- No network in tests. Live calls only via `scripts/run_agent.py --live`.
+- pre-commit runs ruff on staged files.
+
+---
+
+## 9. Contract change process
+
+Contracts are frozen when Phase 0 merges. To change one:
+1. Additive only (new optional field, new enum member) unless the whole team agrees.
+2. One PR touching only `app/contracts/`, `fixtures/`, regenerated `web/src/types/contracts.ts`.
+3. Post in the team chat, merge, everyone rebases. Never change contracts inside a feature branch.

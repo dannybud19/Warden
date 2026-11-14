@@ -1,0 +1,47 @@
+{
+  "agent": "emotion_classifier",
+  "version": "0.1.0-stub",
+  "status": "ok",
+  "input_hash": "",
+  "findings": [
+    {
+      "id": "emotion_classifier:urgency_pressure",
+      "agent": "emotion_classifier",
+      "check_id": "no_pressure",
+      "title": "Urgency pressure: three other students",
+      "detail": "The agent uses scarcity and a same-day deadline to rush the decision.",
+      "category": "pressure",
+      "severity": "medium",
+      "confidence": 0.75,
+      "evidence": [
+        {
+          "evidence_id": "ev_chat1",
+          "quote": "Three other students want it."
+        }
+      ],
+      "supports": "suspicious",
+      "hard_flag": false
+    },
+    {
+      "id": "emotion_classifier:rent_below_area",
+      "agent": "emotion_classifier",
+      "check_id": "fair_price",
+      "title": "Rent well below the area average",
+      "detail": "£850 pcm for a flat including bills is well below the approximate area median.",
+      "category": "pricing",
+      "severity": "medium",
+      "confidence": 0.6,
+      "evidence": [
+        {
+          "evidence_id": "ev_chat1",
+          "quote": "£850 pcm"
+        }
+      ],
+      "supports": "suspicious",
+      "hard_flag": false
+    }
+  ],
+  "facts": [],
+  "questions": [],
+  "duration_ms": 0
+}

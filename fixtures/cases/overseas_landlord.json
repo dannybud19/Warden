@@ -1,0 +1,84 @@
+{
+  "case_id": "case_overseas_landlord",
+  "created_at": "2026-11-14T15:00:00Z",
+  "status": "open",
+  "student": {
+    "budget_pcm": 1600,
+    "university": "King's College London",
+    "notes": "First time renting in London"
+  },
+  "listing": {
+    "platform": "Gumtree",
+    "address": "Flat 2, 7 Harcourt Terrace, London SW10 9JP",
+    "postcode": "SW10 9JP",
+    "rent_pcm": 1450,
+    "deposit": 2900
+  },
+  "landlord": {
+    "name": "Peter Hallam",
+    "email": "p.hallam.lets@example.com"
+  },
+  "evidence": [
+    {
+      "id": "ev_chat1",
+      "kind": "chat_export",
+      "uploaded_at": "2026-11-14T15:01:00Z",
+      "filename": "WhatsApp Chat.txt",
+      "extracted_text": "[10/11/2026, 09:15:03] Jamie: Hello, I saw your advert for the flat on Harcourt Terrace. Is it still free?\n[10/11/2026, 09:40:21] Peter Hallam: Good morning Jamie. Yes, it is free. I am an engineer on an offshore project in Dubai so I cannot show it myself.\n[10/11/2026, 09:41:05] Peter Hallam: My agent will give you the keys once the first month and the deposit are paid.\n[10/11/2026, 09:44:18] Jamie: Could a friend of mine see it first?\n[10/11/2026, 10:02:47] Peter Hallam: That is not possible, the flat is being cleaned. Many people are interested so please decide quickly.\n[10/11/2026, 10:03:30] Peter Hallam: I only accept payment by Western Union or gift cards, it is the fastest for international transfers.\n"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-10T09:15:03Z",
+      "channel": "whatsapp",
+      "text": "Hello, I saw your advert for the flat on Harcourt Terrace. Is it still free?"
+    },
+    {
+      "id": "msg_2",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-10T09:40:21Z",
+      "channel": "whatsapp",
+      "text": "Good morning Jamie. Yes, it is free. I am an engineer on an offshore project in Dubai so I cannot show it myself."
+    },
+    {
+      "id": "msg_3",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-10T09:41:05Z",
+      "channel": "whatsapp",
+      "text": "My agent will give you the keys once the first month and the deposit are paid."
+    },
+    {
+      "id": "msg_4",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-10T09:44:18Z",
+      "channel": "whatsapp",
+      "text": "Could a friend of mine see it first?"
+    },
+    {
+      "id": "msg_5",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-10T10:02:47Z",
+      "channel": "whatsapp",
+      "text": "That is not possible, the flat is being cleaned. Many people are interested so please decide quickly."
+    },
+    {
+      "id": "msg_6",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-10T10:03:30Z",
+      "channel": "whatsapp",
+      "text": "I only accept payment by Western Union or gift cards, it is the fastest for international transfers."
+    }
+  ],
+  "checks": [],
+  "actions": [],
+  "reports": {},
+  "score_history": []
+}

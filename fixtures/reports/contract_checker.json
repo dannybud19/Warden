@@ -1,0 +1,42 @@
+{
+  "agent": "contract_checker",
+  "version": "0.1.0-stub",
+  "status": "ok",
+  "input_hash": "",
+  "findings": [
+    {
+      "id": "contract_checker:deposit_above_cap",
+      "agent": "contract_checker",
+      "check_id": "deposit_protection",
+      "title": "Deposit is 2 months' rent, above the 5-week cap",
+      "detail": "The contract asks for a £1,700 deposit on £850 rent. The legal cap is 5 weeks' rent (about £981), and the deposit is held by the landlord, not in a scheme.",
+      "category": "document",
+      "severity": "high",
+      "confidence": 0.9,
+      "evidence": [
+        {
+          "evidence_id": "ev_contract",
+          "quote": "Deposit: £1,700"
+        }
+      ],
+      "supports": "suspicious",
+      "hard_flag": false
+    }
+  ],
+  "facts": [
+    {
+      "key": "address",
+      "value": "W12 7RJ",
+      "source": "ev_contract",
+      "agent": "contract_checker"
+    },
+    {
+      "key": "deposit",
+      "value": "1700",
+      "source": "ev_contract",
+      "agent": "contract_checker"
+    }
+  ],
+  "questions": [],
+  "duration_ms": 0
+}

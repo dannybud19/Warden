@@ -1,0 +1,60 @@
+{
+  "agent": "message_checker",
+  "version": "0.1.0-stub",
+  "status": "ok",
+  "input_hash": "",
+  "findings": [
+    {
+      "id": "message_checker:deposit_before_viewing",
+      "agent": "message_checker",
+      "check_id": "payment_safety",
+      "title": "Deposit requested before any viewing",
+      "detail": "The agent asks for the deposit to be sent today, before the student has seen the property.",
+      "category": "payment",
+      "severity": "critical",
+      "confidence": 0.85,
+      "evidence": [
+        {
+          "evidence_id": "ev_chat1",
+          "quote": "Send the deposit today to hold it."
+        }
+      ],
+      "supports": "suspicious",
+      "hard_flag": true
+    },
+    {
+      "id": "message_checker:landlord_abroad",
+      "agent": "message_checker",
+      "check_id": "in_person_viewing",
+      "title": "Landlord claims to be abroad",
+      "detail": "The agent says they are abroad, so no in-person viewing is possible.",
+      "category": "property",
+      "severity": "high",
+      "confidence": 0.8,
+      "evidence": [
+        {
+          "evidence_id": "ev_chat1",
+          "quote": "I'm working abroad at the moment so viewings aren't possible"
+        }
+      ],
+      "supports": "suspicious",
+      "hard_flag": false
+    }
+  ],
+  "facts": [
+    {
+      "key": "rent_pcm",
+      "value": "850",
+      "source": "ev_chat1",
+      "agent": "message_checker"
+    },
+    {
+      "key": "address",
+      "value": "W12 8QT",
+      "source": "ev_chat1",
+      "agent": "message_checker"
+    }
+  ],
+  "questions": [],
+  "duration_ms": 0
+}

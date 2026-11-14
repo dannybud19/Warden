@@ -1,0 +1,375 @@
+{
+  "case_id": "case_demo_full",
+  "created_at": "2026-11-14T15:00:00Z",
+  "status": "decided",
+  "student": {
+    "budget_pcm": 1100,
+    "university": "Imperial College London",
+    "notes": "Need somewhere before term starts, running out of options"
+  },
+  "listing": {
+    "platform": "SpareRoom",
+    "address": "Flat 3, 12 Elm Road, London W12 8QT",
+    "postcode": "W12 8QT",
+    "rent_pcm": 850,
+    "deposit": 1700
+  },
+  "landlord": {
+    "name": "Mark Evans",
+    "company_name": "Prime City Lettings Ltd"
+  },
+  "evidence": [
+    {
+      "id": "ev_chat1",
+      "kind": "chat_export",
+      "uploaded_at": "2026-11-14T15:01:00Z",
+      "filename": "WhatsApp Chat.txt",
+      "extracted_text": "[12/11/2026, 18:02:11] Sam: Hi Mark, I'm interested in Flat 3, 12 Elm Road, London W12 8QT. Is it still available?\n[12/11/2026, 18:05:40] Mark Evans: Hello Sam, yes it is available from 1 December. £850 pcm, bills included.\n[12/11/2026, 18:06:02] Sam: Great. Could I come for a viewing this weekend?\n[12/11/2026, 18:09:15] Mark Evans: I'm working abroad at the moment so viewings aren't possible, but I can send a video.\n[12/11/2026, 18:09:50] Mark Evans: My colleague will hand over the keys once everything is paid.\n[12/11/2026, 18:12:30] Sam: I'd really like to see it first. Is that OK?\n[12/11/2026, 18:14:02] Mark Evans: Three other students want it. Send the deposit today to hold it.\n[12/11/2026, 18:14:30] Mark Evans: Bank transfer to Prime City Lettings Ltd, sort code 12-34-56, account 00001234.\n"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-12T18:02:11Z",
+      "channel": "whatsapp",
+      "text": "Hi Mark, I'm interested in Flat 3, 12 Elm Road, London W12 8QT. Is it still available?"
+    },
+    {
+      "id": "msg_2",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:05:40Z",
+      "channel": "whatsapp",
+      "text": "Hello Sam, yes it is available from 1 December. £850 pcm, bills included."
+    },
+    {
+      "id": "msg_3",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-12T18:06:02Z",
+      "channel": "whatsapp",
+      "text": "Great. Could I come for a viewing this weekend?"
+    },
+    {
+      "id": "msg_4",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:09:15Z",
+      "channel": "whatsapp",
+      "text": "I'm working abroad at the moment so viewings aren't possible, but I can send a video."
+    },
+    {
+      "id": "msg_5",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:09:50Z",
+      "channel": "whatsapp",
+      "text": "My colleague will hand over the keys once everything is paid."
+    },
+    {
+      "id": "msg_6",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-12T18:12:30Z",
+      "channel": "whatsapp",
+      "text": "I'd really like to see it first. Is that OK?"
+    },
+    {
+      "id": "msg_7",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:14:02Z",
+      "channel": "whatsapp",
+      "text": "Three other students want it. Send the deposit today to hold it."
+    },
+    {
+      "id": "msg_8",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:14:30Z",
+      "channel": "whatsapp",
+      "text": "Bank transfer to Prime City Lettings Ltd, sort code 12-34-56, account 00001234."
+    }
+  ],
+  "checks": [
+    {
+      "id": "landlord_identity",
+      "state": "cleared",
+      "clear_confidence": 0.8,
+      "finding_ids": [
+        "companies_house:active_company"
+      ],
+      "reason": "Prime City Lettings Ltd is active and 9 years old"
+    },
+    {
+      "id": "payment_safety",
+      "state": "suspicious",
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "reason": "Student reported: No, they asked for a holding deposit before any viewing and I refused."
+    },
+    {
+      "id": "right_to_let",
+      "state": "unverified",
+      "clear_confidence": 0.0,
+      "finding_ids": []
+    },
+    {
+      "id": "in_person_viewing",
+      "state": "suspicious",
+      "clear_confidence": 0.0,
+      "finding_ids": [
+        "message_checker:landlord_abroad"
+      ],
+      "reason": "Landlord claims to be abroad"
+    },
+    {
+      "id": "contract_consistency",
+      "state": "unverified",
+      "clear_confidence": 0.0,
+      "finding_ids": []
+    },
+    {
+      "id": "deposit_protection",
+      "state": "cleared",
+      "clear_confidence": 0.7,
+      "finding_ids": [],
+      "reason": "Confirmed by the student"
+    },
+    {
+      "id": "no_pressure",
+      "state": "suspicious",
+      "clear_confidence": 0.0,
+      "finding_ids": [
+        "emotion_classifier:urgency_pressure"
+      ],
+      "reason": "Urgency pressure: three other students"
+    },
+    {
+      "id": "fair_price",
+      "state": "unverified",
+      "clear_confidence": 0.0,
+      "finding_ids": []
+    }
+  ],
+  "actions": [
+    {
+      "id": "act_payment_method",
+      "check_id": "payment_safety",
+      "kind": "question",
+      "text": "How are they asking you to pay (bank transfer, cash, card)? Has anyone asked for money before a viewing?",
+      "status": "done",
+      "answer": "No, they asked for a holding deposit before any viewing and I refused.",
+      "answer_evidence_ids": [],
+      "outcome": "flags",
+      "asked_at": "2026-11-14T15:04:40.860120Z"
+    },
+    {
+      "id": "act_deposit_scheme",
+      "check_id": "deposit_protection",
+      "kind": "question",
+      "text": "Which government-approved scheme will your deposit be protected in? Ask for the scheme name.",
+      "status": "done",
+      "answer": "Yes, they told me the deposit is protected with the DPS.",
+      "answer_evidence_ids": [],
+      "outcome": "clears",
+      "asked_at": "2026-11-14T15:04:40.860120Z"
+    }
+  ],
+  "reports": {
+    "contract_checker": {
+      "agent": "contract_checker",
+      "version": "0.1.0",
+      "status": "skipped",
+      "input_hash": "77660e1a879d134a",
+      "findings": [],
+      "facts": [],
+      "questions": [],
+      "error": "missing: contract",
+      "duration_ms": 0
+    },
+    "video_analysis": {
+      "agent": "video_analysis",
+      "version": "0.1.0",
+      "status": "skipped",
+      "input_hash": "90a6da8aa09d3d7c",
+      "findings": [],
+      "facts": [],
+      "questions": [],
+      "error": "missing: video",
+      "duration_ms": 0
+    },
+    "companies_house": {
+      "agent": "companies_house",
+      "version": "0.1.0",
+      "status": "ok",
+      "input_hash": "2a70081787c118a3",
+      "findings": [
+        {
+          "id": "companies_house:active_company",
+          "agent": "companies_house",
+          "check_id": "landlord_identity",
+          "title": "Prime City Lettings Ltd is active and 9 years old",
+          "detail": "Companies House lists an active property company incorporated in 2017 (SIC 68310).",
+          "category": "identity",
+          "severity": "info",
+          "confidence": 0.8,
+          "evidence": [
+            {
+              "evidence_id": "ev_chat1",
+              "quote": "Bank transfer to Prime City Lettings Ltd"
+            }
+          ],
+          "supports": "cleared",
+          "hard_flag": false
+        }
+      ],
+      "facts": [],
+      "questions": [],
+      "duration_ms": 0
+    },
+    "message_checker": {
+      "agent": "message_checker",
+      "version": "0.1.0",
+      "status": "ok",
+      "input_hash": "c49bb5eebb052038",
+      "findings": [
+        {
+          "id": "message_checker:landlord_abroad",
+          "agent": "message_checker",
+          "check_id": "in_person_viewing",
+          "title": "Landlord claims to be abroad",
+          "detail": "The agent says they are abroad, so no in-person viewing is possible.",
+          "category": "property",
+          "severity": "high",
+          "confidence": 0.8,
+          "evidence": [
+            {
+              "evidence_id": "ev_chat1",
+              "quote": "I'm working abroad at the moment so viewings aren't possible"
+            }
+          ],
+          "supports": "suspicious",
+          "hard_flag": false
+        }
+      ],
+      "facts": [],
+      "questions": [],
+      "duration_ms": 0
+    },
+    "emotion_classifier": {
+      "agent": "emotion_classifier",
+      "version": "0.1.0",
+      "status": "ok",
+      "input_hash": "c49bb5eebb052038",
+      "findings": [
+        {
+          "id": "emotion_classifier:urgency_pressure",
+          "agent": "emotion_classifier",
+          "check_id": "no_pressure",
+          "title": "Urgency pressure: three other students",
+          "detail": "The agent uses scarcity and a same-day deadline to rush the decision.",
+          "category": "pressure",
+          "severity": "medium",
+          "confidence": 0.75,
+          "evidence": [
+            {
+              "evidence_id": "ev_chat1",
+              "quote": "Three other students want it."
+            }
+          ],
+          "supports": "suspicious",
+          "hard_flag": false
+        }
+      ],
+      "facts": [],
+      "questions": [],
+      "duration_ms": 0
+    },
+    "crosscheck": {
+      "agent": "crosscheck",
+      "version": "0.1.0",
+      "status": "ok",
+      "input_hash": "",
+      "findings": [],
+      "facts": [],
+      "questions": [],
+      "duration_ms": 0
+    }
+  },
+  "score_history": [
+    {
+      "at": "2026-11-14T15:04:40.859303Z",
+      "score": 100.0,
+      "contributions": {
+        "landlord_identity": 20.0,
+        "payment_safety": 20.0,
+        "right_to_let": 15.0,
+        "in_person_viewing": 10.0,
+        "contract_consistency": 10.0,
+        "deposit_protection": 10.0,
+        "no_pressure": 10.0,
+        "fair_price": 5.0
+      }
+    },
+    {
+      "at": "2026-11-14T15:04:40.859989Z",
+      "score": 84.0,
+      "contributions": {
+        "landlord_identity": 4.0,
+        "payment_safety": 20.0,
+        "right_to_let": 15.0,
+        "in_person_viewing": 10.0,
+        "contract_consistency": 10.0,
+        "deposit_protection": 10.0,
+        "no_pressure": 10.0,
+        "fair_price": 5.0
+      }
+    },
+    {
+      "at": "2026-11-14T15:04:40.860769Z",
+      "score": 84.0,
+      "contributions": {
+        "landlord_identity": 4.0,
+        "payment_safety": 20.0,
+        "right_to_let": 15.0,
+        "in_person_viewing": 10.0,
+        "contract_consistency": 10.0,
+        "deposit_protection": 10.0,
+        "no_pressure": 10.0,
+        "fair_price": 5.0
+      }
+    },
+    {
+      "at": "2026-11-14T15:04:40.861448Z",
+      "score": 77.0,
+      "contributions": {
+        "landlord_identity": 4.0,
+        "payment_safety": 20.0,
+        "right_to_let": 15.0,
+        "in_person_viewing": 10.0,
+        "contract_consistency": 10.0,
+        "deposit_protection": 3.0,
+        "no_pressure": 10.0,
+        "fair_price": 5.0
+      }
+    }
+  ],
+  "decision": {
+    "verdict": "not_verified",
+    "decided_at": "2026-11-14T15:04:40.861578Z",
+    "summary": "3 of 8 checks are suspicious, including payment safety, in person viewing, no pressure. Key checks are not verified yet. Do not pay anything until they are.",
+    "reasons": [
+      "Student reported: No, they asked for a holding deposit before any viewing and I refused.",
+      "Landlord claims to be abroad",
+      "Urgency pressure: three other students",
+      "Not yet verified: Does the person have the legal right to let this property?"
+    ],
+    "finding_ids": [
+      "emotion_classifier:urgency_pressure",
+      "message_checker:landlord_abroad"
+    ]
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "case_id": "case_fake_agency",
+  "created_at": "2026-11-14T15:00:00Z",
+  "status": "open",
+  "student": {
+    "budget_pcm": 1100,
+    "university": "Imperial College London",
+    "notes": "Need somewhere before term starts, running out of options"
+  },
+  "listing": {
+    "platform": "SpareRoom",
+    "address": "Flat 3, 12 Elm Road, London W12 8QT",
+    "postcode": "W12 8QT",
+    "rent_pcm": 850,
+    "deposit": 1700
+  },
+  "landlord": {
+    "name": "Mark Evans",
+    "company_name": "Prime City Lettings Ltd"
+  },
+  "evidence": [
+    {
+      "id": "ev_chat1",
+      "kind": "chat_export",
+      "uploaded_at": "2026-11-14T15:01:00Z",
+      "filename": "WhatsApp Chat.txt",
+      "extracted_text": "[12/11/2026, 18:02:11] Sam: Hi Mark, I'm interested in Flat 3, 12 Elm Road, London W12 8QT. Is it still available?\n[12/11/2026, 18:05:40] Mark Evans: Hello Sam, yes it is available from 1 December. £850 pcm, bills included.\n[12/11/2026, 18:06:02] Sam: Great. Could I come for a viewing this weekend?\n[12/11/2026, 18:09:15] Mark Evans: I'm working abroad at the moment so viewings aren't possible, but I can send a video.\n[12/11/2026, 18:09:50] Mark Evans: My colleague will hand over the keys once everything is paid.\n[12/11/2026, 18:12:30] Sam: I'd really like to see it first. Is that OK?\n[12/11/2026, 18:14:02] Mark Evans: Three other students want it. Send the deposit today to hold it.\n[12/11/2026, 18:14:30] Mark Evans: Bank transfer to Prime City Lettings Ltd, sort code 12-34-56, account 00001234.\n"
+    },
+    {
+      "id": "ev_contract",
+      "kind": "contract",
+      "uploaded_at": "2026-11-14T15:05:00Z",
+      "filename": "tenancy_agreement.pdf",
+      "extracted_text": "ASSURED SHORTHOLD TENANCY AGREEMENT\n\nLandlord: Prime City Lettings Ltd\nTenant: Sam\nProperty: 48 Wood Lane, London W12 7RJ\nRent: £850 per calendar month\nDeposit: £1,700, held by the Landlord\nTerm: 12 months from 1 December 2026\n\nThe Tenant shall pay an administration fee of £150 on signing.\n"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-12T18:02:11Z",
+      "channel": "whatsapp",
+      "text": "Hi Mark, I'm interested in Flat 3, 12 Elm Road, London W12 8QT. Is it still available?"
+    },
+    {
+      "id": "msg_2",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:05:40Z",
+      "channel": "whatsapp",
+      "text": "Hello Sam, yes it is available from 1 December. £850 pcm, bills included."
+    },
+    {
+      "id": "msg_3",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-12T18:06:02Z",
+      "channel": "whatsapp",
+      "text": "Great. Could I come for a viewing this weekend?"
+    },
+    {
+      "id": "msg_4",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:09:15Z",
+      "channel": "whatsapp",
+      "text": "I'm working abroad at the moment so viewings aren't possible, but I can send a video."
+    },
+    {
+      "id": "msg_5",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:09:50Z",
+      "channel": "whatsapp",
+      "text": "My colleague will hand over the keys once everything is paid."
+    },
+    {
+      "id": "msg_6",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-12T18:12:30Z",
+      "channel": "whatsapp",
+      "text": "I'd really like to see it first. Is that OK?"
+    },
+    {
+      "id": "msg_7",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:14:02Z",
+      "channel": "whatsapp",
+      "text": "Three other students want it. Send the deposit today to hold it."
+    },
+    {
+      "id": "msg_8",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-12T18:14:30Z",
+      "channel": "whatsapp",
+      "text": "Bank transfer to Prime City Lettings Ltd, sort code 12-34-56, account 00001234."
+    }
+  ],
+  "checks": [],
+  "actions": [],
+  "reports": {},
+  "score_history": []
+}

@@ -1,0 +1,99 @@
+{
+  "case_id": "case_genuine_flat",
+  "created_at": "2026-11-14T15:00:00Z",
+  "status": "open",
+  "student": {
+    "budget_pcm": 1300,
+    "university": "Imperial College London"
+  },
+  "listing": {
+    "platform": "Rightmove",
+    "address": "Flat 5, 21 Mercer Street, London SE1 7LP",
+    "postcode": "SE1 7LP",
+    "rent_pcm": 1200,
+    "deposit": 1384
+  },
+  "landlord": {
+    "name": "Hannah Clarke",
+    "company_name": "Larkfield & Co Lettings Ltd",
+    "company_number": "09123456"
+  },
+  "evidence": [
+    {
+      "id": "ev_chat1",
+      "kind": "chat_export",
+      "uploaded_at": "2026-11-14T15:01:00Z",
+      "filename": "WhatsApp Chat.txt",
+      "extracted_text": "[05/11/2026, 11:02:10] Alex: Hi, I'd like to book a viewing for Flat 5, 21 Mercer Street, London SE1 7LP please.\n[05/11/2026, 11:20:44] Larkfield Lettings: Hello Alex, we have slots on Saturday at 10:30 or 12:00. Our office is at 4 Bridge Road, you can ask for Hannah.\n[05/11/2026, 11:21:30] Alex: 10:30 works, thank you.\n[07/11/2026, 12:05:00] Larkfield Lettings: Thanks for coming today. If you'd like to go ahead, we take a holding deposit of one week's rent (£277) through our online portal.\n[07/11/2026, 12:06:12] Larkfield Lettings: The tenancy deposit of £1,384 is registered with the TDS and you will receive the certificate within 30 days.\n[07/11/2026, 12:10:45] Alex: Great, I'll think about it over the weekend and let you know.\n[07/11/2026, 12:11:20] Larkfield Lettings: No rush, the flat is on the market until the end of the month.\n"
+    },
+    {
+      "id": "ev_contract",
+      "kind": "contract",
+      "uploaded_at": "2026-11-14T15:05:00Z",
+      "filename": "tenancy_agreement.pdf",
+      "extracted_text": "ASSURED SHORTHOLD TENANCY AGREEMENT\n\nLandlord: Larkfield & Co Lettings Ltd (Company No. 09123456), acting as agent\nTenant: Alex\nProperty: Flat 5, 21 Mercer Street, London SE1 7LP\nRent: £1,200 per calendar month\nDeposit: £1,384, protected with the Tenancy Deposit Scheme (TDS) within 30 days\nTerm: 12 months from 1 December 2026\n\nNo fees are payable other than rent, the deposit and permitted default fees under the\nTenant Fees Act 2019.\n"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-05T11:02:10Z",
+      "channel": "whatsapp",
+      "text": "Hi, I'd like to book a viewing for Flat 5, 21 Mercer Street, London SE1 7LP please."
+    },
+    {
+      "id": "msg_2",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-05T11:20:44Z",
+      "channel": "whatsapp",
+      "text": "Hello Alex, we have slots on Saturday at 10:30 or 12:00. Our office is at 4 Bridge Road, you can ask for Hannah."
+    },
+    {
+      "id": "msg_3",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-05T11:21:30Z",
+      "channel": "whatsapp",
+      "text": "10:30 works, thank you."
+    },
+    {
+      "id": "msg_4",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-07T12:05:00Z",
+      "channel": "whatsapp",
+      "text": "Thanks for coming today. If you'd like to go ahead, we take a holding deposit of one week's rent (£277) through our online portal."
+    },
+    {
+      "id": "msg_5",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-07T12:06:12Z",
+      "channel": "whatsapp",
+      "text": "The tenancy deposit of £1,384 is registered with the TDS and you will receive the certificate within 30 days."
+    },
+    {
+      "id": "msg_6",
+      "evidence_id": "ev_chat1",
+      "sender": "student",
+      "sent_at": "2026-11-07T12:10:45Z",
+      "channel": "whatsapp",
+      "text": "Great, I'll think about it over the weekend and let you know."
+    },
+    {
+      "id": "msg_7",
+      "evidence_id": "ev_chat1",
+      "sender": "agent",
+      "sent_at": "2026-11-07T12:11:20Z",
+      "channel": "whatsapp",
+      "text": "No rush, the flat is on the market until the end of the month."
+    }
+  ],
+  "checks": [],
+  "actions": [],
+  "reports": {},
+  "score_history": []
+}
