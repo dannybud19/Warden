@@ -2,7 +2,7 @@
 
 - From: Georgi
 - To: Danny
-- Status: open
+- Status: done
 - Branch / PR: #7 `fix/consultant-open-cap`
 
 ## What happened
@@ -29,3 +29,10 @@ git fetch origin && git switch --detach origin/fix/consultant-open-cap && make c
 
 Live, with `DEFAULT_AGENT_MODE=real`, a genuine chat gives open actions 3, 3, 2, 1, 0 and then the
 verdict `no_red_flags_remaining`.
+
+## Update (Georgi, evening): merged
+
+#7 merged into `main` (`58cd513`), together with #9 (message_checker: being abroad alone is not a
+red flag; the abroad flag now needs a sign that nobody will show the property). Both only touch
+Georgi's paths. `main` after both: `make check` green, 536 passed, 3 skipped. Nothing for you to do;
+the "yes clears a check" question above still stands if you want to look at it.
