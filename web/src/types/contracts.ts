@@ -94,6 +94,7 @@ export type Source = string;
 export type Agent2 = string;
 export type Facts = Fact[];
 export type Questions = string[];
+export type Summary = string | null;
 export type Error = string | null;
 export type DurationMs = number;
 export type At = string;
@@ -101,9 +102,14 @@ export type Score = number;
 export type ScoreHistory = ScoreResult[];
 export type Verdict = "likely_scam" | "not_verified" | "proceed_with_care" | "no_red_flags_remaining";
 export type DecidedAt = string;
-export type Summary = string;
+export type Summary1 = string;
 export type Reasons = string[];
 export type FindingIds1 = string[];
+export type Role = "student" | "orchestrator";
+export type Text2 = string;
+export type At1 = string;
+export type ActionIds = string[];
+export type Chat = ChatTurn[];
 export type Event = AgentStarted | AgentFinished | ScoreUpdated | ActionsProposed | OrchestratorMessage | DecisionMade;
 export type Type = "agent_started";
 export type Agent3 = string;
@@ -112,7 +118,7 @@ export type Type2 = "score_updated";
 export type Type3 = "actions_proposed";
 export type Actions1 = Action[];
 export type Type4 = "orchestrator_message";
-export type Text2 = string;
+export type Text3 = string;
 export type Type5 = "decision_made";
 
 /**
@@ -137,6 +143,7 @@ export interface Case {
   reports: Reports;
   score_history: ScoreHistory;
   decision: Decision | null;
+  chat: Chat;
 }
 export interface StudentContext {
   budget_pcm: BudgetPcm;
@@ -206,6 +213,7 @@ export interface AgentReport {
   findings: Findings;
   facts: Facts;
   questions: Questions;
+  summary: Summary;
   error: Error;
   duration_ms: DurationMs;
 }
@@ -243,9 +251,18 @@ export interface Contributions {
 export interface Decision {
   verdict: Verdict;
   decided_at: DecidedAt;
-  summary: Summary;
+  summary: Summary1;
   reasons: Reasons;
   finding_ids: FindingIds1;
+}
+/**
+ * One message in the chat between the student and the orchestrator.
+ */
+export interface ChatTurn {
+  role: Role;
+  text: Text2;
+  at: At1;
+  action_ids: ActionIds;
 }
 export interface AgentStarted {
   type: Type;
@@ -265,7 +282,7 @@ export interface ActionsProposed {
 }
 export interface OrchestratorMessage {
   type: Type4;
-  text: Text2;
+  text: Text3;
 }
 export interface DecisionMade {
   type: Type5;

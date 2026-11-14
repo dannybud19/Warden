@@ -1,0 +1,174 @@
+{
+  "case_id": "case_utilities",
+  "created_at": "2026-11-14T15:00:00Z",
+  "status": "open",
+  "student": {
+    "budget_pcm": null,
+    "move_in_date": null,
+    "university": null,
+    "notes": null
+  },
+  "listing": {
+    "url": null,
+    "platform": "SpareRoom",
+    "address": null,
+    "postcode": null,
+    "rent_pcm": 950,
+    "deposit": null,
+    "description": "Bright double room in Zone 2, available 1 Sep, fully furnished."
+  },
+  "landlord": {
+    "name": "Prime City Lettings",
+    "company_name": null,
+    "company_number": null,
+    "email": null,
+    "phone": null
+  },
+  "evidence": [
+    {
+      "id": "ev_chat",
+      "kind": "chat_export",
+      "uploaded_at": "2026-11-14T15:00:00Z",
+      "filename": "chat.txt",
+      "file_url": null,
+      "extracted_text": "[05/11/2026, 11:02:10] Alex: Is anything extra on top of the rent?\n[05/11/2026, 11:03:00] Prime City Lettings: No, all bills are included in the rent.\n[05/11/2026, 11:10:00] Prime City Lettings: To hold the room, send it to my personal account today.\n",
+      "note": null
+    },
+    {
+      "id": "ev_contract",
+      "kind": "contract",
+      "uploaded_at": "2026-11-14T15:00:00Z",
+      "filename": "tenancy.pdf",
+      "file_url": null,
+      "extracted_text": "ASSURED SHORTHOLD TENANCY AGREEMENT\n\nLandlord: Prime City Lettings Ltd\nTenant: Alex\nRent: £950 per calendar month\nUtilities: £60 per month payable to the landlord\nThe tenant agrees to pay to Prime City Lettings Ltd by bank transfer.\nThe tenancy starts 15 Sep 2026 for 12 months.\n",
+      "note": null
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "evidence_id": "ev_chat",
+      "sender": "student",
+      "sent_at": null,
+      "channel": "whatsapp",
+      "text": "Is anything extra on top of the rent?"
+    },
+    {
+      "id": "msg_2",
+      "evidence_id": "ev_chat",
+      "sender": "agent",
+      "sent_at": null,
+      "channel": "whatsapp",
+      "text": "No, all bills are included in the rent."
+    },
+    {
+      "id": "msg_3",
+      "evidence_id": "ev_chat",
+      "sender": "agent",
+      "sent_at": null,
+      "channel": "whatsapp",
+      "text": "To hold the room, send it to my personal account today."
+    }
+  ],
+  "checks": [],
+  "actions": [],
+  "reports": {
+    "contract_checker": {
+      "agent": "contract_checker",
+      "version": "1.0.0",
+      "status": "ok",
+      "input_hash": "h-contract_checker",
+      "findings": [
+        {
+          "id": "contract_checker:utilities-charge",
+          "agent": "contract_checker",
+          "check_id": "contract_consistency",
+          "title": "Utilities charged on top of the rent",
+          "detail": "The contract adds a monthly utilities charge.",
+          "category": "document",
+          "severity": "low",
+          "confidence": 0.8,
+          "evidence": [
+            {
+              "evidence_id": "ev_contract",
+              "quote": "Utilities: £60 per month payable to the landlord"
+            }
+          ],
+          "supports": "suspicious",
+          "hard_flag": false
+        }
+      ],
+      "facts": [
+        {
+          "key": "rent_pcm",
+          "value": "950",
+          "source": "ev_contract",
+          "agent": "contract_checker"
+        }
+      ],
+      "questions": [],
+      "summary": null,
+      "error": null,
+      "duration_ms": 0
+    },
+    "message_checker": {
+      "agent": "message_checker",
+      "version": "1.0.0",
+      "status": "ok",
+      "input_hash": "h-message_checker",
+      "findings": [
+        {
+          "id": "message_checker:bills-included",
+          "agent": "message_checker",
+          "check_id": "fair_price",
+          "title": "Agent says bills are included",
+          "detail": "The agent told the student no extra costs apply.",
+          "category": "pricing",
+          "severity": "info",
+          "confidence": 0.4,
+          "evidence": [
+            {
+              "evidence_id": "ev_chat",
+              "quote": "all bills are included"
+            }
+          ],
+          "supports": "cleared",
+          "hard_flag": false
+        },
+        {
+          "id": "message_checker:personal-account",
+          "agent": "message_checker",
+          "check_id": "payment_safety",
+          "title": "Asked to pay a personal account",
+          "detail": "The agent asked for money to be sent to a personal account.",
+          "category": "payment",
+          "severity": "high",
+          "confidence": 0.8,
+          "evidence": [
+            {
+              "evidence_id": "ev_chat",
+              "quote": "send it to my personal account"
+            }
+          ],
+          "supports": "suspicious",
+          "hard_flag": false
+        }
+      ],
+      "facts": [
+        {
+          "key": "rent_pcm",
+          "value": "950",
+          "source": "ev_chat",
+          "agent": "message_checker"
+        }
+      ],
+      "questions": [],
+      "summary": null,
+      "error": null,
+      "duration_ms": 0
+    }
+  },
+  "score_history": [],
+  "decision": null,
+  "chat": []
+}
