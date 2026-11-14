@@ -338,6 +338,10 @@ def test_partial_address_goes_to_the_description_not_the_address() -> None:
     assert listing is not None and landlord is None
     assert listing.address is None and listing.postcode == "W12"
     assert listing.description == "2 bed flat (listed at: Elm Road, London, W12)"
+    # not repeated when the title already carries it
+    titled = _details(address="Elm Road, London, W12", description="Flat in Elm Road, London, W12")
+    listing, _ = apply_details(Listing(url=URL), None, titled)
+    assert listing is not None and listing.description == "Flat in Elm Road, London, W12"
 
 
 def test_failed_read_changes_nothing_but_the_platform() -> None:

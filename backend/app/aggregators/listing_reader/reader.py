@@ -236,7 +236,7 @@ def apply_details(
     listing = listing or Listing(url=details.url)
     _, full_postcode = rules.split_postcode(details.address or "")
     description = details.description
-    if details.address and not full_postcode:
+    if details.address and not full_postcode and details.address not in (description or ""):
         description = f"{description or ''} (listed at: {details.address})".strip()
     page_listing = {
         "platform": details.platform,
