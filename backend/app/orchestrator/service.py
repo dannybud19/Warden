@@ -127,11 +127,18 @@ class CaseService:
             case = await self._load(case_id, must_be_open=True)
             return await self._analyse(case)
 
-    async def reply(self, case_id: str, text: str, evidence_ids: list[str] | None = None) -> Case:
-        """Map the student's reply onto the open actions, then analyse."""
+    async def reply(
+        self,
+        case_id: str,
+        text: str,
+        evidence_ids: list[str] | None = None,
+        action_id: str | None = None,
+        status: conversation.ReplyStatus | None = None,
+    ) -> Case:
+        """Apply the student's reply to the targeted (or oldest open) action, then analyse."""
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
-            case.actions = conversation.parse(case, text, evidence_ids or [])
+            case.actions = conversation.parse(case, text, evidence_ids or [], action_id, status)
             await self.repo.save(case)
             return await self._analyse(case)
 

@@ -43,8 +43,10 @@ async def add_evidence(
 
 @router.post("/cases/{case_id}/messages")
 async def reply(case_id: str, body: ReplyRequest, request: Request) -> Case:
-    """The student answers the orchestrator."""
-    return await _service(request).reply(case_id, body.text, body.evidence_ids)
+    """The student answers the orchestrator, optionally targeting one action by id."""
+    return await _service(request).reply(
+        case_id, body.text, body.evidence_ids, body.action_id, body.status
+    )
 
 
 @router.get("/cases/{case_id}")

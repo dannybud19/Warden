@@ -119,3 +119,46 @@ def test_websocket_stream(client: TestClient) -> None:
 def test_websocket_unknown_case_is_rejected(client: TestClient) -> None:
     with pytest.raises(WebSocketDisconnect), client.websocket_connect("/cases/case_nope/stream"):
         pass
+
+
+def test_reply_targets_a_specific_action_and_rejects_unknown_ids(client: TestClient) -> None:
+    client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
+    case_id = _open(client)
+    opened = client.post(f"/cases/{case_id}/evidence", data={"kind": "chat_export", "text": CHAT})
+    before = {a["id"]: a for a in opened.json()["actions"]}
+
+    bad = client.post(f"/cases/{case_id}/messages", json={"text": "yes", "action_id": "act_nope"})
+    assert bad.status_code == 422
+    assert client.get(f"/cases/{case_id}").json() == opened.json()  # case unchanged
+
+    second = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "yes", "action_id": "act_company_number"},
+    )
+    assert second.status_code == 200
+    after = {a["id"]: a for a in second.json()["actions"]}
+    assert after["act_company_number"]["status"] == "done"
+    for other in ("act_viewing", "act_payment_method"):
+        assert after[other] == before[other]
+
+    closed = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "no", "action_id": "act_company_number"},
+    )
+    assert closed.status_code == 422
+    assert client.get(f"/cases/{case_id}").json() == second.json()  # case unchanged
+
+    skipped = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "", "action_id": "act_viewing", "status": "skipped"},
+    )
+    assert skipped.status_code == 200
+    by_id = {a["id"]: a for a in skipped.json()["actions"]}
+    assert by_id["act_viewing"]["status"] == "skipped"
+    assert by_id["act_viewing"]["outcome"] == "neutral"
+
+    wrong_status = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "x", "action_id": "act_viewing", "status": "bogus"},
+    )
+    assert wrong_status.status_code == 422
