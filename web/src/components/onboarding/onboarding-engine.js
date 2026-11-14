@@ -201,7 +201,7 @@ function startWardenOnboarding(root, opts) {
     } },
     { ok: () => data.name.trim() && /.+@.+\..+/.test(data.email), run: async () => {
         setState('default');
-        await say(`First, who am I looking out for?`, 'Your name, and an email so I can tell you when a check lands.');
+        await say(`First, who am I looking out for?`, "I'll email you whenever a check lands.");
         showForm(input('name', 'First name', 'text', 'e.g. Sam') + input('email', 'Email', 'email', 'you@example.com') + nextRow(), () => {
           wire(['name', 'email']);
           $('name').addEventListener('input', () => nameTag(first() ? `Hi, ${first()}!` : ''));
@@ -234,8 +234,8 @@ function startWardenOnboarding(root, opts) {
     { ok: () => (!!data.host || !!data.address.trim()) && !readTimer, run: async () => {
         setState('default');
         await say(`Found a place${first() ? `, <b>${first()}?</b>` : '?'}`, profile.firstTimeInUK
-          ? "Paste the listing or the address. New to UK renting? I'll flag anything that isn't normal here."
-          : "Paste the listing or the address. I'll find out who's really behind it.");
+          ? "New to UK renting? I'll flag anything that isn't normal here."
+          : "I'll find out who's really behind it.");
         showForm(input('url', 'Listing link', 'url', 'https://') + `<div class="status" id="status"></div>` +
           `<div class="pair">${input('address', 'Address', 'text', 'e.g. Flat 2, 41 Mile End Road')}${input('rent', 'Rent per month', 'text', '£')}</div>` +
           nextRow('Continue', opts.onCancel ? 'Cancel' : ''), () => {
@@ -246,7 +246,7 @@ function startWardenOnboarding(root, opts) {
     } },
     { ok: () => true, run: async () => {
         setState('default');
-        await say(`Who's letting it?`, 'The agency or landlord. With a company number my agency checker can start straight away.');
+        await say(`Who's letting it?`, 'With a company number, my agency checker can start straight away.');
         showForm(input('agency', 'Agency or landlord', 'text', 'e.g. Quickkeys Lettings') +
           `<div class="pair">${input('companyNumber', 'Company number (optional)', 'text', 'e.g. 01234567')}${input('agentName', "Agent's name (optional)", 'text', 'e.g. Daniel')}</div>` +
           nextRow(), () => wire(['agency', 'companyNumber', 'agentName']));
@@ -281,19 +281,21 @@ function startWardenOnboarding(root, opts) {
     { ok: () => true, run: async () => {
         const has = ['messages', 'contract', 'video'].some((k) => data.files[k]);
         setState(has ? 'green' : risky() ? 'amber' : 'default');
-        await say(has ? `Good clues. Keep them coming.` : `Got any receipts?`, has ? "Add anything else here, or let's keep going." : 'Chats, the contract, a viewing video. Every message is a clue. All optional.');
+        await say(has ? `Good clues. Keep them coming.` : `Got any receipts?`, has ? "Add anything else here, or let's keep going." : 'Every message is a clue. All optional.');
         showForm(tiles([['messages', 'chat', 'Messages', 'image/*,.txt,.zip'], ['contract', 'doc', 'Contract', '.pdf,image/*'], ['video', 'camera', 'Viewing video', 'video/*']]) +
           nextRow(has ? 'Continue' : 'Skip for now'), () => { wire([]); wireTiles(() => SCENES[step].run()); });
     } },
     { ok: () => true, run: async () => {
         setState('default');
-        await say(`Anything else that could help?`, 'Emails, their ID, payment details or screenshots. Every document gives my agents more to go on.');
+        await say(`Anything else that could help?`, 'All optional, but every extra document gives my agents more to go on.');
         showForm(tiles([
           ['emails', 'notes', 'Emails', '.eml,.pdf,.txt,image/*'],
-          ['ownership', 'shield', 'Landlord ID or proof of ownership', '.pdf,image/*'],
           ['payment', 'checklist', 'Payment or deposit details', '.pdf,image/*'],
-          ['screens', 'search', 'Listing screenshots', 'image/*,.pdf'],
-        ], 'grid2') + nextRow('Done', 'Skip'), () => { wire([], () => go(step + 1)); wireTiles(null); });
+        ], 'grid2') + `<div class="row"><button class="btn" id="next">Done</button><button class="link" id="skip">Skip</button><button class="link back-end" id="back">Back</button></div>`, () => {
+          wire([]);
+          $('skip').addEventListener('click', () => go(step + 1));
+          wireTiles(null);
+        });
     } },
     { ok: () => true, run: async () => {
         setState('thinking');
@@ -347,7 +349,7 @@ function startWardenOnboarding(root, opts) {
       if (b && !b.disabled) b.click();
     }
   }, { signal });
-  go(0);
+  go(opts.startStep || 0);
   return () => { ac.abort(); clearTimeout(readTimer); sayToken++; };
 }
 

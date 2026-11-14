@@ -221,3 +221,44 @@
 .wd-onb .tiles.grid2 .tile { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 16px; }
 .wd-onb .tiles.grid2 .tile img { width: 44px; height: 44px; margin: 0; flex-shrink: 0; }
 .wd-onb .tiles.grid2 .tile span { line-height: 1.3; }
+
+/* ---- voice call ---- */
+.wd-onb .call-head { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--o-muted); }
+.wd-onb .call-dot { width: 10px; height: 10px; border-radius: 50%; background: #b9c7ca; }
+.wd-onb .call-dot.live { background: #2e9a7c; box-shadow: 0 0 0 0 rgba(46, 154, 124, 0.5); animation: wd-live 1.6s ease-out infinite; }
+@keyframes wd-live { 70% { box-shadow: 0 0 0 10px rgba(46, 154, 124, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 154, 124, 0); } }
+.wd-onb .call-label { color: var(--o-ink); font-weight: 500; }
+.wd-onb .call-time { margin-left: auto; font-variant-numeric: tabular-nums; }
+.wd-onb .call-log {
+  margin-top: 18px; height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 6px 2px;
+  mask-image: linear-gradient(to bottom, transparent, black 32px);
+}
+.wd-onb .call-hint { margin: auto 0 0; font-size: 17px; line-height: 1.5; color: var(--o-muted); }
+.wd-onb .call-line { margin: 0; max-width: 88%; font-size: 17px; line-height: 1.45; padding: 11px 16px; border-radius: 20px; }
+.wd-onb .call-line.agent { align-self: flex-start; background: #eef8f9; color: var(--o-ink); border-top-left-radius: 6px; }
+.wd-onb .call-line.user { align-self: flex-end; background: var(--o-teal); color: #fff; border-top-right-radius: 6px; }
+.wd-onb .call-error { margin: auto 0 0; padding: 12px 14px; border-radius: 16px; background: #fbf2df; color: #6b4a10; font-size: 15px; }
+.wd-onb .call-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+.wd-onb .call-btn {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font: inherit; font-size: 15.5px; font-weight: 500;
+  border-radius: 999px; padding: 13px 22px; border: 1px solid var(--o-line); background: #fff; color: var(--o-ink);
+  transition: transform 0.2s, background 0.2s;
+}
+.wd-onb .call-btn:hover { transform: translateY(-1px); }
+.wd-onb .call-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+.wd-onb .call-btn.end { background: #e06a52; border-color: #e06a52; color: #fff; }
+.wd-onb .call-actions .link { margin-left: auto; }
+/* the intro offers both ways in */
+.wd-onb .btn.call { display: inline-flex; align-items: center; gap: 8px; background: #fff; color: var(--o-teal); border: 1.5px solid var(--o-teal); }
+.wd-onb .btn.call:hover { background: #eef8f9; }
+
+.wd-onb .btn.call-main { display: inline-flex; align-items: center; gap: 9px; }
+.wd-onb .hint { margin: 14px 0 0 4px; font-size: 14.5px; color: var(--o-muted); }
+
+.wd-onb .row .back-end { margin-left: auto; }
+
+/* ---- call orb: Warden morphs into it ---- */
+.wd-onb .orb-stage { aspect-ratio: 1000 / 1100; }
+.wd-onb .morph-mascot { position: absolute; inset: 0; }
+.wd-onb .morph-orb { position: absolute; left: 50%; top: 52%; width: 400px; height: 400px; margin: -200px 0 0 -200px; }
+@media (prefers-reduced-motion: reduce) { .wd-onb .morph-mascot { display: none; } }
