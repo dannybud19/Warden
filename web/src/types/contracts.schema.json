@@ -75,7 +75,12 @@
         "id",
         "check_id",
         "kind",
-        "text"
+        "text",
+        "status",
+        "answer",
+        "answer_evidence_ids",
+        "outcome",
+        "asked_at"
       ],
       "title": "Action",
       "type": "object"
@@ -115,6 +120,7 @@
         }
       },
       "required": [
+        "type",
         "actions"
       ],
       "title": "ActionsProposed",
@@ -133,6 +139,7 @@
         }
       },
       "required": [
+        "type",
         "report"
       ],
       "title": "AgentFinished",
@@ -201,7 +208,12 @@
         "agent",
         "version",
         "status",
-        "input_hash"
+        "input_hash",
+        "findings",
+        "facts",
+        "questions",
+        "error",
+        "duration_ms"
       ],
       "title": "AgentReport",
       "type": "object"
@@ -220,6 +232,7 @@
         }
       },
       "required": [
+        "type",
         "agent"
       ],
       "title": "AgentStarted",
@@ -348,7 +361,18 @@
       },
       "required": [
         "case_id",
-        "created_at"
+        "created_at",
+        "status",
+        "student",
+        "listing",
+        "landlord",
+        "evidence",
+        "messages",
+        "checks",
+        "actions",
+        "reports",
+        "score_history",
+        "decision"
       ],
       "title": "Case",
       "type": "object"
@@ -402,7 +426,11 @@
         }
       },
       "required": [
-        "id"
+        "id",
+        "state",
+        "clear_confidence",
+        "finding_ids",
+        "reason"
       ],
       "title": "Check",
       "type": "object"
@@ -482,6 +510,7 @@
         }
       },
       "required": [
+        "type",
         "decision"
       ],
       "title": "DecisionMade",
@@ -553,7 +582,11 @@
       "required": [
         "id",
         "kind",
-        "uploaded_at"
+        "uploaded_at",
+        "filename",
+        "file_url",
+        "extracted_text",
+        "note"
       ],
       "title": "Evidence",
       "type": "object"
@@ -592,7 +625,8 @@
         }
       },
       "required": [
-        "evidence_id"
+        "evidence_id",
+        "quote"
       ],
       "title": "EvidenceRef",
       "type": "object"
@@ -702,7 +736,10 @@
         "detail",
         "category",
         "severity",
-        "confidence"
+        "confidence",
+        "evidence",
+        "supports",
+        "hard_flag"
       ],
       "title": "Finding",
       "type": "object"
@@ -770,6 +807,13 @@
           "title": "Phone"
         }
       },
+      "required": [
+        "name",
+        "company_name",
+        "company_number",
+        "email",
+        "phone"
+      ],
       "title": "Landlord",
       "type": "object"
     },
@@ -860,6 +904,15 @@
           "title": "Description"
         }
       },
+      "required": [
+        "url",
+        "platform",
+        "address",
+        "postcode",
+        "rent_pcm",
+        "deposit",
+        "description"
+      ],
       "title": "Listing",
       "type": "object"
     },
@@ -916,6 +969,7 @@
         "id",
         "evidence_id",
         "sender",
+        "sent_at",
         "channel",
         "text"
       ],
@@ -936,6 +990,7 @@
         }
       },
       "required": [
+        "type",
         "text"
       ],
       "title": "OrchestratorMessage",
@@ -984,6 +1039,7 @@
         }
       },
       "required": [
+        "type",
         "score"
       ],
       "title": "ScoreUpdated",
@@ -1052,6 +1108,12 @@
           "title": "Notes"
         }
       },
+      "required": [
+        "budget_pcm",
+        "move_in_date",
+        "university",
+        "notes"
+      ],
       "title": "StudentContext",
       "type": "object"
     },

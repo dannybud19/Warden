@@ -19,4 +19,4 @@ test:
 check: lint types imports test
 schema:
 	cd backend && uv run python -m scripts.export_schema ../web/src/types/contracts.schema.json
-	cd web && npx -y -p json-schema-to-typescript json2ts -i src/types/contracts.schema.json -o src/types/contracts.ts
+	cd web && npx -y -p json-schema-to-typescript json2ts -i src/types/contracts.schema.json -o src/types/contracts.ts --additionalProperties false

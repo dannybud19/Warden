@@ -122,87 +122,78 @@ export interface Contracts {
   case: Case;
   decision: Decision;
   event: Event;
-  [k: string]: unknown;
 }
 export interface Case {
   case_id: CaseId;
   created_at: CreatedAt;
-  status?: Status;
-  student?: StudentContext;
-  listing?: Listing | null;
-  landlord?: Landlord | null;
-  evidence?: Evidence;
-  messages?: Messages;
-  checks?: Checks;
-  actions?: Actions;
-  reports?: Reports;
-  score_history?: ScoreHistory;
-  decision?: Decision | null;
-  [k: string]: unknown;
+  status: Status;
+  student: StudentContext;
+  listing: Listing | null;
+  landlord: Landlord | null;
+  evidence: Evidence;
+  messages: Messages;
+  checks: Checks;
+  actions: Actions;
+  reports: Reports;
+  score_history: ScoreHistory;
+  decision: Decision | null;
 }
 export interface StudentContext {
-  budget_pcm?: BudgetPcm;
-  move_in_date?: MoveInDate;
-  university?: University;
-  notes?: Notes;
-  [k: string]: unknown;
+  budget_pcm: BudgetPcm;
+  move_in_date: MoveInDate;
+  university: University;
+  notes: Notes;
 }
 export interface Listing {
-  url?: Url;
-  platform?: Platform;
-  address?: Address;
-  postcode?: Postcode;
-  rent_pcm?: RentPcm;
-  deposit?: Deposit;
-  description?: Description;
-  [k: string]: unknown;
+  url: Url;
+  platform: Platform;
+  address: Address;
+  postcode: Postcode;
+  rent_pcm: RentPcm;
+  deposit: Deposit;
+  description: Description;
 }
 export interface Landlord {
-  name?: Name;
-  company_name?: CompanyName;
-  company_number?: CompanyNumber;
-  email?: Email;
-  phone?: Phone;
-  [k: string]: unknown;
+  name: Name;
+  company_name: CompanyName;
+  company_number: CompanyNumber;
+  email: Email;
+  phone: Phone;
 }
 export interface Evidence1 {
   id: Id;
   kind: EvidenceKind;
   uploaded_at: UploadedAt;
-  filename?: Filename;
-  file_url?: FileUrl;
-  extracted_text?: ExtractedText;
-  note?: Note;
-  [k: string]: unknown;
+  filename: Filename;
+  file_url: FileUrl;
+  extracted_text: ExtractedText;
+  note: Note;
 }
 export interface Message {
   id: Id1;
   evidence_id: EvidenceId;
   sender: Sender;
-  sent_at?: SentAt;
+  sent_at: SentAt;
   channel: Channel;
   text: Text;
-  [k: string]: unknown;
 }
 export interface Check {
   id: CheckId;
-  state?: CheckState;
-  clear_confidence?: ClearConfidence;
-  finding_ids?: FindingIds;
-  reason?: Reason;
-  [k: string]: unknown;
+  state: CheckState;
+  clear_confidence: ClearConfidence;
+  finding_ids: FindingIds;
+  reason: Reason;
 }
 export interface Action {
   id: Id2;
   check_id: CheckId;
   kind: ActionKind;
   text: Text1;
-  status?: ActionStatus;
-  answer?: Answer;
-  answer_evidence_ids?: AnswerEvidenceIds;
-  outcome?: Outcome;
-  asked_at?: AskedAt;
-  [k: string]: unknown;
+  status: ActionStatus;
+  answer: Answer;
+  answer_evidence_ids: AnswerEvidenceIds;
+  outcome: Outcome;
+  asked_at: AskedAt;
 }
 export interface Reports {
   [k: string]: AgentReport;
@@ -212,12 +203,11 @@ export interface AgentReport {
   version: Version;
   status: AgentStatus;
   input_hash: InputHash;
-  findings?: Findings;
-  facts?: Facts;
-  questions?: Questions;
-  error?: Error;
-  duration_ms?: DurationMs;
-  [k: string]: unknown;
+  findings: Findings;
+  facts: Facts;
+  questions: Questions;
+  error: Error;
+  duration_ms: DurationMs;
 }
 export interface Finding {
   id: Id3;
@@ -228,28 +218,24 @@ export interface Finding {
   category: Category;
   severity: Severity;
   confidence: Confidence;
-  evidence?: Evidence2;
-  supports?: Supports;
-  hard_flag?: HardFlag;
-  [k: string]: unknown;
+  evidence: Evidence2;
+  supports: Supports;
+  hard_flag: HardFlag;
 }
 export interface EvidenceRef {
   evidence_id: EvidenceId1;
-  quote?: Quote;
-  [k: string]: unknown;
+  quote: Quote;
 }
 export interface Fact {
   key: FactKey;
   value: Value;
   source: Source;
   agent: Agent2;
-  [k: string]: unknown;
 }
 export interface ScoreResult {
   at: At;
   score: Score;
   contributions: Contributions;
-  [k: string]: unknown;
 }
 export interface Contributions {
   [k: string]: number;
@@ -260,35 +246,28 @@ export interface Decision {
   summary: Summary;
   reasons: Reasons;
   finding_ids: FindingIds1;
-  [k: string]: unknown;
 }
 export interface AgentStarted {
-  type?: Type;
+  type: Type;
   agent: Agent3;
-  [k: string]: unknown;
 }
 export interface AgentFinished {
-  type?: Type1;
+  type: Type1;
   report: AgentReport;
-  [k: string]: unknown;
 }
 export interface ScoreUpdated {
-  type?: Type2;
+  type: Type2;
   score: ScoreResult;
-  [k: string]: unknown;
 }
 export interface ActionsProposed {
-  type?: Type3;
+  type: Type3;
   actions: Actions1;
-  [k: string]: unknown;
 }
 export interface OrchestratorMessage {
-  type?: Type4;
+  type: Type4;
   text: Text2;
-  [k: string]: unknown;
 }
 export interface DecisionMade {
-  type?: Type5;
+  type: Type5;
   decision: Decision;
-  [k: string]: unknown;
 }
