@@ -169,13 +169,44 @@ authority and cross-source expectations. Review concerns and forbidden assertion
 labels. Version the library when accepting revisions. The current strict model deliberately cannot
 silently claim a case has already received human approval.
 
-The generator and offline fixture adapters are complete independently of the orchestrator. The remaining
-evaluation runner should load one case, inject the controlled clients, run real checker code through
-`CaseService`, and compare observed findings/questions/verdicts with the separate manifest. It should
-record agent errors, missing fixture requests, latency, token usage and actual model cost. Run stubs only
-as wiring smoke tests: they replay fixed reports and cannot establish detection quality. Weight tuning,
-live-model performance measurements, persistent conversations and real held-out evaluation remain
+The generator and offline fixture adapters are complete independently of the orchestrator. The live
+system evaluation runner is also implemented; its first 40-case run is documented in
+[RESULTS.md](RESULTS.md). Weight tuning, automatic follow-up delivery and held-out evaluation remain
 separate work. Shared scripts, schemas and other owners' code were not changed here.
+
+## Run a live system evaluation
+
+From `backend/`, with the local key configured:
+
+```bash
+uv run python -m eval.run --live --output eval/runs/my-run --limit 3
+uv run python -m eval.run --live --output eval/runs/my-run --resume
+uv run python -m eval.run --live --output eval/runs/my-run --resume --retry-grading
+```
+
+For this Windows worktree, use `D:\Warden\.venv\Scripts\python.exe -X utf8` instead of `uv run python`,
+and add `--env-file D:\Warden\.env`. Every example above makes paid API calls except when all selected
+checkpoints already exist. The user removed the previous GBP 5 limit for this evaluation; this runner
+records cost without a hard monetary cap. The older contract-only runner retains its original cap.
+
+`eval.run` explicitly instantiates real agents and the real consultant, injects controlled HTTP/search
+responses, preserves the fixture's assessment date, and stops after the first decision or open questions.
+It never supplies labels or follow-up answers to the agents. Video is skipped when absent. It records
+the whole resulting Case, logs, external-request provenance, latency, token usage and list-price cost.
+`system_fixtures.py` adapts declared register sources to the newly merged Companies House client; missing
+routes stay unavailable and are counted separately from a scenario's deliberate outage.
+
+A separate model call grades the saved output against the expectations. Its IDs and quoted claims are
+validated; invalid reference responses can receive one bounded correction attempt. `--no-grade` skips
+semantic grading while keeping application counts. Grader assessments remain provisional and may
+misinterpret internal reference data; retain their details rather than equating them with accuracy.
+
+Results are checkpointed per case, with raw outputs saved before grading. `--resume` skips completed
+paid cases, checks the model/dataset/code revision, and retains the cost journal. `--retry-grading` retries
+only failed graders and reuses raw agent outputs. Use a new directory for a changed dataset or model.
+An exclusive `.running.lock` prevents concurrent writers; after a crash, verify that the old process
+has stopped before removing that single lock file. Run offline checks with
+`python -X utf8 -m pytest -q app tests eval/tests`; no API key is needed for tests.
 
 ## Three decisions for the hackathon presentation
 

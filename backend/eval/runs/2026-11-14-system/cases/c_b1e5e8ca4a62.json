@@ -1,0 +1,905 @@
+{
+  "case_id": "c_b1e5e8ca4a62",
+  "family": "compound",
+  "variant": "compound",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 6309,
+  "outcome": "likely_scam",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [
+    "payment_safety",
+    "in_person_viewing",
+    "no_pressure"
+  ],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [
+    "message_checker:payment_before_viewing",
+    "message_checker:untraceable_payment"
+  ],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_b1e5e8ca4a62",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_b1e5e8ca4a62",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "decided",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3720",
+      "platform": "rental listing",
+      "address": "Flat 2, 20 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_b1e5e8ca4a62_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I am interested in Flat 2, 20 Example Mews, London W12 8QT. Can I view it on 15 November 2026 at 16:00 before paying?\nRowan Pike: The owner Mira Vale is abroad. You cannot view until you pay. Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else.\nAlex Reed: The contract names Mira Vale and lists you, Rowan Pike, as the managing agent. Why are gift cards needed?\nRowan Pike: The codes are our reservation system. There is no bank transfer alternative and no viewing before the codes arrive.\n",
+        "note": null
+      },
+      {
+        "id": "c_b1e5e8ca4a62_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 20 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_b1e5e8ca4a62_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 20 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3720\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_b1e5e8ca4a62_m1",
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I am interested in Flat 2, 20 Example Mews, London W12 8QT. Can I view it on 15 November 2026 at 16:00 before paying?"
+      },
+      {
+        "id": "c_b1e5e8ca4a62_m2",
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "The owner Mira Vale is abroad. You cannot view until you pay. Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else."
+      },
+      {
+        "id": "c_b1e5e8ca4a62_m3",
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "The contract names Mira Vale and lists you, Rowan Pike, as the managing agent. Why are gift cards needed?"
+      },
+      {
+        "id": "c_b1e5e8ca4a62_m4",
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "The codes are our reservation system. There is no bank transfer alternative and no viewing before the codes arrive."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:payment_before_viewing",
+          "message_checker:untraceable_payment"
+        ],
+        "reason": "Money requested before any viewing"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:landlord_abroad",
+          "message_checker:viewing_refused"
+        ],
+        "reason": "Landlord says they are away and cannot meet"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "emotion_classifier:pressure_urgency",
+          "emotion_classifier:pressure_jargon"
+        ],
+        "reason": "Pushed to act now"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "5731562a99077db2",
+        "findings": [
+          {
+            "id": "message_checker:payment_before_viewing",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Money requested before any viewing",
+            "detail": "The agent asks for money before you have seen the property in person. Paying before a viewing is the most common way students lose a deposit.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.9,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "The owner Mira Vale is abroad. You cannot view until you pay. Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": true
+          },
+          {
+            "id": "message_checker:untraceable_payment",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Untraceable payment method requested",
+            "detail": "Money transfer services, gift cards, pre-paid cards and crypto cannot be traced or refunded. Genuine landlords and agencies do not take rent or deposits this way.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.95,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": true
+          },
+          {
+            "id": "message_checker:landlord_abroad",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "Landlord says they are away and cannot meet",
+            "detail": "The agent says they are abroad or unavailable, or that someone else will pass on the keys once you have paid. This is the classic reason given for not showing a property.",
+            "category": "property",
+            "severity": "high",
+            "confidence": 0.8,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "The owner Mira Vale is abroad."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "message_checker:viewing_refused",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "In-person viewing refused",
+            "detail": "The agent will not let you, or someone you trust, see the property in person before you commit.",
+            "category": "property",
+            "severity": "high",
+            "confidence": 0.85,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "You cannot view until you pay."
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "There is no bank transfer alternative and no viewing before the codes arrive."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 20 Example Mews, London W12 8QT",
+            "source": "c_b1e5e8ca4a62_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_b1e5e8ca4a62_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Did you ever see the flat in person, or speak to anyone at Northbank Example Lettings Ltd directly?"
+        ],
+        "error": null,
+        "duration_ms": 1710
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "b71fc50c083213a6",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The cap arithmetic holds: rent of GBP 1300 a month is GBP 15,600 a year, five weeks of that is GBP 1,500.00, and the stated deposit is GBP 1,500. So the amount is at, not above, the cap, and no breach is shown. The conclusion stays conditional because jurisdiction and tenancy type are unknown in the context. Nothing in the contract confirms the property is in England or that this is an ordinary covered private tenancy. It also does not confirm that the rent and deposit cover the same whole tenancy. The Rent and Tenancy deposit clauses (s5, s6) support the figures but not these scope facts. No quoted counter-evidence defeats the issue. This amount check says nothing about deposit protection or authenticity. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 20 Example Mews, London W12 8QT",
+            "source": "c_b1e5e8ca4a62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_b1e5e8ca4a62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_b1e5e8ca4a62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_b1e5e8ca4a62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_b1e5e8ca4a62_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 5826
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "931535f216be9499",
+        "findings": [
+          {
+            "id": "emotion_classifier:pressure_urgency",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Pushed to act now",
+            "detail": "This sets a deadline, which leaves you less time to check anything. This sets a firm deadline with a threat of losing the room, which leaves little time to check anything; the plain version is that payment is wanted by that date.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else."
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "by 16 November 2026 at 18:00, or I will give the room to someone else"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:pressure_jargon",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Wording that hides a plain meaning",
+            "detail": "Calling gift card codes a 'reservation system' makes a payment sound like an official process; the plain version is that you are being asked to hand over gift card codes as payment.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "The codes are our reservation system."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The student asks to view Flat 2, 20 Example Mews on 15 November 2026 at 16:00 before paying. • The owner, Mira Vale, is said to be abroad. • No viewing is possible until payment is made. • Payment is requested as GBP 1500 in prepaid gift cards, with the redemption codes sent to the agent. • The deadline for sending the codes is 16 November 2026 at 18:00. • The student says the contract names Mira Vale and lists Rowan Pike as managing agent. • The agent says no bank transfer alternative is available. • The agent says no viewing will happen before the codes arrive.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "Can I view it on 15 November 2026 at 16:00 before paying?"
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "The owner Mira Vale is abroad."
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "You cannot view until you pay."
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "Buy GBP 1500 in prepaid gift cards and send the redemption codes"
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "by 16 November 2026 at 18:00"
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "The contract names Mira Vale and lists you, Rowan Pike, as the managing agent."
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "There is no bank transfer alternative"
+              },
+              {
+                "evidence_id": "c_b1e5e8ca4a62_e1",
+                "quote": "no viewing before the codes arrive"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 6305
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:14:04.235341Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": {
+      "verdict": "likely_scam",
+      "decided_at": "2026-11-14T20:14:04.235341Z",
+      "summary": "3 of 8 checks are suspicious, including payment safety, in person viewing, no pressure. This looks like a likely scam. Do not send money or personal documents.",
+      "reasons": [
+        "Money requested before any viewing",
+        "Landlord says they are away and cannot meet",
+        "Pushed to act now",
+        "Not yet verified: Is the landlord or agency a real, registered business or person?",
+        "Not yet verified: Does the person have the legal right to let this property?"
+      ],
+      "finding_ids": [
+        "emotion_classifier:pressure_jargon",
+        "emotion_classifier:pressure_urgency",
+        "message_checker:landlord_abroad",
+        "message_checker:payment_before_viewing",
+        "message_checker:untraceable_payment",
+        "message_checker:viewing_refused"
+      ]
+    }
+  },
+  "follow_up_used": false,
+  "grading": {
+    "status": "ok",
+    "case_id": "c_b1e5e8ca4a62",
+    "passed": false,
+    "counts": {
+      "met": 4
+    },
+    "expectations_passed": true,
+    "forbidden_assertions_passed": true,
+    "outcome": "likely_scam",
+    "outcome_allowed": true,
+    "grounding_status": "failed",
+    "grounding_audit": [
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "The owner Mira Vale is abroad. You cannot view until you pay. Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:untraceable_payment",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:landlord_abroad",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "The owner Mira Vale is abroad.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:viewing_refused",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "You cannot view until you pay.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:viewing_refused",
+        "evidence_index": 1,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "There is no bank transfer alternative and no viewing before the codes arrive.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e2",
+        "quote": "Tenancy deposit: GBP 1500.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "evidence_id": "c_b1e5e8ca4a62_e2",
+        "quote": "Rent: GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_urgency",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "Buy GBP 1500 in prepaid gift cards and send the redemption codes by 16 November 2026 at 18:00, or I will give the room to someone else.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_urgency",
+        "evidence_index": 1,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "by 16 November 2026 at 18:00, or I will give the room to someone else",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_jargon",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "The codes are our reservation system.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 0,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "Can I view it on 15 November 2026 at 16:00 before paying?",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 1,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "The owner Mira Vale is abroad.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 2,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "You cannot view until you pay.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 3,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "Buy GBP 1500 in prepaid gift cards and send the redemption codes",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 4,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "by 16 November 2026 at 18:00",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 5,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "The contract names Mira Vale and lists you, Rowan Pike, as the managing agent.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 6,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "There is no bank transfer alternative",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 7,
+        "evidence_id": "c_b1e5e8ca4a62_e1",
+        "quote": "no viewing before the codes arrive",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "evidence_id": "listing",
+        "quote": "£1,300 pcm",
+        "status": "structured_source_match",
+        "reason": null
+      }
+    ],
+    "expectations": [
+      {
+        "finding_ids": [
+          "message_checker:untraceable_payment"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 0,
+        "judgement": "met",
+        "explanation": "message_checker:untraceable_payment is a payment_safety finding. It cites the request to buy GBP 1500 in prepaid gift cards and send redemption codes, which is the payment mechanism and not the owner's location."
+      },
+      {
+        "finding_ids": [
+          "message_checker:viewing_refused",
+          "message_checker:payment_before_viewing"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 1,
+        "judgement": "met",
+        "explanation": "message_checker:viewing_refused is an in_person_viewing finding. It cites \"You cannot view until you pay.\" and the refusal of any viewing before the codes arrive. message_checker:payment_before_viewing supports it on the payment side."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:pressure_urgency"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 2,
+        "judgement": "met",
+        "explanation": "emotion_classifier:pressure_urgency is a no_pressure finding. It cites the 16 November 18:00 deadline with the threat to give the room to someone else, attached to the gift-card demand."
+      },
+      {
+        "finding_ids": [
+          "message_checker:landlord_abroad"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 3,
+        "judgement": "met",
+        "explanation": "message_checker:landlord_abroad is filed under in_person_viewing, not landlord_identity. The landlord_identity check stays unverified with no findings, so no false identity or lack of authority is inferred from the owner being abroad. The decision reasons list identity as \"Not yet verified\"."
+      }
+    ],
+    "forbidden_assertions": [
+      {
+        "finding_ids": [
+          "message_checker:landlord_abroad"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 0,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The abroad finding is a medium-confidence suspicion flag (hard_flag false). The likely_scam verdict rests on the gift-card demand, payment before viewing and the deadline, not on the owner being abroad alone."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 1,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output claims impersonation because the owner and agent names differ. The outputs record Rowan Pike as the contract's letting representative and do not treat the different names as a contradiction."
+      },
+      {
+        "finding_ids": [
+          "contract_checker:deposit_cap:3c598a73a4"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 2,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The contract finding is explicitly conditional and says the cap check does not verify deposit protection or authenticity. The verdict stays likely_scam, so the contract does not cancel the gift-card request."
+      }
+    ],
+    "unsupported_claims": [
+      {
+        "finding_ids": [
+          "emotion_classifier:rent_vs_area"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "output_quote": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher.",
+        "explanation": "The £950 area benchmark is not in any supplied source and no external record backs it. Its \"supports\": \"suspicious\" label also sits oddly with its own info severity and its \"Not a scam sign\" wording."
+      }
+    ],
+    "grounding_issues": [
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "explanation": "The quote \"£1,300 pcm\" matches only a structured rendering of the listing rent. The evidence_id \"listing\" is not an uploaded evidence item. The £950 comparison figure has no source, so the finding is weakly grounded."
+      },
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "explanation": "The quote matches the source, but the finding says \"The agent asks for money before you have seen the property\" while the chat shows the student asking to view before paying. This is mild, because the agent's message does make viewing conditional on payment."
+      }
+    ],
+    "reviewer_note": "Decision likely_scam is in the allowed outcomes. The Companies House lookup returned an error (503) and was not treated as evidence either way. Unverified identity and right_to_let are kept as unknown. The message_checker question asks whether the student has seen the flat, but the student asked to view before paying and was refused. That is a minor mismatch and does not affect any expectation."
+  },
+  "usage": {
+    "attempts": 5,
+    "completed_requests": 5,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.095072",
+    "cost_usd_by_stage": {
+      "grading": "0.048636",
+      "agents": "0.046436"
+    },
+    "input_tokens": 31601,
+    "output_tokens": 3187,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

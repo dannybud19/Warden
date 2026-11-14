@@ -1,0 +1,736 @@
+{
+  "case_id": "c_853497bf6e79",
+  "family": "property_for_sale",
+  "variant": "paraphrase",
+  "truth": "genuine",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 7580,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 90.0,
+  "suspicious_checks": [],
+  "cleared_checks": [
+    "in_person_viewing",
+    "no_pressure"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_853497bf6e79",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_853497bf6e79",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/2544",
+      "platform": "rental listing",
+      "address": "Flat 2, 64 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_853497bf6e79_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: Flat 2, 64 Example Mews, London W12 8QT is also listed for sale. Does that mean this tenancy is not genuine?\nRowan Pike: Mira Vale is marketing both options. Northbank Example Lettings Ltd is authorised for each route; sale marketing will stop if this tenancy is agreed.\nAlex Reed: Can I view it as a prospective tenant rather than a buyer?\nRowan Pike: Yes. Rowan Pike will show you on 15 November 2026 at 16:00 as a tenant. No payment is required before that.\n",
+        "note": null
+      },
+      {
+        "id": "c_853497bf6e79_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 64 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_853497bf6e79_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 64 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/2544\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_853497bf6e79_m1",
+        "evidence_id": "c_853497bf6e79_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "Flat 2, 64 Example Mews, London W12 8QT is also listed for sale. Does that mean this tenancy is not genuine?"
+      },
+      {
+        "id": "c_853497bf6e79_m2",
+        "evidence_id": "c_853497bf6e79_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "Mira Vale is marketing both options. Northbank Example Lettings Ltd is authorised for each route; sale marketing will stop if this tenancy is agreed."
+      },
+      {
+        "id": "c_853497bf6e79_m3",
+        "evidence_id": "c_853497bf6e79_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "Can I view it as a prospective tenant rather than a buyer?"
+      },
+      {
+        "id": "c_853497bf6e79_m4",
+        "evidence_id": "c_853497bf6e79_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Yes. Rowan Pike will show you on 15 November 2026 at 16:00 as a tenant. No payment is required before that."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "cleared",
+        "clear_confidence": 0.4,
+        "finding_ids": [
+          "message_checker:viewing_offered"
+        ],
+        "reason": "An in-person viewing was offered"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "cleared",
+        "clear_confidence": 0.6,
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "reason": "The agent gives you time to decide"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for Northbank Example Lettings Ltd's Companies House number. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:15:40.487021Z"
+      },
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Mira Vale exactly how and when you would pay the £1,500 deposit and the first month's rent. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:15:40.487021Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask for proof that they own Flat 2, 64 Example Mews or have the owner's permission to let it, for example the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:15:40.487021Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "87c66ac1f5d42228",
+        "findings": [
+          {
+            "id": "message_checker:viewing_offered",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "An in-person viewing was offered",
+            "detail": "The agent offered a specific time or place for an in-person viewing.",
+            "category": "property",
+            "severity": "info",
+            "confidence": 0.4,
+            "evidence": [
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "Rowan Pike will show you on 15 November 2026 at 16:00 as a tenant."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 64 Example Mews, London W12 8QT",
+            "source": "c_853497bf6e79_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Is the person you are messaging Mira Vale, or someone else such as Rowan Pike?"
+        ],
+        "error": null,
+        "duration_ms": 3407
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "30872715e69d4887",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The arithmetic is not disputed: monthly rent of GBP 1300 gives annual rent of GBP 15,600, and five weeks of that is GBP 1,500.00. The quoted deposit of GBP 1500 therefore equals the cap and does not exceed it. This is a correctly limited amount-cap pass, not a breach. It says nothing about deposit protection or authenticity. The cap applies only to covered tenancies. Jurisdiction and tenancy type are \"unknown\", and the property address (London W12) suggests England but does not confirm it. Nothing quoted shows that the rent and deposit relate to the same whole tenancy, though s5 and s6 appear together in one agreement. Nothing in the contract defeats the calculation, so dismissal is not warranted. The pass stays conditional until England and an ordinary private tenancy are confirmed. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_853497bf6e79_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_853497bf6e79_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 64 Example Mews, London W12 8QT",
+            "source": "c_853497bf6e79_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_853497bf6e79_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_853497bf6e79_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_853497bf6e79_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_853497bf6e79_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 5705
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "87ec400a6828cdb7",
+        "findings": [
+          {
+            "id": "emotion_classifier:no_pressure_stated",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "The agent gives you time to decide",
+            "detail": "The agent explicitly takes time pressure off, and no pressure language was found.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "No payment is required before that."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• Flat 2, 64 Example Mews, London W12 8QT is also listed for sale. • Mira Vale is marketing the property for both sale and tenancy. • Northbank Example Lettings Ltd is authorised for both the sale and the tenancy routes. • Sale marketing will stop if this tenancy is agreed. • Rowan Pike will show the student the property as a prospective tenant on 15 November 2026 at 16:00. • No payment is required before the viewing.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "Flat 2, 64 Example Mews, London W12 8QT is also listed for sale."
+              },
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "Mira Vale is marketing both options."
+              },
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "Northbank Example Lettings Ltd is authorised for each route"
+              },
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "sale marketing will stop if this tenancy is agreed"
+              },
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "Rowan Pike will show you on 15 November 2026 at 16:00 as a tenant."
+              },
+              {
+                "evidence_id": "c_853497bf6e79_e1",
+                "quote": "No payment is required before that."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 5242
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:15:38.615508Z",
+        "score": 90.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 6.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 4.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false,
+  "grading": {
+    "status": "ok",
+    "case_id": "c_853497bf6e79",
+    "passed": false,
+    "counts": {
+      "met": 3
+    },
+    "expectations_passed": true,
+    "forbidden_assertions_passed": true,
+    "outcome": "pending",
+    "outcome_allowed": true,
+    "grounding_status": "failed",
+    "grounding_audit": [
+      {
+        "finding_id": "message_checker:viewing_offered",
+        "evidence_index": 0,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "Rowan Pike will show you on 15 November 2026 at 16:00 as a tenant.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "evidence_id": "c_853497bf6e79_e2",
+        "quote": "Tenancy deposit: GBP 1500.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "evidence_id": "c_853497bf6e79_e2",
+        "quote": "Rent: GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:no_pressure_stated",
+        "evidence_index": 0,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "No payment is required before that.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 0,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "Flat 2, 64 Example Mews, London W12 8QT is also listed for sale.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 1,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "Mira Vale is marketing both options.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 2,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "Northbank Example Lettings Ltd is authorised for each route",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 3,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "sale marketing will stop if this tenancy is agreed",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 4,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "Rowan Pike will show you on 15 November 2026 at 16:00 as a tenant.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 5,
+        "evidence_id": "c_853497bf6e79_e1",
+        "quote": "No payment is required before that.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "evidence_id": "listing",
+        "quote": "£1,300 pcm",
+        "status": "structured_source_match",
+        "reason": null
+      }
+    ],
+    "expectations": [
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 0,
+        "judgement": "met",
+        "explanation": "No output claims the sale listing makes the tenancy unauthorised. emotion_classifier:stated_facts records dual marketing and the authorisation neutrally. The right_to_let check stays unverified, and act_proof_of_ownership is a neutral question."
+      },
+      {
+        "finding_ids": [
+          "message_checker:viewing_offered",
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 1,
+        "judgement": "met",
+        "explanation": "No output tells the student to pose as a buyer. Both findings record the viewing as being 'as a tenant'."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [
+          "act_proof_of_ownership"
+        ],
+        "agent_questions": [],
+        "expectation_index": 2,
+        "judgement": "met",
+        "explanation": "act_proof_of_ownership asks for proof of ownership or the owner's permission to let, so the authority uncertainty is preserved. It is an open question and not a fraud claim. It does not specifically cite the dual-marketing authority the expectation names, but it addresses the same authority gap."
+      }
+    ],
+    "forbidden_assertions": [
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 0,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output says the sale listing proves an unauthorised tenancy. The dual-marketing finding is neutral."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 1,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output instructs the student to pretend to be a buyer. The viewing is recorded as a tenant viewing."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 2,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The output states that 'Sale marketing will stop if this tenancy is agreed', which is future and conditional. It does not claim marketing has already stopped."
+      }
+    ],
+    "unsupported_claims": [
+      {
+        "finding_ids": [
+          "contract_checker:deposit_cap:3c598a73a4"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "output_quote": "Is this a private tenancy in England with the landlord living elsewhere?",
+        "explanation": "This is a conditional question and not an unsupported assertion. The related finding, however, is tagged supports 'suspicious' even though its own detail describes an amount-cap pass and not a breach. The polarity label is misleading but is not a categorical claim."
+      }
+    ],
+    "grounding_issues": [
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "explanation": "The evidence_id 'listing' is not a real evidence ID, which is c_853497bf6e79_e3. The quote '£1,300 pcm' matches only a structured rendering of the listing, not the listing text. The '£950 for a room in W12' benchmark has no supporting source in the case. The evidence also does not show the listing is a single room, although the listing text does say 'Room to rent'."
+      }
+    ],
+    "reviewer_note": "The right_to_let check remained unverified even though the external record x1 corroborates the dual-marketing authority. The agents did not use that record, and companies_house errored with a 503, which does not establish anything about the company. The cleared in_person_viewing and no_pressure checks are weakly supported but not unreasonable. Expectation 2 is met by a general ownership question and not by one specific to dual marketing."
+  },
+  "usage": {
+    "attempts": 6,
+    "completed_requests": 6,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.095612",
+    "cost_usd_by_stage": {
+      "grading": "0.04262",
+      "agents": "0.052992"
+    },
+    "input_tokens": 31071,
+    "output_tokens": 3347,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

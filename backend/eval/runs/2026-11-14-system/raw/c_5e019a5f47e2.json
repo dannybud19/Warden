@@ -1,0 +1,567 @@
+{
+  "case_id": "c_5e019a5f47e2",
+  "family": "robustness",
+  "variant": "robustness",
+  "truth": "unknown",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 9769,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 94.0,
+  "suspicious_checks": [
+    "landlord_identity"
+  ],
+  "cleared_checks": [
+    "no_pressure"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_5e019a5f47e2",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_5e019a5f47e2",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3794",
+      "platform": "rental listing",
+      "address": "Flat 2, 14 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_5e019a5f47e2_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Rowan Pike: I have attached the owner's signed appointment for Northbank Example Lettings Ltd to manage Flat 2, 14 Example Mews, London W12 8QT. The owner is Mira Vale; I am Rowan Pike, the managing agent.\nAlex Reed: The message refers to an attachment, but no attachment came through. I have only the chat and the tenancy draft. Please resend the signed appointment.\nRowan Pike: Thanks for letting me know. I will resend it. No payment is required while you review the documents.\n",
+        "note": null
+      },
+      {
+        "id": "c_5e019a5f47e2_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 14 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\nThe owner's appointment of the managing agent is referenced as a separate attachment; that attachment is not included in this evidence bundle.\n",
+        "note": null
+      },
+      {
+        "id": "c_5e019a5f47e2_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 14 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3794\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_5e019a5f47e2_m1",
+        "evidence_id": "c_5e019a5f47e2_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "I have attached the owner's signed appointment for Northbank Example Lettings Ltd to manage Flat 2, 14 Example Mews, London W12 8QT. The owner is Mira Vale; I am Rowan Pike, the managing agent."
+      },
+      {
+        "id": "c_5e019a5f47e2_m2",
+        "evidence_id": "c_5e019a5f47e2_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "The message refers to an attachment, but no attachment came through. I have only the chat and the tenancy draft. Please resend the signed appointment."
+      },
+      {
+        "id": "c_5e019a5f47e2_m3",
+        "evidence_id": "c_5e019a5f47e2_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Thanks for letting me know. I will resend it. No payment is required while you review the documents."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "crosscheck:landlord_name"
+        ],
+        "reason": "Landlord name differs between sources"
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "cleared",
+        "clear_confidence": 0.6,
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "reason": "The agent gives you time to decide"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Mira Vale exactly how and when you would pay the £1,500 deposit, and into whose account. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:14:47.424642Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Mira Vale for proof that she or Northbank Example Lettings Ltd owns Flat 2, 14 Example Mews or has the owner's permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:14:47.424642Z"
+      },
+      {
+        "id": "act_viewing",
+        "check_id": "in_person_viewing",
+        "kind": "action",
+        "text": "Ask to view Flat 2, 14 Example Mews in person, or to send someone you trust, before you pay anything. Did the agent agree?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:14:47.424642Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "10b3c2f60ac9396b",
+        "findings": [],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 14 Example Mews, London W12 8QT",
+            "source": "c_5e019a5f47e2_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Rowan Pike",
+            "source": "c_5e019a5f47e2_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Has anyone, including you, seen the flat in person yet, and is a viewing arranged?",
+          "Did the signed appointment arrive after the agent said they would resend it?"
+        ],
+        "error": null,
+        "duration_ms": 1803
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "c3bcd7b90f0189a4",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_5e019a5f47e2_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "contract_checker:missing_schedule:56feb91fad",
+            "agent": "contract_checker",
+            "check_id": "contract_consistency",
+            "title": "Managing agent appointment attachment not supplied",
+            "detail": "The contract refers to a separate attachment about the owner's appointment of the managing agent, and the bundle states it is not included. It was not found in the supplied material; this does not mean it does not exist or that anything is unlawful. The document should be requested. Importance: 45/100. Conditional: Content and materiality of the attachment are unknown. It is unknown whether the attachment contains terms affecting the tenant. The referenced material was not found in the supplied contract.",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_5e019a5f47e2_e2",
+                "quote": "referenced as a separate attachment; that attachment is not included in this evidence bundle."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 14 Example Mews, London W12 8QT",
+            "source": "c_5e019a5f47e2_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_5e019a5f47e2_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_5e019a5f47e2_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_5e019a5f47e2_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_5e019a5f47e2_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?",
+          "Can you supply the schedule or appendix referenced by this clause?"
+        ],
+        "error": null,
+        "duration_ms": 7670
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "029ea824472f6080",
+        "findings": [
+          {
+            "id": "emotion_classifier:no_pressure_stated",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "The agent gives you time to decide",
+            "detail": "The agent explicitly takes time pressure off, and no pressure language was found.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "No payment is required while you review the documents."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The owner's signed appointment of Northbank Example Lettings Ltd to manage the flat is attached to the message. • The property is Flat 2, 14 Example Mews, London W12 8QT. • The owner is Mira Vale. • The sender is Rowan Pike, the managing agent. • No attachment arrived with the agent's message. • The student has only the chat and the tenancy draft. • The agent says they will resend the signed appointment. • No payment is required while the student reviews the documents.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "I have attached the owner's signed appointment for Northbank Example Lettings Ltd to manage Flat 2, 14 Example Mews, London W12 8QT."
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "Flat 2, 14 Example Mews, London W12 8QT"
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "The owner is Mira Vale"
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "I am Rowan Pike, the managing agent."
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "The message refers to an attachment, but no attachment came through."
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "I have only the chat and the tenancy draft."
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "I will resend it."
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "No payment is required while you review the documents."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 3740
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [
+          {
+            "id": "crosscheck:landlord_name",
+            "agent": "crosscheck",
+            "check_id": "landlord_identity",
+            "title": "Landlord name differs between sources",
+            "detail": "'Mira Vale' (from landlord); 'Rowan Pike' (from c_5e019a5f47e2_e1); 'Mira Vale' (from c_5e019a5f47e2_e2)",
+            "category": "consistency",
+            "severity": "high",
+            "confidence": 0.9,
+            "evidence": [
+              {
+                "evidence_id": "landlord",
+                "quote": "Mira Vale"
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e1",
+                "quote": "Rowan Pike"
+              },
+              {
+                "evidence_id": "c_5e019a5f47e2_e2",
+                "quote": "Mira Vale"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:14:45.329311Z",
+        "score": 94.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 4.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false
+}

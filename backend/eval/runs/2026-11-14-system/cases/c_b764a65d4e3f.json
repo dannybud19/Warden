@@ -1,0 +1,712 @@
+{
+  "case_id": "c_b764a65d4e3f",
+  "family": "prepaid_payment",
+  "variant": "concern",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 8872,
+  "outcome": "likely_scam",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [
+    "payment_safety",
+    "in_person_viewing"
+  ],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [
+    "message_checker:untraceable_payment"
+  ],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_b764a65d4e3f",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_b764a65d4e3f",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "decided",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/8118",
+      "platform": "rental listing",
+      "address": "Flat 2, 38 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_b764a65d4e3f_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: How do I pay the GBP 1500 deposit for Flat 2, 38 Example Mews, London W12 8QT?\nRowan Pike: Buy prepaid gift cards and send me clear photos of their redemption codes.\nAlex Reed: Can I use the agency account after a viewing instead?\nRowan Pike: No viewing until I redeem the codes. Do not tell the shop they are for a rental deposit.\n",
+        "note": null
+      },
+      {
+        "id": "c_b764a65d4e3f_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 38 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_b764a65d4e3f_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 38 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/8118\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_b764a65d4e3f_m1",
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "How do I pay the GBP 1500 deposit for Flat 2, 38 Example Mews, London W12 8QT?"
+      },
+      {
+        "id": "c_b764a65d4e3f_m2",
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "Buy prepaid gift cards and send me clear photos of their redemption codes."
+      },
+      {
+        "id": "c_b764a65d4e3f_m3",
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "Can I use the agency account after a viewing instead?"
+      },
+      {
+        "id": "c_b764a65d4e3f_m4",
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "No viewing until I redeem the codes. Do not tell the shop they are for a rental deposit."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:untraceable_payment",
+          "message_checker:payment_before_viewing"
+        ],
+        "reason": "Untraceable payment method requested"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:viewing_refused"
+        ],
+        "reason": "In-person viewing refused"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "bd4ce543bb904f25",
+        "findings": [
+          {
+            "id": "message_checker:untraceable_payment",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Untraceable payment method requested",
+            "detail": "Money transfer services, gift cards, pre-paid cards and crypto cannot be traced or refunded. Genuine landlords and agencies do not take rent or deposits this way.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.95,
+            "evidence": [
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "Buy prepaid gift cards and send me clear photos of their redemption codes."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": true
+          },
+          {
+            "id": "message_checker:viewing_refused",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "In-person viewing refused",
+            "detail": "The agent will not let you, or someone you trust, see the property in person before you commit.",
+            "category": "property",
+            "severity": "high",
+            "confidence": 0.85,
+            "evidence": [
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "No viewing until I redeem the codes."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "message_checker:payment_before_viewing",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Money requested before any viewing",
+            "detail": "The agent asks for money before you have seen the property in person. Paying before a viewing is the most common way students lose a deposit. The agent will only allow a viewing after being paid, so you would be paying for a property you haven't seen.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.8,
+            "evidence": [
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "No viewing until I redeem the codes."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "1500 deposit for Flat 2, 38 Example Mews, London W12 8QT",
+            "source": "c_b764a65d4e3f_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_b764a65d4e3f_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [],
+        "error": null,
+        "duration_ms": 2729
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "83d8faafd00ec39c",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The arithmetic supports a limited amount-cap pass. Rent of GBP 1300 per calendar month gives annual rent of GBP 15,600, and five weeks of that is GBP 1,500.00. The quoted deposit of GBP 1,500 does not exceed the cap. This pass is limited to the amount. It says nothing about deposit protection or authenticity. Jurisdiction and tenancy type are unknown in the context, and nothing confirms that the property is in England, that this is an ordinary covered private tenancy, or that the rent and deposit relate to the same whole tenancy. Because those facts are unresolved, the contract text offers no counter-evidence that defeats the calculation, but the conclusion remains conditional. I do not dismiss it and I do not treat it as a breach. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_b764a65d4e3f_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_b764a65d4e3f_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 38 Example Mews, London W12 8QT",
+            "source": "c_b764a65d4e3f_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_b764a65d4e3f_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_b764a65d4e3f_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_b764a65d4e3f_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_b764a65d4e3f_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 7278
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "67b4e64f1502212e",
+        "findings": [
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The deposit for Flat 2, 38 Example Mews, London W12 8QT is GBP 1500. • Payment is requested by prepaid gift cards, with photos of their redemption codes sent to the agent. • No viewing will happen until the agent has redeemed the codes. • The student is asked not to tell the shop that the cards are for a rental deposit.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "How do I pay the GBP 1500 deposit for Flat 2, 38 Example Mews, London W12 8QT?"
+              },
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "Buy prepaid gift cards and send me clear photos of their redemption codes."
+              },
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "No viewing until I redeem the codes."
+              },
+              {
+                "evidence_id": "c_b764a65d4e3f_e1",
+                "quote": "Do not tell the shop they are for a rental deposit."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 8868
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:12:55.158341Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": {
+      "verdict": "likely_scam",
+      "decided_at": "2026-11-14T20:12:55.159341Z",
+      "summary": "2 of 8 checks are suspicious, including payment safety, in person viewing. This looks like a likely scam. Do not send money or personal documents.",
+      "reasons": [
+        "Untraceable payment method requested",
+        "In-person viewing refused",
+        "Not yet verified: Is the landlord or agency a real, registered business or person?",
+        "Not yet verified: Does the person have the legal right to let this property?"
+      ],
+      "finding_ids": [
+        "message_checker:payment_before_viewing",
+        "message_checker:untraceable_payment",
+        "message_checker:viewing_refused"
+      ]
+    }
+  },
+  "follow_up_used": false,
+  "grading": {
+    "status": "ok",
+    "case_id": "c_b764a65d4e3f",
+    "passed": false,
+    "counts": {
+      "met": 2,
+      "missed": 1
+    },
+    "expectations_passed": false,
+    "forbidden_assertions_passed": true,
+    "outcome": "likely_scam",
+    "outcome_allowed": true,
+    "grounding_status": "failed",
+    "grounding_audit": [
+      {
+        "finding_id": "message_checker:untraceable_payment",
+        "evidence_index": 0,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "Buy prepaid gift cards and send me clear photos of their redemption codes.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:viewing_refused",
+        "evidence_index": 0,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "No viewing until I redeem the codes.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "No viewing until I redeem the codes.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "evidence_id": "c_b764a65d4e3f_e2",
+        "quote": "Tenancy deposit: GBP 1500.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "evidence_id": "c_b764a65d4e3f_e2",
+        "quote": "Rent: GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 0,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "How do I pay the GBP 1500 deposit for Flat 2, 38 Example Mews, London W12 8QT?",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 1,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "Buy prepaid gift cards and send me clear photos of their redemption codes.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 2,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "No viewing until I redeem the codes.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 3,
+        "evidence_id": "c_b764a65d4e3f_e1",
+        "quote": "Do not tell the shop they are for a rental deposit.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "evidence_id": "listing",
+        "quote": "£1,300 pcm",
+        "status": "structured_source_match",
+        "reason": null
+      }
+    ],
+    "expectations": [
+      {
+        "finding_ids": [
+          "message_checker:untraceable_payment"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 0,
+        "judgement": "met",
+        "explanation": "message_checker:untraceable_payment quotes the gift-card and redemption-code request and flags it as a critical hard-flag payment_safety concern. The interpretation matches the source."
+      },
+      {
+        "finding_ids": [
+          "message_checker:payment_before_viewing"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 1,
+        "judgement": "met",
+        "explanation": "message_checker:payment_before_viewing cites 'No viewing until I redeem the codes.' and states that money is requested before any viewing. This is payment_safety with the right polarity. message_checker:viewing_refused covers the separate viewing issue."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 2,
+        "judgement": "missed",
+        "explanation": "emotion_classifier:stated_facts, under no_pressure, quotes 'Do not tell the shop...' and lists the instruction among the stated facts. It is severity info and neither flags nor explains the concealment as a concern. The no_pressure check stays unverified and the decision does not mention concealment. This is a neutral restatement, not an identified concern."
+      }
+    ],
+    "forbidden_assertions": [
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 0,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output says the student bought the cards. The findings describe only the agent's request, and the student never says they bought any."
+      },
+      {
+        "finding_ids": [
+          "message_checker:untraceable_payment"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 1,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The output is about gift cards and pre-paid cards requested for a rental deposit. It does not say all prepaid debit cards are gift-card scams. The generic detail text is scoped to payment for rent or deposits."
+      }
+    ],
+    "unsupported_claims": [],
+    "grounding_issues": [
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "explanation": "The evidence_id 'listing' is a structured-source rendering, not an uploaded evidence record. The rent of £1,300 pcm matches the listing, but the roughly £950 area average has no support in the supplied sources and is an unsourced approximation."
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "explanation": "The quotes are accurate, but the finding is marked supports=suspicious despite being a conditional amount-cap pass. This is a polarity mismatch, not a quote-grounding failure."
+      }
+    ],
+    "reviewer_note": "The decision is likely_scam, which is an allowed outcome. It is backed by hard-flagged gift-card evidence. Companies House returned 503 and was treated as unavailable, not as proof of anything. The concealment expectation was missed because the only related finding is neutral and info-level."
+  },
+  "usage": {
+    "attempts": 5,
+    "completed_requests": 5,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.086316",
+    "cost_usd_by_stage": {
+      "grading": "0.037212",
+      "agents": "0.049104"
+    },
+    "input_tokens": 28163,
+    "output_tokens": 2999,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}
