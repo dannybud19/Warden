@@ -32,6 +32,7 @@ Status: Phase 0 (foundation) is done. Everyone now works in their own workstream
 | `backend/app/agents/video_analysis/` | Stub only (later) | Bill |
 | `backend/app/aggregators/scoring/` | Score formula, weights | Bill |
 | `backend/app/aggregators/consultant/` | Next questions and actions | Georgi |
+| `backend/app/aggregators/crosschecker/` | Cross-checker: flags disagreements between agents' reports, writes the recap | Danny |
 | `backend/app/orchestrator/` | Runner, checks, crosscheck, conversation, decision | Danny |
 | `backend/app/intake/` | Uploads to text and messages | Danny |
 | `backend/app/storage/`, `backend/app/api/` | Repos, FastAPI, WebSocket | Danny |
@@ -153,3 +154,5 @@ from another owner, write a note instead of editing their folder. No secrets or 
 - [ ] `make check` is green
 - [ ] The agent still works as a stub and as real
 - [ ] README in the agent folder updated (what it flags, how to run it alone)
+- [ ] If the change affects anyone else (contracts, API, an agent's facts or findings, a new agent, a new
+      rule): one line added to "Latest changes" at the top of `CLAUDE.md`, and `docs/` updated to match
