@@ -41,3 +41,17 @@ cd backend && uv run pytest -q app/aggregators/listing_reader tests/test_listing
 Live: `DEFAULT_AGENT_MODE=real make dev`, then open a case with a Rightmove link. A direct fetch of
 a Rightmove listing gave agency, rent, deposit, address line and district. Details and limits are in
 `backend/app/aggregators/listing_reader/README.md`.
+
+## Update (Georgi, same evening): overlap with `feat/wire-companies-house`
+
+Read your note to Audrey. Two things about how PR #8 meets that branch:
+
+- **Same function.** Both change `open_case` in `orchestrator/service.py`, so whichever merges
+  second will conflict there. My part is small (read the link, apply the details, before the `Case`
+  is built). Happy to rebase #8 on top of yours once it is merged: tell me in a reply here.
+- **They fit together.** The reader fills `landlord.company_name` from the page ("Marketed by
+  Savills Lettings"), which is exactly what makes your agency check start at `POST /cases`. So a
+  student who only pastes a Rightmove link would get the agency check with no typing.
+- **But mine blocks.** Your `POST /cases` returns in a few ms; with #8 it waits for the fetch. If you
+  prefer, I can move the read into your background step so it arrives over the stream like the
+  agents do. Your call, since it is your orchestrator.
