@@ -44,7 +44,7 @@ is confirmed, it gives a final decision with the full evidence trail.
 | --- | --- |
 | Backend | Python 3.12, FastAPI, Pydantic v2, asyncio, managed with `uv` |
 | Quality | ruff (lint + format), pyright (basic), pytest + pytest-asyncio, import-linter, pre-commit |
-| LLM | One `LLMClient` protocol in `app/core/llm.py`; Anthropic adapter first, provider set by env. `FakeLLM` for tests |
+| LLM | One `LLMClient` protocol in `app/core/llm.py`. `LLM_PROVIDER=anthropic` (default) or `openai_compatible` (Gemini, Groq and others, for free-tier development; see `.env.example`). `FakeLLM` for tests |
 | Live web | Linkup via `WebSearchClient` protocol in `app/core/search.py`; `FakeSearch` for tests |
 | Registers | Companies House public API (key in `.env`) |
 | Storage | `CaseRepository` protocol: `InMemoryCaseRepo` (default), `MongoCaseRepo` (MongoDB Atlas, motor) |
