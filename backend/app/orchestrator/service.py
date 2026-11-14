@@ -156,7 +156,9 @@ class CaseService:
         analyse in the background."""
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
-            case.actions = conversation.parse(case, text, evidence_ids or [], action_id, status)
+            case.actions = conversation.legacy_parse(
+                case, text, evidence_ids or [], action_id, status
+            )
             await self.repo.save(case)
         self._schedule(case_id)
         return case
