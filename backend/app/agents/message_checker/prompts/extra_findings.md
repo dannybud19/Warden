@@ -24,7 +24,7 @@ Use only these names. Raise a flag only when a specific message supports it.
 | `lookalike_link` | sends a link that imitates a known site (Airbnb, SpareRoom, Rightmove, Zoopla, OpenRent, Booking.com) |
 | `overpayment_refund` | talks about overpaying and refunding the difference, in either direction |
 | `pose_as_buyer` | asks the student to pretend to be a buyer, friend or relative, or to pay as "friends and family" |
-| `landlord_abroad` | says they are away, abroad or otherwise unable to be at the property, or that keys come by post, courier or a third party after payment |
+| `landlord_abroad` | says they are away and nobody will show the property in person: keys come by post, courier or a third party only after payment, or no viewing is offered through anyone else. Being away alone is not a flag when an agent or friend can show the property |
 | `viewing_refused` | declines, delays indefinitely or replaces an in-person viewing (video only, "being cleaned", "tenants still inside") |
 | `off_platform_move` | pushes the conversation off the listing platform to private email or chat |
 | `escrow_story` | says a company (Airbnb, Booking.com, TripAdvisor, a courier) will hold the money until the student is happy |
