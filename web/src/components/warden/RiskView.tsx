@@ -12,7 +12,7 @@ import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
 import type { Mood } from "@/lib/present";
 import { CHECK_TILE, SETTLE, goAheadUnlocked, sourceOf, tiles } from "@/lib/dashboard";
-import { currentScore, detailText, sourceUrls } from "@/lib/selectors";
+import { currentScore, detailText, sourceUrls, quoteSource } from "@/lib/selectors";
 import { formatRent, shortAddress } from "@/lib/homes";
 import { Mascot, SourceLinks, rise } from "./primitives";
 import { PILL, REPORT_URL, useDecision, writeDecision } from "./Dashboard";
@@ -281,7 +281,7 @@ export function VerdictCard({ c, mood, caseId, flags }: { c: Case; mood: Mood; c
 function FlagCard({ f, i, c }: { f: Finding; i: number; c: Case }) {
   const [open, setOpen] = useState(false);
   const Icon = CHECK_ICON[f.check_id as CheckId] ?? HelpCircle;
-  const quote = f.evidence?.[0]?.quote;
+  const quotes = (f.evidence ?? []).filter((r) => r.quote);
   const ev = (c.evidence ?? []).find((e) => e.id === f.evidence?.[0]?.evidence_id);
   const date = ev ? new Date(ev.uploaded_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" }) : null;
   const tone = f.severity === "critical" || f.severity === "high" || f.hard_flag ? RED : AMBER;
@@ -310,10 +310,15 @@ function FlagCard({ f, i, c }: { f: Finding; i: number; c: Case }) {
       <AnimatePresence initial={false}>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            {quote ? (
-              <blockquote className="mt-4 rounded-[14px] border-l-[3px] bg-field px-4 py-3 text-[14px] italic leading-[1.5] text-ink/80" style={{ borderColor: tone }}>
-                “{quote}”
-              </blockquote>
+            {quotes.length ? (
+              quotes.map((r, k) => (
+                <figure key={k} className="mt-4">
+                  <blockquote className="rounded-[14px] border-l-[3px] bg-field px-4 py-3 text-[14px] italic leading-[1.5] text-ink/80" style={{ borderColor: tone }}>
+                    “{r.quote}”
+                  </blockquote>
+                  <figcaption className="mt-1.5 pl-1 text-[12.5px] leading-[1.4] text-muted">{quoteSource(c, r)}</figcaption>
+                </figure>
+              ))
             ) : (
               <p className="mt-4 rounded-[14px] bg-field px-4 py-3 text-[14px] leading-[1.5] text-ink/80">{detailText(f)}</p>
             )}
