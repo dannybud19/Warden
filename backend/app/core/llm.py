@@ -102,6 +102,7 @@ class OpenAICompatibleLLM:
     MAX_TOKENS = 8192  # roomy: some models spend output tokens on reasoning first
     RETRY_STATUSES = (429, 500, 502, 503)
     ATTEMPTS = 3
+    TIMEOUT_RETRIES = 1  # with the default 20 s timeout, two attempts fit an agent's 45 s
     retry_delay_s = 2.0
 
     def __init__(self, settings: Settings, http: httpx.AsyncClient) -> None:
@@ -110,6 +111,7 @@ class OpenAICompatibleLLM:
         self._headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
         self._model = settings.llm_model
         self._reasoning_effort = settings.llm_reasoning_effort
+        self._timeout = settings.llm_timeout_s
 
     def _pick_model(self, model: str | None) -> str:
         # An agent may ask for a specific Claude model; that id means nothing to another provider.
@@ -131,11 +133,23 @@ class OpenAICompatibleLLM:
             body["response_format"] = {"type": "json_object"}
         if self._reasoning_effort:
             body["reasoning_effort"] = self._reasoning_effort
+        response: httpx.Response | None = None
+        timeouts = 0
         for attempt in range(1, self.ATTEMPTS + 1):
-            response = await self._http.post(self._url, json=body, headers=self._headers)
+            try:
+                response = await self._http.post(
+                    self._url, json=body, headers=self._headers, timeout=self._timeout
+                )
+            except httpx.TimeoutException:
+                # a slow free tier: retry once, then give up so the agent falls back to its rules
+                timeouts += 1
+                if timeouts > self.TIMEOUT_RETRIES or attempt == self.ATTEMPTS:
+                    raise
+                continue
             if response.status_code not in self.RETRY_STATUSES or attempt == self.ATTEMPTS:
                 break
             await asyncio.sleep(self.retry_delay_s * attempt)  # free tiers rate-limit by the minute
+        assert response is not None
         response.raise_for_status()
         choices = response.json().get("choices") or []
         return (choices[0].get("message", {}).get("content") or "") if choices else ""

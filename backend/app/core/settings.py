@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
     llm_reasoning_effort: str = ""  # optional, e.g. "low"; sent only when set
+    # per attempt, for openai_compatible; two attempts stay under an agent's 45 s limit
+    llm_timeout_s: float = 20.0
     llm_model: str = "claude-sonnet-5-5"
     linkup_api_key: str = ""
     companies_house_api_key: str = ""

@@ -112,3 +112,35 @@ async def test_factory_picks_the_client_from_settings() -> None:
         ctx = build_context(settings)
         assert isinstance(ctx.llm, expected)
         await ctx.http.aclose()
+
+
+def _with_handler(handler, **kwargs: object) -> OpenAICompatibleLLM:  # noqa: ANN001
+    llm = OpenAICompatibleLLM(
+        _settings(**kwargs), httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    )
+    llm.retry_delay_s = 0
+    return llm
+
+
+async def test_a_timeout_is_retried_once_then_raised() -> None:
+    timeouts: list[float | None] = []
+
+    def slow(request: httpx.Request) -> httpx.Response:
+        timeouts.append(request.extensions["timeout"]["read"])
+        raise httpx.ReadTimeout("slow", request=request)
+
+    with pytest.raises(httpx.ReadTimeout):
+        await _with_handler(slow, llm_timeout_s=7.5).complete("system", "user")
+    assert timeouts == [7.5, 7.5]  # its own timeout, and exactly one retry
+
+
+async def test_a_timeout_then_an_answer_succeeds() -> None:
+    replies: list[httpx.Response | None] = [None, _ok("hello")]
+
+    def flaky(request: httpx.Request) -> httpx.Response:
+        reply = replies.pop(0)
+        if reply is None:
+            raise httpx.ReadTimeout("slow", request=request)
+        return reply
+
+    assert await _with_handler(flaky).complete("system", "user") == "hello"
