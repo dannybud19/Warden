@@ -1,0 +1,52 @@
+{
+  "before": {
+    "genuine_likely_scam": 2,
+    "genuine_suspicious_checks": 8,
+    "genuine_untraceable_payment": 2,
+    "genuine_landlord_name_mismatch": 2,
+    "genuine_landlord_abroad": 3,
+    "scams_with_suspicious_checks": 11,
+    "cases_with_payment_confirmation": 0
+  },
+  "after": {
+    "genuine_likely_scam": 0,
+    "genuine_suspicious_checks": 3,
+    "genuine_untraceable_payment": 0,
+    "genuine_landlord_name_mismatch": 0,
+    "genuine_landlord_abroad": 0,
+    "scams_with_suspicious_checks": 11,
+    "cases_with_payment_confirmation": 5
+  },
+  "targeted_pre_viewing": [
+    {
+      "case_id": "c_a919eb7d9823",
+      "before": {
+        "payment_finding": true,
+        "hard_flag_candidate": false,
+        "confirmation_questions": 0,
+        "outcome": "pending"
+      },
+      "after": {
+        "payment_finding": true,
+        "hard_flag_candidate": true,
+        "confirmation_questions": 1,
+        "outcome": "pending"
+      }
+    },
+    {
+      "case_id": "c_8e908328824a",
+      "before": {
+        "payment_finding": true,
+        "hard_flag_candidate": false,
+        "confirmation_questions": 0,
+        "outcome": "pending"
+      },
+      "after": {
+        "payment_finding": true,
+        "hard_flag_candidate": true,
+        "confirmation_questions": 1,
+        "outcome": "pending"
+      }
+    }
+  ]
+}

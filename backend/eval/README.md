@@ -1,5 +1,8 @@
 # Synthetic development cases (WS H, Bill)
 
+Latest: [fixes and the second live run](FIX_RESULTS.md), including payment confirmation and the
+before/after comparison. The [first live evaluation](RESULTS.md) remains the historical baseline.
+
 The generator builds **40 fictional cases** for regression testing. It uses deterministic templates
 and eight optional, Codex-authored wording variants. It needs no API key, makes no network calls,
 adds no dependencies, and does not change shared application schemas. All case labels still need
@@ -18,7 +21,7 @@ uv run python -m pytest -q eval/tests/test_synthetic_generator.py
 In Bill's Windows workspace, the equivalent commands are:
 
 ```powershell
-cd D:\Warden\.worktrees\synthetic-generator\backend
+cd D:\Warden\.worktrees\evaluation-fixes\backend
 & D:\Warden\.venv\Scripts\python.exe -X utf8 -m eval.generate
 & D:\Warden\.venv\Scripts\python.exe -X utf8 -m eval.generate --validate-only
 & D:\Warden\.venv\Scripts\python.exe -X utf8 -m pytest -q app tests eval/tests

@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "git_revision": "33cb57943fa4408f2ff636fdc4eced0878c501d5",
+  "dataset_sha256": "9b1df8e02cc05591e192711bbb922cef84a00a0b8ea84adceb72849d1fa7ff80",
+  "model": "claude-sonnet-5-5",
+  "agent_max_tokens": 2048,
+  "rounds": "initial_only",
+  "external_services": "controlled_fixtures",
+  "label_review": "pending_agent_owner_review",
+  "semantic_grading": false,
+  "started_at": "2026-11-14T20:53:38.209165+00:00",
+  "parallel_cases": 3,
+  "unimplemented_capabilities": [
+    "video analysis",
+    "LLM cross-checker"
+  ]
+}
