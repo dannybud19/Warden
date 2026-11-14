@@ -18,7 +18,16 @@ from app.agents.message_checker.catalog import (
     SPECS,
 )
 from app.agents.message_checker.models import LLMOutput
-from app.agents.message_checker.rules import MAX_QUOTE, Hit, finding, parse_money
+from app.agents.message_checker.rules import (
+    MAX_QUOTE,
+    Hit,
+    abroad_concern_supported,
+    finding,
+    landlord_name_supported,
+    parse_money,
+    payment_requests,
+    untraceable_requests,
+)
 from app.contracts import (
     Case,
     CheckId,
@@ -145,7 +154,7 @@ def _fact(key_raw: str, value: str, message: Message) -> Fact | None:
         value = str(amount)
     # NOTE: a first name or a street without a postcode would look like a mismatch against the
     # listing in the crosscheck, so only full names are passed on, and addresses are left to rules.
-    if key == FactKey.LANDLORD_NAME and len(value.split()) < 2:
+    if key == FactKey.LANDLORD_NAME and not landlord_name_supported(value, message):
         return None
     if key == FactKey.ADDRESS:
         return None
@@ -175,6 +184,18 @@ def convert(output: LLMOutput, case: Case, fired: set[str]) -> LLMResult:
         confidence = _confidence(raw_conf)
         if hit is None or confidence is None:
             continue
+        if not as_clear:
+            if hit.message.sender != "agent":
+                continue
+            if name == "untraceable_payment" and not any(
+                hit.quote in request.quote or request.quote in hit.quote
+                for request in untraceable_requests(hit.message)
+            ):
+                continue
+            if name == "payment_before_viewing" and not payment_requests(hit.message):
+                continue
+            if name == "landlord_abroad" and not abroad_concern_supported(messages):
+                continue
         if name == "other" and not as_clear:
             extra = _other(check_raw, hit, explanation, confidence)
             if extra and extra.id not in {f.id for f in result.findings}:

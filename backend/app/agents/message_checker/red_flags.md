@@ -9,7 +9,9 @@ Owner: Georgi (WS D). This is the spec `rules.py` and `llm.py` are built from. S
   Low and info findings are shown but do not move a check.
 - Suspicious always beats cleared, so one clear cannot hide a flag on the same check.
 - A cleared check lowers the score by `weight * clear_confidence`, so clear confidences are kept modest.
-- A `hard_flag` finding closes the case as `likely_scam` once its check is SUSPICIOUS.
+- A payment `hard_flag` is a candidate: the orchestrator first asks the student to confirm its
+  quoted evidence. An exact yes closes as `likely_scam`; no/unsure/skip preserves the concern and
+  asks for clarification. Other types of hard flag retain their immediate behavior.
 - This agent does NOT flag pressure or urgency. `no_pressure` belongs to `emotion_classifier`.
 
 One finding per rule id (`message_checker:<id>`); every matching message is added as an `EvidenceRef`
@@ -19,14 +21,14 @@ with its exact quote, so reruns replace rather than duplicate.
 
 | Id | Fires when | Check | Category | Severity | Conf. | Hard flag |
 | --- | --- | --- | --- | --- | --- | --- |
-| `payment_before_viewing` | A payment request (see word list) and no completed viewing earlier in the chat | payment_safety | payment | critical | 0.9 explicit, 0.7 otherwise | Only when explicit: the same chat also refuses or rules out a viewing, or ties the payment to holding or securing the place, or to key handover |
-| `untraceable_payment` | Western Union, MoneyGram, gift card, voucher, iTunes/Amazon/Steam/Google Play card, pre-paid card, Paysafecard, crypto, bitcoin, USDT, cash by post | payment_safety | payment | critical | 0.95 | Yes |
+| `payment_before_viewing` | An actual payment request with no earlier completed viewing; ignore denied and explicitly post-viewing-only instructions | payment_safety | payment | critical | 0.9 explicit, 0.7 otherwise | Candidate when explicitly before viewing, viewing is conditional on payment, or money is tied to holding the place/keys or an actual refusal |
+| `untraceable_payment` | A positive request for money-transfer services, gift-card codes, prepaid stored value or crypto; not a denial, mere mention or ordinary prepaid debit card | payment_safety | payment | critical | 0.95 | Candidate, subject to student confirmation |
 | `personal_emoney_transfer` | Revolut, Wise or Monzo named in a payment request, and the payee is not a company (no Ltd, Limited, LLP, Lettings, Estates next to it) | payment_safety | payment | critical | 0.6 | No |
 | `overseas_bank_account` (addition) | An IBAN that does not start with GB, or a SWIFT/BIC code, in a payment request | payment_safety | payment | high | 0.8 | No |
 | `lookalike_link` | A URL whose host contains airbnb, spareroom, rightmove, zoopla, openrent or booking but whose registered domain is not the real one | payment_safety | payment | high | 0.85 | No |
 | `overpayment_refund` | Overpaid, refund the difference, send back the balance, pay more and I will return it | payment_safety | payment | critical | 0.85 | No |
 | `pose_as_buyer` | Asked to say they are a buyer, friend or relative, or to pay as "friends and family" | payment_safety | payment | critical | 0.85 | No |
-| `landlord_abroad` | Abroad, overseas, out of the country, offshore, working in another country; keys by courier, or an agent or colleague hands over keys after payment | in_person_viewing | property | high | 0.8 | No |
+| `landlord_abroad` | Away (abroad, overseas, offshore, out of the country) or keys handed over by courier or a third party, **and** nobody will show the property: a viewing refusal or a key hand-off after payment, with no offer of a viewing through someone else. Being away alone does not fire | in_person_viewing | property | high | 0.8 | No |
 | `viewing_refused` (addition) | Viewings not possible, cannot show it, no viewings, video only, said by the agent after the student asked to view | in_person_viewing | property | high | 0.85 | No |
 | `off_platform_move` | WhatsApp me, email me directly, text me on, contact me on Telegram | in_person_viewing | identity | low | 0.6 | No |
 
@@ -57,7 +59,7 @@ an offered slot. A message such as "you pay nothing until you have viewed" is no
 | `address` | The first UK postcode in the chat, with the address text before it | Only the first one: later postcodes are often the agency's office, and the crosscheck would report a mismatch |
 | `rent_pcm` | `£` amount next to pcm, per month, a month, monthly | Own money parser: `£1,384.00` becomes `1384` |
 | `deposit` | `£` amount next to deposit (not "holding deposit") | Same parser |
-| `landlord_name` | LLM only, and only a full name (two or more words) | A first name alone would look like a mismatch in the crosscheck |
+| `landlord_name` | LLM only, full name and affirmative owner/landlord role in the cited message | Reject invented full names and managing-agent names; omission does not verify identity |
 
 ## LLM pass (`llm.py`, one call)
 
@@ -79,6 +81,8 @@ Guards in code:
 
 - Drop any LLM finding whose quote is not an exact substring of the message it names.
 - Drop an LLM finding whose id already fired from a rule.
+- Reject payment-method claims contradicted by their message and abroad claims without an access
+  barrier. Flags must cite an agent message, not a student's hypothetical question.
 - If the LLM call fails or times out, return the rule findings alone with status `ok`.
 
 ## Expected result on the fixture cases

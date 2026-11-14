@@ -1,0 +1,31 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "No indexed result was returned for the supplied portal; this does not establish ownership or legitimacy.",
+        "title": "portal search"
+      },
+      "method": "GET",
+      "status": 404,
+      "url": "https://records.example/portal_search"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_43aa6dfd7442_x1",
+      "key": "portal_search",
+      "outcome": "not_found",
+      "query_alternatives": [],
+      "query_terms": [
+        "https://portal.northbank.example/booking/2647"
+      ],
+      "snippet": "No indexed result was returned for the supplied portal; this does not establish ownership or legitimacy.",
+      "title": "portal search",
+      "url": "https://records.example/portal_search"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

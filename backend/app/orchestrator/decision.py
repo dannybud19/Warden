@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 from app.contracts import Case, CheckId, CheckState, Decision, Finding, Verdict
+from app.orchestrator import payment_confirmation
 
 CORE_CHECKS = (CheckId.LANDLORD_IDENTITY, CheckId.PAYMENT_SAFETY, CheckId.RIGHT_TO_LET)
 
@@ -39,7 +40,13 @@ def hard_flags(case: Case) -> list[Finding]:
     suspicious_ids = {
         fid for c in case.checks if c.state == CheckState.SUSPICIOUS for fid in c.finding_ids
     }
-    return [f for f in _all_findings(case) if f.hard_flag and f.id in suspicious_ids]
+    return [
+        f
+        for f in _all_findings(case)
+        if f.hard_flag
+        and f.id in suspicious_ids
+        and (f.check_id != CheckId.PAYMENT_SAFETY or payment_confirmation.confirmed(case, f))
+    ]
 
 
 def decide(case: Case) -> Decision:
@@ -51,7 +58,7 @@ def decide(case: Case) -> Decision:
     core_suspicious = [c for c in CORE_CHECKS if state.get(c) == CheckState.SUSPICIOUS]
     core_not_cleared = [c for c in CORE_CHECKS if state.get(c) != CheckState.CLEARED]
 
-    if hard or len(core_suspicious) >= 2:
+    if hard or (len(core_suspicious) >= 2 and not payment_confirmation.pending(case)):
         verdict = Verdict.LIKELY_SCAM
     elif core_not_cleared:
         verdict = Verdict.NOT_VERIFIED

@@ -81,12 +81,14 @@ async def test_every_finding_quotes_a_real_message(
 async def test_llm_adds_findings_but_never_hard_flags(
     genuine_flat_case: Case, ctx: AgentContext
 ) -> None:
+    case = genuine_flat_case.model_copy(deep=True)
+    case.messages[3].text = "A courier will hold your money until you approve the flat."
     reply = {
         "flags": [
             {
-                "flag": "untraceable_payment",
+                "flag": "escrow_story",
                 "message_id": "msg_4",
-                "quote": "through our online portal",
+                "quote": "A courier will hold your money until you approve the flat.",
                 "explanation": "Test.",
                 "confidence": 0.99,
             }
@@ -98,13 +100,14 @@ async def test_llm_adds_findings_but_never_hard_flags(
         ],
         "questions": ["Did you meet Hannah at the office?", "b", "c"],
     }
-    report = await MessageCheckerAgent().run(genuine_flat_case, with_llm(ctx, reply))
-    flag = ids(report)["untraceable_payment"]
+    report = await MessageCheckerAgent().run(case, with_llm(ctx, reply))
+    flag = ids(report)["escrow_story"]
     assert not flag.hard_flag and flag.confidence == 0.8
     # a real flag on payment_safety removes the payment clear
     assert "payment_after_viewing_via_portal" not in ids(report)
     facts = [(f.key, f.value) for f in report.facts]
-    assert (FactKey.LANDLORD_NAME, "Hannah Clarke") in facts
+    # A full name invented from a first name is not grounded in the source message.
+    assert (FactKey.LANDLORD_NAME, "Hannah Clarke") not in facts
     assert (FactKey.LANDLORD_NAME, "Hannah") not in facts
     assert (FactKey.RENT_PCM, "1200") in facts
     assert len(report.questions) == 2

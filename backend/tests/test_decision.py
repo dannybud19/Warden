@@ -62,12 +62,24 @@ def _hard_finding(check: CheckId) -> Finding:
     )
 
 
-def test_hard_flag_means_likely_scam() -> None:
-    finding = _hard_finding(CheckId.PAYMENT_SAFETY)
-    case = _case({CheckId.PAYMENT_SAFETY: CheckState.SUSPICIOUS}, findings=[finding])
+def test_non_payment_hard_flag_means_likely_scam() -> None:
+    finding = _hard_finding(CheckId.LANDLORD_IDENTITY)
+    case = _case({CheckId.LANDLORD_IDENTITY: CheckState.SUSPICIOUS}, findings=[finding])
     decision = decide(case)
     assert decision.verdict == Verdict.LIKELY_SCAM
     assert "t:hard" in decision.finding_ids
+
+
+def test_payment_candidate_cannot_bypass_confirmation_via_two_core_checks() -> None:
+    finding = _hard_finding(CheckId.PAYMENT_SAFETY)
+    case = _case(
+        {
+            CheckId.PAYMENT_SAFETY: CheckState.SUSPICIOUS,
+            CheckId.LANDLORD_IDENTITY: CheckState.SUSPICIOUS,
+        },
+        findings=[finding],
+    )
+    assert decide(case).verdict == Verdict.NOT_VERIFIED
 
 
 def test_two_core_suspicious_means_likely_scam() -> None:
