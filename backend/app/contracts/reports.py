@@ -24,6 +24,7 @@ class AgentReport(BaseModel):
     findings: list[Finding] = []
     facts: list[Fact] = []
     questions: list[str] = []  # uncertainty handed to the consultant
+    summary: str | None = None  # short recap (the Cross-checker writes one for the student)
     error: str | None = None
     duration_ms: int = 0
 

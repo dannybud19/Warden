@@ -35,6 +35,15 @@ class Landlord(BaseModel):
     phone: str | None = None
 
 
+class ChatTurn(BaseModel):
+    """One message in the chat between the student and the orchestrator."""
+
+    role: Literal["student", "orchestrator"]
+    text: str
+    at: datetime
+    action_ids: list[str] = []  # actions this turn answered (student turns only)
+
+
 class Case(BaseModel):
     case_id: str
     created_at: datetime
@@ -49,3 +58,4 @@ class Case(BaseModel):
     reports: dict[str, AgentReport] = {}  # latest report per agent
     score_history: list[ScoreResult] = []
     decision: Decision | None = None
+    chat: list[ChatTurn] = []  # student replies and orchestrator messages, oldest first

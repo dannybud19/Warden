@@ -186,6 +186,18 @@
           "title": "Questions",
           "type": "array"
         },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
         "error": {
           "anyOf": [
             {
@@ -212,6 +224,7 @@
         "findings",
         "facts",
         "questions",
+        "summary",
         "error",
         "duration_ms"
       ],
@@ -357,6 +370,14 @@
             }
           ],
           "default": null
+        },
+        "chat": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ChatTurn"
+          },
+          "title": "Chat",
+          "type": "array"
         }
       },
       "required": [
@@ -372,7 +393,8 @@
         "actions",
         "reports",
         "score_history",
-        "decision"
+        "decision",
+        "chat"
       ],
       "title": "Case",
       "type": "object"
@@ -389,6 +411,44 @@
       ],
       "title": "Category",
       "type": "string"
+    },
+    "ChatTurn": {
+      "description": "One message in the chat between the student and the orchestrator.",
+      "properties": {
+        "role": {
+          "enum": [
+            "student",
+            "orchestrator"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "action_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Action Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "role",
+        "text",
+        "at",
+        "action_ids"
+      ],
+      "title": "ChatTurn",
+      "type": "object"
     },
     "Check": {
       "properties": {
