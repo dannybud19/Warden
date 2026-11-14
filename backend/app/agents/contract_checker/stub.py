@@ -6,4 +6,5 @@ from app.core.stub import FixtureStub
 
 class ContractCheckerStub(FixtureStub):
     name = "contract_checker"
+    version = ContractCheckerAgent.version
     requires = ContractCheckerAgent.requires

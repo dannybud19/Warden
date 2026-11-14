@@ -1,0 +1,10 @@
+FICTIONAL CONTRACT FOR SOFTWARE EVALUATION
+1. Rent: GBP 1300 per calendar month.
+2. Tenancy deposit: GBP 1500.
+3. Holding deposit: GBP 300.
+4. The tenancy is periodic from 1 December 2026 with no fixed end date.
+5. The tenant may end the tenancy with two months' written notice.
+6. No administration fee is payable.
+7. The landlord repairs the structure and wiring; the tenant pays for damage they cause.
+8. Rent in advance: GBP 1300, payable after both parties sign and before the tenancy starts.
+9. Annual rent: GBP 16800 per year.
