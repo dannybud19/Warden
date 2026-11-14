@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { USE_MOCK } from "@/lib/config";
-import "./globals.css";
+import "./dev.css";
 
 export const metadata: Metadata = {
   title: "Rental Scam Shield (dev)",

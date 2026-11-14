@@ -1,5 +1,6 @@
 import { API_URL, USE_MOCK } from "./config";
 import * as mock from "./mock";
+import * as demo from "./demo";
 import type {
   Case, Decision, EvidenceKind, StreamEvent, ConnectionState, ActionStatusInput,
 } from "./types";
@@ -56,11 +57,13 @@ export async function openCase(input: OpenCaseInput): Promise<Case> {
 }
 
 export async function getCase(caseId: string): Promise<Case> {
+  if (caseId === demo.DEMO_CASE_ID) return demo.getCase();
   if (USE_MOCK) return mock.getCase();
   return request<Case>(`/cases/${caseId}`);
 }
 
 export async function getDecision(caseId: string): Promise<Decision | null> {
+  if (caseId === demo.DEMO_CASE_ID) return demo.getCase().decision ?? null;
   if (USE_MOCK) return mock.getCase().decision ?? null;
   try {
     return await request<Decision>(`/cases/${caseId}/decision`);
@@ -71,6 +74,7 @@ export async function getDecision(caseId: string): Promise<Decision | null> {
 }
 
 export async function uploadEvidence(caseId: string, input: UploadInput): Promise<Case> {
+  if (caseId === demo.DEMO_CASE_ID) return demo.upload(input.kind, input.file?.name ?? null);
   if (USE_MOCK) return mock.getCase();
   const form = new FormData();
   form.append("kind", input.kind);
@@ -82,6 +86,7 @@ export async function uploadEvidence(caseId: string, input: UploadInput): Promis
 }
 
 export async function reply(caseId: string, input: ReplyInput): Promise<Case> {
+  if (caseId === demo.DEMO_CASE_ID) return demo.reply(input);
   if (USE_MOCK) return mock.getCase();
   // NOTE: action cards send action_id + status together; free chat sends neither (backend then
   // answers the oldest open action). An unknown or already-closed action_id returns 422.
@@ -103,7 +108,7 @@ export function subscribe(
   onEvent: (e: StreamEvent) => void,
   onState: (s: ConnectionState) => void,
 ): () => void {
-  if (USE_MOCK) {
+  if (USE_MOCK || caseId === demo.DEMO_CASE_ID) {
     onState("mock");
     return () => {};
   }
