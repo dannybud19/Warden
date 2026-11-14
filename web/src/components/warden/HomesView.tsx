@@ -87,10 +87,10 @@ export function PageGlows() {
 
 function partOfDay(): string {
   const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  return h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening";
 }
 
-/** "Good morning" / "Good afternoon" / "Good evening", re-checked every minute. Null on the server. */
+/** "Good Morning" / "Good Afternoon" / "Good Evening", re-checked every minute. Null on the server. */
 function useGreeting(): string | null {
   return useSyncExternalStore(
     (cb) => {
@@ -130,7 +130,9 @@ export function HomesView() {
   const mood = cheer(homes);
   const greeting = useGreeting();
   // The mascot mirrors the home that needs the student most.
-  const heroState: WardenState = loading ? "thinking" : homes[0] ? MASCOT_FOR[homes[0].status] : "default";
+  // Warden's pose follows the riskiest home, not the one that needs the student first.
+  const riskiest = [...homes].sort((a, b) => HOME_STATUS[a.status].rank - HOME_STATUS[b.status].rank)[0];
+  const heroState: WardenState = loading ? "thinking" : riskiest ? MASCOT_FOR[riskiest.status] : "default";
 
   return (
     <div className="relative min-h-dvh overflow-x-clip">
