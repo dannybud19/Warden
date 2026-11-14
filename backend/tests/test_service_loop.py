@@ -2,7 +2,10 @@
 
 from collections.abc import Callable
 
+import pytest
+
 from app.contracts import ActionStatus, Case, CheckState, EvidenceKind, Verdict
+from app.orchestrator.conversation import InvalidActionError
 from app.orchestrator.events import EventBus
 from app.orchestrator.service import CaseService, Upload
 from tests.conftest import EmptyAgent
@@ -75,3 +78,66 @@ async def test_reply_with_no_open_actions_still_settles(
         case = await service.reply(case.case_id, "unclear answer")
     assert case.status == "decided"
     assert all(a.outcome == "neutral" for a in case.actions)
+
+
+async def _case_with_three_open_actions(make_service: MakeService, fake_agency_case: Case):
+    service = make_service([EmptyAgent()])
+    case = await service.open_case(fake_agency_case.student, None, None)
+    case = await service.add_evidence(case.case_id, Upload(EvidenceKind.EMAIL, b"Hello"))
+    assert [a.id for a in case.actions] == [
+        "act_viewing",
+        "act_company_number",
+        "act_payment_method",
+    ]
+    return service, case
+
+
+async def test_reply_with_action_id_updates_only_that_action(
+    make_service: MakeService, fake_agency_case: Case
+) -> None:
+    service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
+    case = await service.reply(case.case_id, "yes, registered", action_id="act_company_number")
+    by_id = {a.id: a for a in case.actions}
+    assert by_id["act_company_number"].status == ActionStatus.DONE
+    assert by_id["act_company_number"].outcome == "clears"
+    assert by_id["act_viewing"].status == ActionStatus.OPEN
+    assert by_id["act_payment_method"].status == ActionStatus.OPEN
+
+
+async def test_skipped_sets_status_with_neutral_outcome(
+    make_service: MakeService, fake_agency_case: Case
+) -> None:
+    service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
+    case = await service.reply(
+        case.case_id, "no, they refused", action_id="act_payment_method", status="skipped"
+    )
+    by_id = {a.id: a for a in case.actions}
+    assert by_id["act_payment_method"].status == ActionStatus.SKIPPED
+    assert by_id["act_payment_method"].outcome == "neutral"  # no keyword parsing
+    assert by_id["act_viewing"].status == ActionStatus.OPEN
+
+
+async def test_impossible_sets_status_with_neutral_outcome(
+    make_service: MakeService, fake_agency_case: Case
+) -> None:
+    service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
+    case = await service.reply(case.case_id, "", action_id="act_viewing", status="impossible")
+    by_id = {a.id: a for a in case.actions}
+    assert by_id["act_viewing"].status == ActionStatus.IMPOSSIBLE
+    assert by_id["act_viewing"].outcome == "neutral"
+
+
+async def test_unknown_or_closed_action_id_is_rejected_without_changes(
+    make_service: MakeService, fake_agency_case: Case
+) -> None:
+    service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
+    with pytest.raises(InvalidActionError):
+        await service.reply(case.case_id, "yes", action_id="act_nope")
+    case = await service.reply(case.case_id, "yes", action_id="act_viewing")
+    with pytest.raises(InvalidActionError):
+        await service.reply(case.case_id, "yes", action_id="act_viewing")  # already done
+    stored = await service.get_case(case.case_id)
+    by_id = {a.id: a.status for a in stored.actions}
+    assert by_id["act_viewing"] == ActionStatus.DONE
+    assert by_id["act_company_number"] == ActionStatus.OPEN
+    assert by_id["act_payment_method"] == ActionStatus.OPEN

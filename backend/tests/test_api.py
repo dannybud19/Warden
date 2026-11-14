@@ -119,3 +119,35 @@ def test_websocket_stream(client: TestClient) -> None:
 def test_websocket_unknown_case_is_rejected(client: TestClient) -> None:
     with pytest.raises(WebSocketDisconnect), client.websocket_connect("/cases/case_nope/stream"):
         pass
+
+
+def test_reply_targets_a_specific_action_and_rejects_unknown_ids(client: TestClient) -> None:
+    client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
+    case_id = _open(client)
+    client.post(f"/cases/{case_id}/evidence", data={"kind": "chat_export", "text": CHAT})
+
+    bad = client.post(f"/cases/{case_id}/messages", json={"text": "yes", "action_id": "act_nope"})
+    assert bad.status_code == 422
+
+    second = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "yes", "action_id": "act_company_number"},
+    )
+    assert second.status_code == 200
+    statuses = {a["id"]: a["status"] for a in second.json()["actions"]}
+    assert statuses["act_company_number"] == "done" and statuses["act_viewing"] == "open"
+
+    skipped = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "", "action_id": "act_viewing", "status": "skipped"},
+    )
+    assert skipped.status_code == 200
+    by_id = {a["id"]: a for a in skipped.json()["actions"]}
+    assert by_id["act_viewing"]["status"] == "skipped"
+    assert by_id["act_viewing"]["outcome"] == "neutral"
+
+    wrong_status = client.post(
+        f"/cases/{case_id}/messages",
+        json={"text": "x", "action_id": "act_viewing", "status": "bogus"},
+    )
+    assert wrong_status.status_code == 422
