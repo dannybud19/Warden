@@ -23,7 +23,7 @@ export type CaseAnswers = {
   risky: boolean;
 };
 
-export type UploadKey = "messages" | "contract" | "video" | "emails" | "ownership" | "payment" | "screens";
+export type UploadKey = "messages" | "contract" | "video" | "emails" | "payment";
 export type OnboardingFiles = Partial<Record<UploadKey, File>>;
 
 export function startWardenOnboarding(

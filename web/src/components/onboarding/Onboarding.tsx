@@ -43,9 +43,7 @@ const FILE_KIND: Record<UploadKey, (f: File) => EvidenceKind> = {
   contract: () => "contract",
   video: () => "video",
   emails: () => "email",
-  ownership: () => "document",
   payment: () => "document",
-  screens: () => "listing",
 };
 
 const PROFILE_KEY = "warden.profile";

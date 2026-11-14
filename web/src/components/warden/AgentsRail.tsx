@@ -8,6 +8,8 @@ import { CHIP, agentSummary, whyAsk, type AgentRow, type Mood, type Suggestion }
 import { useLocalJSON } from "@/lib/localStore";
 import { AnimatedWarden } from "./AnimatedWarden";
 import { Dot, Mascot, PillButton } from "./primitives";
+import { Phone } from "lucide-react";
+import { CaseCall, type CallContext } from "./CaseCall";
 
 // Right side of the one-home screen (Figma "Agents rail", 52:199): who is working on it and what they need.
 
@@ -113,7 +115,7 @@ function NeedsYou({
 }
 
 export function AgentsRail({
-  mood, action, rows, chat, busy, canReply, closed, onSkip, onAnswer, onAsk, onSend, onUpload, onClearChat,
+  mood, action, rows, chat, busy, canReply, closed, onSkip, onAnswer, onAsk, onSend, onUpload, onClearChat, callContext, onCallLine,
 }: {
   mood: Mood;
   action: Action | undefined;
@@ -128,13 +130,17 @@ export function AgentsRail({
   onSend: (text: string) => void;
   onUpload: (kind: EvidenceKind, file: File) => void;
   onClearChat?: () => void;
+  /** Enables "Call Warden" for this home. */
+  callContext?: CallContext;
+  onCallLine?: (role: "student" | "orchestrator", text: string) => void;
 }) {
   const [text, setText] = useState("");
   const file = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const waiting = rows.filter((r) => r.chip === "waiting").length;
   // Once a conversation starts, give it the room: the mascot stage folds away and the team row compacts.
-  const chatting = chat.length > 0;
+  const [inCall, setInCall] = useState(false);
+  const chatting = chat.length > 0 || inCall;
   // History: by default only the latest exchange shows; earlier messages fold away behind a toggle.
   const [showHistory, setShowHistory] = useState(false);
   const LATEST = 2;
@@ -350,6 +356,15 @@ export function AgentsRail({
 
       </div>
 
+      {inCall && callContext ? (
+        <CaseCall
+          context={callContext}
+          onLine={(role, text) => onCallLine?.(role, text)}
+          onAnswer={action ? onAnswer : undefined}
+          onEnd={() => setInCall(false)}
+        />
+      ) : (
+        <>
       <div className="mt-3 flex flex-wrap gap-1.5 px-2">
         {(["Why is this a red flag?", "What should I say to them?"] as const).map((q) => (
           <motion.button
@@ -395,6 +410,19 @@ export function AgentsRail({
             e.target.value = "";
           }}
         />
+        {callContext && (
+          <motion.button
+            type="button"
+            onClick={() => setInCall(true)}
+            aria-label="Call Warden about this home"
+            title="Call Warden"
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.92 }}
+            className="absolute right-[64px] top-[46px] flex size-[38px] cursor-pointer items-center justify-center rounded-full bg-mint text-teal transition hover:bg-[#d3eff1]"
+          >
+            <Phone size={16} />
+          </motion.button>
+        )}
         <motion.button
           type="submit"
           aria-label="Send"
@@ -406,6 +434,8 @@ export function AgentsRail({
           <Image src="/warden/icon-send-sm.svg" alt="" width={16} height={16} unoptimized />
         </motion.button>
       </form>
+        </>
+      )}
     </motion.aside>
   );
 }

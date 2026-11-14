@@ -45,3 +45,28 @@ def test_unknown_student_name_makes_everyone_the_agent() -> None:
 def test_empty_and_non_whatsapp_text_give_no_messages() -> None:
     assert parse_export("", "ev", "Sam") == []
     assert parse_export("just some pasted words\nacross lines", "ev", "Sam") == []
+
+
+def _chat(*lines: str) -> str:
+    return "\n".join(f"[12/11/2026, 18:0{i}:00] {line}" for i, line in enumerate(lines))
+
+
+def test_first_name_matches_the_full_whatsapp_name() -> None:
+    """The app may know only "Georgi" while the export says "Georgi Roussinov"."""
+    text = _chat("Georgi Roussinov: Can I view it before the deposit?", "Mark Evans: Pay first.")
+    senders = [m.sender for m in parse_export(text, "ev", "Georgi")]
+    assert senders == ["student", "agent"]
+    senders = [m.sender for m in parse_export(_chat("georgi: hi", "Mark: pay"), "ev", "Georgi R")]
+    assert senders == ["student", "agent"]
+
+
+def test_ambiguous_first_name_is_not_guessed() -> None:
+    text = _chat("Sam Reed: Can I view it?", "Sam Pike: Pay the deposit first.")
+    assert [m.sender for m in parse_export(text, "ev", "Sam")] == ["agent", "agent"]
+    # an exact full name still decides
+    assert [m.sender for m in parse_export(text, "ev", "sam  reed")] == ["student", "agent"]
+
+
+def test_placeholder_name_matches_nobody() -> None:
+    text = _chat("Sam: Can I view it?", "Mark: Pay first.")
+    assert [m.sender for m in parse_export(text, "ev", "student")] == ["agent", "agent"]
