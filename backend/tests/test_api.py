@@ -239,3 +239,14 @@ async def test_an_unreachable_mongo_fails_at_startup(
     with pytest.raises(ConnectionError):
         await check_storage(repo, ctx)
     repo.close()
+
+
+def test_decide_route_closes_the_case_once(client: TestClient) -> None:
+    client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
+    case_id = _open(client)
+    response = client.post(f"/cases/{case_id}/decide")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "decided" and body["decision"]["verdict"] == "not_verified"
+    assert client.post(f"/cases/{case_id}/decide").status_code == 409
+    assert client.post("/cases/case_nope/decide").status_code == 404

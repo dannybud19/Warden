@@ -49,6 +49,12 @@ async def reply(case_id: str, body: ReplyRequest, request: Request) -> Case:
     )
 
 
+@router.post("/cases/{case_id}/decide")
+async def decide(case_id: str, request: Request) -> Case:
+    """The student ends the checks: decide now on what is verified so far (409 once decided)."""
+    return await _service(request).decide(case_id)
+
+
 @router.get("/cases/{case_id}")
 async def get_case(case_id: str, request: Request) -> Case:
     """The full case."""

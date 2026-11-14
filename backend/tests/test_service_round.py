@@ -18,6 +18,7 @@ from app.contracts import (
     EvidenceKind,
     Fact,
     FactKey,
+    Landlord,
     Listing,
     OrchestratorMessage,
     StreamEvent,
@@ -34,6 +35,7 @@ from app.orchestrator.events import EventBus
 from app.orchestrator.service import FAILED_ANALYSIS_TEXT, CaseService, Upload
 from app.storage.memory import InMemoryCaseRepo
 from tests.conftest import EmptyAgent, add_evidence_and_settle, reply_and_settle
+from tests.test_service_background import GateAgent, _until
 
 MakeService = Callable[[list | None], CaseService]
 LISTING = Listing(address="1 Baker Street, London NW1 6XE", rent_pcm=900)
@@ -356,3 +358,81 @@ async def test_a_slow_consultant_neither_blocks_nor_decides(
     # No actions are open, but a failed consultant is not "nothing left to check".
     assert case.status == "open"
     assert _messages(_drain(queue)) == ["Your risk score is 100/100."]
+
+
+# Structured updates, questions and the decide route (P2)
+
+
+class LandlordAgent(BaseAgent):
+    """Reads the landlord: reruns whenever the landlord changes (its input hash differs)."""
+
+    name = "landlord_reader"
+    requires = frozenset({Need.LANDLORD})
+
+    def __init__(self) -> None:
+        self.runs = 0
+
+    async def run(self, case: Case, ctx: AgentContext) -> AgentReport:
+        self.runs += 1
+        return self.report(case)
+
+
+async def test_a_company_number_in_a_reply_fills_the_landlord_and_reruns_its_check(
+    make_service: MakeService, bus: EventBus, ctx: AgentContext
+) -> None:
+    assert isinstance(ctx.llm, FakeLLM)
+    text = "Their company number is 01234567"
+    ctx.llm.responses["company number is"] = (
+        '{"updates": [], "fields": [{"field": "landlord.company_number", "value": "01234567", '
+        '"quote": "company number is 01234567"}]}'
+    )
+    agent = LandlordAgent()
+    service = make_service([agent])
+    case = await service.open_case(StudentContext(), LISTING, Landlord(name="Sam Smith"))
+    queue = bus.subscribe(case.case_id)
+    case = await add_evidence_and_settle(service, case.case_id, EMAIL)
+    assert agent.runs == 1
+    _drain(queue)
+
+    case = await reply_and_settle(service, case.case_id, text)
+    assert case.landlord is not None and case.landlord.company_number == "01234567"
+    assert agent.runs == 2  # the landlord changed, so its check ran again
+    (message,) = _messages(_drain(queue))
+    assert "I updated: company number." in message
+    assert "01234567" not in message
+
+
+async def test_a_question_is_answered_from_the_case_only(
+    make_service: MakeService, bus: EventBus, ctx: AgentContext
+) -> None:
+    assert isinstance(ctx.llm, FakeLLM)
+    ctx.llm.responses["holding deposit normal"] = (
+        '{"updates": [], "question": "Is a holding deposit normal?"}'
+    )
+    service = make_service([EmptyAgent()])
+    case, queue = await _open_with_three_actions(service, bus)
+
+    case = await reply_and_settle(service, case.case_id, "Is a holding deposit normal?")
+    (message,) = _messages(_drain(queue))
+    # FakeLLM writes no prose, so the template answers honestly.
+    assert "I can't answer that from your case yet." in message
+    assert "I couldn't match" not in message  # a question is not an unmatched reply
+    compose_calls = [c for c in ctx.llm.calls if c["system"] == compose_prompt()]
+    payload = compose_calls[-1]["user"]
+    assert "in person viewing: unverified" in payload  # the case's checks are its grounding
+
+
+async def test_decide_waits_for_the_running_analysis(make_service: MakeService) -> None:
+    gate = GateAgent()
+    service = make_service([gate])
+    case = await service.open_case(StudentContext(), None, Landlord(company_name="Acme Ltd"))
+    await _until(lambda: gate.started)
+
+    decision = asyncio.create_task(service.decide(case.case_id))
+    await asyncio.sleep(0.02)
+    assert not decision.done()  # the agency check is still running
+    gate.go = True
+    decided = await decision
+    assert decided.status == "decided"
+    assert "gate" in decided.reports  # the decision saw the finished analysis
+    await service.wait_idle()

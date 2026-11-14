@@ -11,17 +11,22 @@ from app.contracts import (
     ActionStatus,
     AgentReport,
     AgentStatus,
+    Case,
     Check,
     CheckId,
     CheckState,
     ScoreResult,
+    Severity,
 )
+from app.orchestrator.checks import SEVERITY_RANK
 from app.orchestrator.composer import CheckMove, RoundInput, RoundNote
 from app.orchestrator.conversation import ParseResult
 
 # A flagged answer about money: ask for the message itself so an agent can quote it (decision 19).
 PAYMENT_WORDS = re.compile(r"\b(pay|paid|paying|payment|deposit|bank|transfer)", re.IGNORECASE)
 NOT_RUN_MARKER = ":not-run-"
+MAX_GROUNDING = 8
+MAX_GROUNDING_FINDINGS = 4
 
 
 def label(check_id: CheckId) -> str:
@@ -36,6 +41,9 @@ def reply_notes(result: ParseResult, dropped: list[str], text: str) -> list[Roun
         notes.append(RoundNote(kind="unmatched"))
     if dropped:
         notes.append(RoundNote(kind="dropped"))
+    notes.extend(RoundNote(kind="field_invalid", text=label) for label in result.invalid_fields)
+    if result.question:
+        notes.append(RoundNote(kind="question", text=result.question))
     applied = [u for u in result.updates if u.action_id not in dropped]
     if any(u.outcome == "flags" and PAYMENT_WORDS.search(u.quote or text) for u in applied):
         notes.append(RoundNote(kind="upload_hint"))
@@ -66,6 +74,21 @@ def changed_recap(previous: str | None, current: str | None) -> str | None:
     return current if current and current != previous else None
 
 
+def grounding(case: Case) -> list[str]:
+    """What the composer may use to answer a student's question: the case's own findings first
+    (suspicious, medium or worse), then every check's state. Capped so the prompt stays small."""
+    medium = SEVERITY_RANK[Severity.MEDIUM]
+    findings = [
+        f.title
+        for r in case.reports.values()
+        for f in r.findings
+        if f.supports == "suspicious" and SEVERITY_RANK[f.severity] >= medium
+    ]
+    checks = [f"{label(c.id)}: {c.state.value}" for c in case.checks]
+    unique = list(dict.fromkeys(findings))[:MAX_GROUNDING_FINDINGS]
+    return [*unique, *checks][:MAX_GROUNDING]
+
+
 def round_input(
     *,
     score_before: ScoreResult | None,
@@ -77,8 +100,13 @@ def round_input(
     actions: list[Action],
     recap_sent: bool,
     notes: list[RoundNote],
+    case_grounding: list[str] | None = None,
 ) -> RoundInput:
-    """Everything the composer needs about one analysis. `actions` already includes `fresh`."""
+    """Everything the composer needs about one analysis. `actions` already includes `fresh`.
+
+    `case_grounding` is sent only when a note carries a student question.
+    """
+    asked = any(n.kind == "question" for n in notes)
     return RoundInput(
         score_before=round(score_before.score) if score_before else None,
         score_after=round(score_after.score),
@@ -88,4 +116,5 @@ def round_input(
         open_actions=sum(a.status == ActionStatus.OPEN for a in actions),
         recap_sent=recap_sent,
         notes=tuple(notes),
+        grounding=tuple(case_grounding or []) if asked else (),
     )

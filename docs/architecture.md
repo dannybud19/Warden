@@ -179,8 +179,15 @@ Warden/
    LLM fails (error, timeout, bad JSON, unknown ids) a keyword fallback runs, but only when exactly one
    action could be meant; otherwise nothing changes and the round message says it could not match the
    reply. The reply is stored in `case.chat`. Answers can clear or flag checks via `checks.update`; a
-   flagged answer about payment asks the student to upload that message. Then the background analysis.
-5. `decide(case_id)`: `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
+   flagged answer about payment asks the student to upload that message. The same LLM call also reads
+   case fields the student states (company number, landlord name, rent, deposit, move-in date): each is
+   validated, fills an empty field or overwrites only on an explicit correction, and is named in the
+   round message (a company number never with its digits). A changed landlord reruns Companies House
+   through its input hash. A question from the student is answered in the round message from the
+   case's own findings and checks only, or the message says it cannot tell yet. Then the background
+   analysis.
+5. `decide(case_id)` (also `POST /cases/{id}/decide`, the student's final say): waits for a running
+   analysis, then `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
 
 Scoring formula (team doc): `score = 100 * sum(w_i * s_i) / sum(w_i)`, with s = 1 for UNVERIFIED or
 SUSPICIOUS and s = 1 - clear_confidence for CLEARED. Weights in `aggregators/scoring/weights.yaml`:
@@ -218,6 +225,7 @@ API (`api/`):
 | POST | /cases | `{student, listing?, landlord?}` -> Case |
 | POST | /cases/{id}/evidence | multipart file + kind + note -> Case |
 | POST | /cases/{id}/messages | `{text, evidence_ids?, action_id?, status?}` -> Case (`status` without `action_id`: 422) |
+| POST | /cases/{id}/decide | Case: decide now on what is verified so far (waits for a running analysis; 409 once decided) |
 | GET | /cases/{id} | Case |
 | GET | /cases/{id}/decision | Decision or 404 |
 | WS | /cases/{id}/stream | StreamEvent JSON |

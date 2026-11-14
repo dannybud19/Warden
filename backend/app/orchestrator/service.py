@@ -33,7 +33,7 @@ from app.core.agent import AgentContext, BaseAgent
 from app.core.ids import new_id
 from app.intake.service import ingest
 from app.orchestrator import checks as checks_mod
-from app.orchestrator import composer, conversation, crosscheck, decision, rounds
+from app.orchestrator import composer, conversation, crosscheck, decision, fields, rounds
 from app.orchestrator.composer import RoundNote
 from app.orchestrator.events import EventBus
 from app.orchestrator.runner import run_agents
@@ -203,12 +203,15 @@ class CaseService:
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
             case.actions, dropped = conversation.apply(case.actions, result, text)
+            changed_fields = fields.apply_fields(case, result.field_updates)
             answered = [u.action_id for u in result.updates if u.action_id not in dropped]
             case.chat.append(
                 ChatTurn(role="student", text=text, at=datetime.now(UTC), action_ids=answered)
             )
             await self.repo.save(case)
-            self._notes[case_id].extend(rounds.reply_notes(result, dropped, text))
+            self._notes[case_id].extend(
+                [*changed_fields, *rounds.reply_notes(result, dropped, text)]
+            )
         self._schedule(case_id)
         return case
 
@@ -261,8 +264,12 @@ class CaseService:
         await self._emit(case_id, event)
 
     async def decide(self, case_id: str) -> Case:
-        """Close the case with a final decision."""
-        async with self._locks[case_id]:
+        """Close the case now, on what is verified so far (the student has the final say).
+
+        Waits for a running analysis to finish first, so the decision sees its results.
+        """
+        await self._load(case_id, must_be_open=True)  # 404 / 409 at once, before waiting
+        async with self._analysis_locks[case_id], self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
             return await self._decide(case)
 
@@ -404,6 +411,7 @@ class CaseService:
             actions=[*case.actions, *fresh],
             recap_sent=recap is not None,
             notes=notes,
+            case_grounding=rounds.grounding(case),
         )
         text = await composer.compose_round(inp, self.ctx)
 
