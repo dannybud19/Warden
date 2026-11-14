@@ -1,0 +1,160 @@
+{
+  "actions": [],
+  "case_id": "c_efd8108a82ec",
+  "checks": [
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "landlord_identity",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "payment_safety",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "right_to_let",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "in_person_viewing",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "contract_consistency",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "deposit_protection",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "no_pressure",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "fair_price",
+      "reason": null,
+      "state": "unverified"
+    }
+  ],
+  "created_at": "2026-11-14T12:00:00Z",
+  "decision": null,
+  "evidence": [
+    {
+      "extracted_text": "Rowan Pike: The owner is Mira Vale; I am Rowan Pike, the managing agent for Northbank Example Lettings Ltd. The owner is abroad for work. The signed appointment authorises our company to arrange viewings and manage this tenancy.\nAlex Reed: I viewed Flat 2, 20 Example Mews, London W12 8QT in person with you on 13 November 2026 at 16:00. I need to move in by 1 December 2026 because my university course starts then. Can we finish the paperwork quickly?\nRowan Pike: Yes. Your deadline is understandable. Please read everything and ask questions. No money is due until after your viewing, signed agreement and confirmation of our company client-account details.\nAlex Reed: The rent of GBP 1300 is lower than the larger rooms I saw. Is there a reason?\nRowan Pike: This is the smaller room, with a shared bathroom and no parking. Those features explain the lower rent; there is no special payment deadline. Our company number is 31143720.\n",
+      "file_url": null,
+      "filename": "chat.txt",
+      "id": "c_efd8108a82ec_e1",
+      "kind": "chat_export",
+      "note": null,
+      "uploaded_at": "2026-11-14T12:00:00Z"
+    },
+    {
+      "extracted_text": "Tenancy agreement\nProperty: Flat 2, 20 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\nOwner's signed appointment: Mira Vale appoints Northbank Example Lettings Ltd, represented by Rowan Pike, to arrange viewings and manage the tenancy at Flat 2, 20 Example Mews, London W12 8QT. Payments are due only after viewing, signing and confirmation of company client-account details.\n",
+      "file_url": null,
+      "filename": "contract.txt",
+      "id": "c_efd8108a82ec_e2",
+      "kind": "contract",
+      "note": null,
+      "uploaded_at": "2026-11-14T12:00:00Z"
+    },
+    {
+      "extracted_text": "Room to rent: Flat 2, 20 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3720\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+      "file_url": null,
+      "filename": "listing.txt",
+      "id": "c_efd8108a82ec_e3",
+      "kind": "listing",
+      "note": null,
+      "uploaded_at": "2026-11-14T12:00:00Z"
+    }
+  ],
+  "landlord": {
+    "company_name": "Northbank Example Lettings Ltd",
+    "company_number": "31143720",
+    "email": null,
+    "name": "Mira Vale",
+    "phone": null
+  },
+  "listing": {
+    "address": "Flat 2, 20 Example Mews, London W12 8QT",
+    "deposit": 1500,
+    "description": null,
+    "platform": "rental listing",
+    "postcode": "W12 8QT",
+    "rent_pcm": 1300,
+    "url": "https://listings.example/homes/3720"
+  },
+  "messages": [
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_efd8108a82ec_e1",
+      "id": "c_efd8108a82ec_m1",
+      "sender": "agent",
+      "sent_at": "2026-11-14T11:55:00Z",
+      "text": "The owner is Mira Vale; I am Rowan Pike, the managing agent for Northbank Example Lettings Ltd. The owner is abroad for work. The signed appointment authorises our company to arrange viewings and manage this tenancy."
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_efd8108a82ec_e1",
+      "id": "c_efd8108a82ec_m2",
+      "sender": "student",
+      "sent_at": "2026-11-14T11:56:00Z",
+      "text": "I viewed Flat 2, 20 Example Mews, London W12 8QT in person with you on 13 November 2026 at 16:00. I need to move in by 1 December 2026 because my university course starts then. Can we finish the paperwork quickly?"
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_efd8108a82ec_e1",
+      "id": "c_efd8108a82ec_m3",
+      "sender": "agent",
+      "sent_at": "2026-11-14T11:57:00Z",
+      "text": "Yes. Your deadline is understandable. Please read everything and ask questions. No money is due until after your viewing, signed agreement and confirmation of our company client-account details."
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_efd8108a82ec_e1",
+      "id": "c_efd8108a82ec_m4",
+      "sender": "student",
+      "sent_at": "2026-11-14T11:58:00Z",
+      "text": "The rent of GBP 1300 is lower than the larger rooms I saw. Is there a reason?"
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_efd8108a82ec_e1",
+      "id": "c_efd8108a82ec_m5",
+      "sender": "agent",
+      "sent_at": "2026-11-14T11:59:00Z",
+      "text": "This is the smaller room, with a shared bathroom and no parking. Those features explain the lower rent; there is no special payment deadline. Our company number is 31143720."
+    }
+  ],
+  "reports": {},
+  "score_history": [],
+  "status": "open",
+  "student": {
+    "budget_pcm": 1500,
+    "move_in_date": "2026-12-01",
+    "notes": null,
+    "university": null
+  }
+}

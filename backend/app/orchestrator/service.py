@@ -33,7 +33,15 @@ from app.core.agent import AgentContext, BaseAgent
 from app.core.ids import new_id
 from app.intake.service import ingest
 from app.orchestrator import checks as checks_mod
-from app.orchestrator import composer, conversation, crosscheck, decision, fields, rounds
+from app.orchestrator import (
+    composer,
+    conversation,
+    crosscheck,
+    decision,
+    fields,
+    payment_confirmation,
+    rounds,
+)
 from app.orchestrator.composer import RoundNote
 from app.orchestrator.events import EventBus
 from app.orchestrator.runner import run_agents
@@ -43,6 +51,11 @@ from app.storage.repository import CaseRepository
 # timeout is minutes and a hung call would hold the analysis lock for that long.
 CROSSCHECK_TIMEOUT_S = 30.0
 CONSULTANT_TIMEOUT_S = 30.0
+
+CONFIRM_PAYMENT_TEXT = (
+    "A payment concern needs your confirmation before we reach a decision. "
+    "Answer the questions below; a no or unsure answer will keep it open for clarification."
+)
 
 FAILED_ANALYSIS_TEXT = (
     "One of the checks failed to run. Your evidence is saved: "
@@ -197,8 +210,8 @@ class CaseService:
         """
         ids = list(evidence_ids or [])
         snapshot = await self._load(case_id, must_be_open=True)
-        # NOTE: parse checks `action_id` first (InvalidActionError, 422) before any LLM call.
-        result = await conversation.parse(snapshot, text, ids, action_id, status, self.ctx)
+        # NOTE: read_reply checks `action_id` first (InvalidActionError, 422) before any LLM call.
+        result = await conversation.read_reply(snapshot, text, ids, action_id, status, self.ctx)
 
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
@@ -274,10 +287,24 @@ class CaseService:
             return await self._decide(case)
 
     async def _decide(self, case: Case) -> Case:
+        if payment_confirmation.pending(case) and not decision.hard_flags(case):
+            return await self._confirm_payment(case)
         case.decision = decision.decide(case)
         case.status = "decided"
         await self.repo.save(case)
         await self._emit(case.case_id, DecisionMade(decision=case.decision))
+        return case
+
+    async def _confirm_payment(self, case: Case) -> Case:
+        """Keep the case open and ask about payment evidence even when the check is suspicious."""
+        proposed = payment_confirmation.questions(case)
+        if proposed:
+            now = datetime.now(UTC)
+            proposed = [action.model_copy(update={"asked_at": now}) for action in proposed]
+            case.actions.extend(proposed)
+            message = _say(case, CONFIRM_PAYMENT_TEXT)
+            await self.repo.save(case)
+            await self._emit_all(case.case_id, [ActionsProposed(actions=proposed), message])
         return case
 
     async def _run_analysis(self, case_id: str, *, queued: bool = False) -> Case:
@@ -390,6 +417,9 @@ class CaseService:
             await self._emit_all(case_id, events)
             if decision.hard_flags(case):
                 return await self._decide(case)
+            if payment_confirmation.pending(case):
+                # A payment hard flag needs the student's explicit yes before it can decide.
+                return await self._confirm_payment(case)
 
         # Step 2 (no lock): next steps and the round message.
         existing = {a.id for a in case.actions}

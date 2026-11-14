@@ -211,7 +211,7 @@ async def test_an_action_closed_while_parsing_is_dropped_not_overwritten(
 ) -> None:
     service = make_service([EmptyAgent()])
     case, queue = await _open_with_three_actions(service, bus)
-    real_parse = conversation.parse
+    real_parse = conversation.read_reply
 
     async def parse_while_another_reply_lands(*args: Any) -> conversation.ParseResult:
         result = await real_parse(*args)
@@ -221,7 +221,7 @@ async def test_an_action_closed_while_parsing_is_dropped_not_overwritten(
         await service.repo.save(stored)
         return result
 
-    monkeypatch.setattr(service_module.conversation, "parse", parse_while_another_reply_lands)
+    monkeypatch.setattr(service_module.conversation, "read_reply", parse_while_another_reply_lands)
     case = await reply_and_settle(service, case.case_id, "yes", action_id="act_viewing")
 
     viewing = next(a for a in case.actions if a.id == "act_viewing")

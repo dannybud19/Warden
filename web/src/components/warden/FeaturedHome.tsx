@@ -120,8 +120,7 @@ export function HowWardenChecks() {
     <motion.section
       variants={stagger}
       initial="hidden"
-      whileInView="show"
-      viewport={{ once: true }}
+      animate="show"
       className="relative min-h-[264px] rounded-[24px] border border-white bg-white/70 px-[23px] pb-6 pt-[21px] shadow-glass backdrop-blur-[15px]"
     >
       <motion.h2 variants={rise} className="text-[15px] font-medium leading-[1.4]">How Warden checks a home</motion.h2>

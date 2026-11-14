@@ -1,0 +1,72 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Northbank Example Lettings Ltd, company number 96779816. Status: active. Incorporation date: 2014-06-10.",
+        "title": "company register"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/company_register"
+    },
+    {
+      "json": {
+        "company_name": "Northbank Example Lettings Ltd",
+        "company_number": "96779816",
+        "company_status": "active"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://api.company-information.service.gov.uk/company/96779816"
+    },
+    {
+      "json": {
+        "content": "Owner Mira Vale appointed Northbank Example Lettings Ltd, with Rowan Pike as the viewing contact for Flat 2, 66 Example Mews, London W12 8QT.",
+        "title": "agency mandate"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/agency_mandate"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": "active",
+      "id": "c_2f1ac6eea223_x1",
+      "key": "company_register",
+      "outcome": "found",
+      "query_alternatives": [
+        [
+          "96779816"
+        ],
+        [
+          "Northbank Example Lettings Ltd"
+        ]
+      ],
+      "query_terms": [
+        "96779816",
+        "Northbank Example Lettings Ltd"
+      ],
+      "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: active. Incorporation date: 2014-06-10.",
+      "title": "company register",
+      "url": "https://records.example/company_register"
+    },
+    {
+      "company_status": null,
+      "id": "c_2f1ac6eea223_x2",
+      "key": "agency_mandate",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 66 Example Mews, London W12 8QT",
+        "Mira Vale"
+      ],
+      "snippet": "Owner Mira Vale appointed Northbank Example Lettings Ltd, with Rowan Pike as the viewing contact for Flat 2, 66 Example Mews, London W12 8QT.",
+      "title": "agency mandate",
+      "url": "https://records.example/agency_mandate"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

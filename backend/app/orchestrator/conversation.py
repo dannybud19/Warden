@@ -5,7 +5,8 @@ targets an action). Every LLM step has a deterministic keyword fallback, so a ro
 an LLM error. The flow is split so that the slow part never holds the case's state lock:
 
 1. `validate_target` (sync, before anything else): unknown or closed `action_id` -> 422.
-2. `parse` (async, may call the LLM, no lock): returns a `ParseResult`.
+2. `read_reply` (async, may call the LLM, no lock): returns a `ParseResult`. `parse` is its
+   deterministic keyword reading, synchronous, for callers that need no LLM.
 3. `apply` (pure, under the lock, on the latest stored actions): returns the new action list.
 """
 
@@ -23,6 +24,7 @@ from app.contracts import Action, ActionStatus, Case
 from app.core.agent import AgentContext
 from app.orchestrator.fields import FieldUpdate, quote_found, read_fields
 from app.orchestrator.models import LLMActionUpdate, LLMParseOutput, Outcome
+from app.orchestrator.payment_confirmation import PREFIX as PAYMENT_CONFIRMATION_PREFIX
 
 ReplyStatus = Literal["done", "skipped", "impossible"]
 
@@ -87,6 +89,47 @@ def validate_target(case: Case, action_id: str | None) -> None:
         raise InvalidActionError(f"unknown action: {action_id}")
     if target.status != ActionStatus.OPEN:
         raise InvalidActionError(f"action is not open: {action_id}")
+
+
+def is_payment_confirmation(action_id: str) -> bool:
+    """A question asking the student to confirm a payment concern (`payment_confirmation`)."""
+    return action_id.startswith(PAYMENT_CONFIRMATION_PREFIX)
+
+
+def confirmation_outcome(text: str) -> Outcome:
+    """A confirmation asks about a concern, so only a plain yes confirms it (a flag).
+
+    Anything else (no, unsure, a longer answer) is neutral: it must never clear payment safety,
+    and loose keywords must not confirm it. Same test as `payment_confirmation.confirmed`.
+    """
+    return "flags" if text.strip().lower().rstrip(".! ") == "yes" else "neutral"
+
+
+def _target(case: Case, action_id: str | None) -> str | None:
+    """The action a reply is about: the one named, else an open payment confirmation (which
+    must be answered before anything else), else None (free text over every open action)."""
+    if action_id is not None:
+        return action_id
+    return next(
+        (
+            a.id
+            for a in case.actions
+            if a.status == ActionStatus.OPEN and is_payment_confirmation(a.id)
+        ),
+        None,
+    )
+
+
+def _with_confirmation_rule(result: ParseResult, text: str) -> ParseResult:
+    """Replace the outcome of every done update to a payment confirmation by the plain-yes rule,
+    whichever path (LLM or keywords) produced it."""
+    updates = tuple(
+        replace(u, outcome=confirmation_outcome(text))
+        if u.status == "done" and is_payment_confirmation(u.action_id)
+        else u
+        for u in result.updates
+    )
+    return replace(result, updates=updates)
 
 
 def _prompt_actions(case: Case, action_id: str | None) -> list[Action]:
@@ -180,7 +223,46 @@ def _read_actions(
     return ParseResult(unmatched=True)
 
 
-async def parse(
+def _settled_without_llm(
+    case: Case, evidence_ids: list[str], action_id: str | None, status: ReplyStatus | None
+) -> ParseResult | None:
+    """The result when the reply needs no reading: a skip or impossible, or nothing open."""
+    if action_id is not None and status in ("skipped", "impossible"):
+        return ParseResult(
+            updates=(ActionUpdate(action_id, status, "neutral", "", tuple(evidence_ids)),)
+        )
+    if not _prompt_actions(case, action_id):
+        return ParseResult(unmatched=True)
+    return None
+
+
+def _keyword_reading(actions: list[Action], text: str, evidence_ids: list[str]) -> ParseResult:
+    """Keywords, then the payment-confirmation rule: the reading when no LLM answer is usable."""
+    return _with_confirmation_rule(_fallback(actions, text, evidence_ids), text)
+
+
+def parse(
+    case: Case,
+    text: str,
+    evidence_ids: list[str],
+    action_id: str | None = None,
+    status: ReplyStatus | None = None,
+) -> list[Action]:
+    """The case's actions after a deterministic reading of the reply (no LLM, no I/O).
+
+    Exactly what `read_reply` falls back to when the LLM fails, applied with `apply`. The case
+    is not modified. Raises InvalidActionError for an unknown or closed `action_id`.
+    """
+    validate_target(case, action_id)
+    target = _target(case, action_id)
+    result = _settled_without_llm(case, evidence_ids, target, status) or _keyword_reading(
+        _prompt_actions(case, target), text, evidence_ids
+    )
+    actions, _ = apply(case.actions, result, text)
+    return actions
+
+
+async def read_reply(
     case: Case,
     text: str,
     evidence_ids: list[str],
@@ -193,18 +275,20 @@ async def parse(
     """Map the reply onto the case's open actions, and read fields and a question (plan 4.3).
 
     Never raises except InvalidActionError (from `validate_target`). LLM errors, timeouts, bad
-    JSON and all-unknown ids take the keyword fallback and set `used_fallback`; that path reads
-    no fields and no question. `today` (default: the real date) bounds the move-in date.
+    JSON and all-unknown ids take the keyword reading (`parse`'s) and set `used_fallback`; that
+    path reads no fields and no question. `today` (default: the real date) bounds the move-in
+    date.
+
+    An open payment confirmation is answered first: a reply without `action_id` targets it, and
+    its outcome follows `confirmation_outcome` on both paths.
     """
     validate_target(case, action_id)
-    if action_id is not None and status in ("skipped", "impossible"):
-        update = ActionUpdate(action_id, status, "neutral", "", tuple(evidence_ids))
-        return ParseResult(updates=(update,))
+    action_id = _target(case, action_id)
+    settled = _settled_without_llm(case, evidence_ids, action_id, status)
+    if settled is not None:
+        return settled
 
     actions = _prompt_actions(case, action_id)
-    if not actions:
-        return ParseResult(unmatched=True)
-
     payload = _payload(text, evidence_ids, actions)
     try:
         output = await asyncio.wait_for(
@@ -213,9 +297,11 @@ async def parse(
     except Exception as exc:  # any LLM failure: error, timeout, bad JSON, schema error
         # Log the error type only: messages can echo the student's text.
         ctx.log.warning("parse fallback: %s", type(exc).__name__)
-        return _fallback(actions, text, evidence_ids)
+        return _keyword_reading(actions, text, evidence_ids)
 
-    result = _read_actions(output, actions, text, evidence_ids, action_id, ctx)
+    result = _with_confirmation_rule(
+        _read_actions(output, actions, text, evidence_ids, action_id, ctx), text
+    )
     if result.used_fallback:
         return result
     field_updates, invalid = read_fields(output.fields, text, today or date.today())

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { MotionProvider } from "@/components/warden/MotionProvider";
+import { ProductChrome } from "@/components/warden/ProductChrome";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,7 +29,9 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
   return (
     <html lang="en" className={`${inter.variable} ${generalSans.variable}`}>
       <body className="font-sans text-ink">
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          <ProductChrome>{children}</ProductChrome>
+        </MotionProvider>
       </body>
     </html>
   );

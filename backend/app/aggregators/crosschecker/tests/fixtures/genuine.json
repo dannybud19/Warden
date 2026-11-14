@@ -1,0 +1,148 @@
+{
+  "case_id": "case_genuine",
+  "created_at": "2026-11-14T15:00:00Z",
+  "status": "open",
+  "student": {
+    "budget_pcm": null,
+    "move_in_date": null,
+    "university": null,
+    "notes": null
+  },
+  "listing": {
+    "url": null,
+    "platform": "Rightmove",
+    "address": null,
+    "postcode": null,
+    "rent_pcm": 1200,
+    "deposit": 1384,
+    "description": "One bed flat available 1 Dec."
+  },
+  "landlord": {
+    "name": "Larkfield Lettings",
+    "company_name": null,
+    "company_number": null,
+    "email": null,
+    "phone": null
+  },
+  "evidence": [
+    {
+      "id": "ev_chat",
+      "kind": "chat_export",
+      "uploaded_at": "2026-11-14T15:00:00Z",
+      "filename": "chat.txt",
+      "file_url": null,
+      "extracted_text": "[05/11/2026, 11:20:44] Larkfield Lettings: The rent is £1,200 a month, bills are not included.\n[07/11/2026, 12:06:12] Larkfield Lettings: The deposit of £1,384 is registered with the TDS.\n",
+      "note": null
+    },
+    {
+      "id": "ev_contract",
+      "kind": "contract",
+      "uploaded_at": "2026-11-14T15:00:00Z",
+      "filename": "tenancy.pdf",
+      "file_url": null,
+      "extracted_text": "ASSURED SHORTHOLD TENANCY AGREEMENT\n\nLandlord: Larkfield Lettings Ltd\nTenant: Alex\nRent: £1,200 per calendar month\nDeposit: £1,384, protected with the TDS within 30 days\nThe tenancy starts 1 Dec 2026 for 12 months.\n",
+      "note": null
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1",
+      "evidence_id": "ev_chat",
+      "sender": "agent",
+      "sent_at": null,
+      "channel": "whatsapp",
+      "text": "The rent is £1,200 a month, bills are not included."
+    },
+    {
+      "id": "msg_2",
+      "evidence_id": "ev_chat",
+      "sender": "agent",
+      "sent_at": null,
+      "channel": "whatsapp",
+      "text": "The deposit of £1,384 is registered with the TDS."
+    }
+  ],
+  "checks": [],
+  "actions": [],
+  "reports": {
+    "contract_checker": {
+      "agent": "contract_checker",
+      "version": "1.0.0",
+      "status": "ok",
+      "input_hash": "h-contract_checker",
+      "findings": [
+        {
+          "id": "contract_checker:deposit-protected",
+          "agent": "contract_checker",
+          "check_id": "deposit_protection",
+          "title": "Deposit protected in a scheme",
+          "detail": "The contract names the TDS.",
+          "category": "document",
+          "severity": "info",
+          "confidence": 0.8,
+          "evidence": [
+            {
+              "evidence_id": "ev_contract",
+              "quote": "protected with the TDS within 30 days"
+            }
+          ],
+          "supports": "cleared",
+          "hard_flag": false
+        }
+      ],
+      "facts": [
+        {
+          "key": "rent_pcm",
+          "value": "1200",
+          "source": "ev_contract",
+          "agent": "contract_checker"
+        }
+      ],
+      "questions": [],
+      "summary": null,
+      "error": null,
+      "duration_ms": 0
+    },
+    "message_checker": {
+      "agent": "message_checker",
+      "version": "1.0.0",
+      "status": "ok",
+      "input_hash": "h-message_checker",
+      "findings": [
+        {
+          "id": "message_checker:deposit-registered",
+          "agent": "message_checker",
+          "check_id": "deposit_protection",
+          "title": "Agent says the deposit is registered",
+          "detail": "The agent named the TDS.",
+          "category": "payment",
+          "severity": "info",
+          "confidence": 0.7,
+          "evidence": [
+            {
+              "evidence_id": "ev_chat",
+              "quote": "registered with the TDS"
+            }
+          ],
+          "supports": "cleared",
+          "hard_flag": false
+        }
+      ],
+      "facts": [
+        {
+          "key": "rent_pcm",
+          "value": "1200",
+          "source": "ev_chat",
+          "agent": "message_checker"
+        }
+      ],
+      "questions": [],
+      "summary": null,
+      "error": null,
+      "duration_ms": 0
+    }
+  },
+  "score_history": [],
+  "decision": null,
+  "chat": []
+}

@@ -174,6 +174,11 @@ Owned: `app/intake/`.
 ### WS D: Message checker (Georgi)
 
 Owned: `app/agents/message_checker/`.
+Evaluation fixes (Bill, delegated by the team): payment rules distinguish demands from denials and
+post-viewing terms; owner facts require an explicit role; an owner abroad with local viewing access is
+not an access warning. All payment hard flags now require student confirmation in the orchestrator,
+while unrelated hard flags remain immediate. No/unsure preserves the concern and requests clarification.
+
 1. `rules.py`: pure functions over `case.messages`, each returning findings:
    - payment before viewing: payment words (deposit, transfer, pay, holding fee, bank details) in agent
      messages AND no evidence of a completed viewing. payment_safety, critical, hard_flag when explicit.

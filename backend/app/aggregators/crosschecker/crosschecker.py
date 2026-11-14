@@ -1,64 +1,84 @@
-"""Cross-checker stub: passes the rule findings through and writes a template recap.
+"""Cross-checker (WS J): reads every agent's report side by side and flags where they disagree.
 
 The orchestrator computes the rule findings (`orchestrator.crosscheck.compare`) and passes them in,
-because aggregators may not import the orchestrator. The LLM version (WS J) replaces `review` and
-keeps its signature.
+because aggregators may not import the orchestrator. They are returned first and unchanged; the
+LLM's consistency findings follow, and the recap goes in `summary` for the orchestrator to relay.
 """
 
-from app.contracts import AgentReport, AgentStatus, Case, Finding, Severity
+import asyncio
+import time
+
+from app.aggregators.crosschecker import llm_pass, sources, stub, validate
+from app.aggregators.crosschecker.constants import AGENT
+from app.aggregators.crosschecker.rule_recap import recap
+from app.contracts import AgentReport, AgentStatus, Case, Finding
 from app.core.agent import AgentContext
 
-NAME = "crosscheck"
-VERSION = "0.1.0"
+__all__ = ["LLM_TIMEOUT_S", "MIN_INPUTS", "NAME", "VERSION", "recap", "review"]
 
-TITLE_SUFFIX = " differs between sources"
-MAX_TOPICS = 6  # keeps the recap short; the rest are counted, not named
-URGENT_SEVERITIES = frozenset({Severity.CRITICAL, Severity.HIGH})
-WARNING = " Check these before you pay."
+NAME = AGENT
+VERSION = "1.0.0"
+MIN_INPUTS = 2  # fewer OK reports than this leaves nothing to compare
+# NOTE: below the orchestrator's 30 s deadline around `review`, so our own fallback (with the
+# not-run finding) wins over its generic one.
+LLM_TIMEOUT_S = 25.0
 
 
 async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) -> AgentReport:
     """The report stored as `case.reports["crosscheck"]`, with the recap in `summary`."""
-    return AgentReport(
-        agent=NAME,
-        version=VERSION,
-        status=AgentStatus.OK,
-        input_hash="",
-        findings=list(rule_findings),
-        summary=recap(rule_findings),
-    )
+    started = time.monotonic()
+    rules = list(rule_findings)
+    if ctx.settings.agent_mode(NAME) == "stub":
+        return stub.review(case, rules)
+
+    inputs = sources.input_reports(case)
+    previous = case.reports.get(NAME)
+    digest = sources.input_hash(case, inputs)
+
+    def report(findings: list[Finding], summary: str | None, input_hash: str) -> AgentReport:
+        return AgentReport(
+            agent=NAME,
+            version=VERSION,
+            status=AgentStatus.OK,
+            input_hash=input_hash,
+            findings=findings,
+            summary=summary,
+            duration_ms=int((time.monotonic() - started) * 1000),
+        )
+
+    # Disagreements this version already verified. Kept when this run can't check again, so a
+    # report or LLM call that fails for now does not make them (and the recap) disappear.
+    carried = _verified_before(previous)
+
+    if len(inputs) < MIN_INPUTS:
+        summary = previous.summary if previous and carried else recap(rules)
+        return report(rules + carried, summary, digest)
+
+    if previous and previous.input_hash == digest and previous.version == VERSION:
+        return report(rules + carried, previous.summary, digest)
+
+    collected = sources.collect(case, inputs)
+    srcs, trimmed = sources.fit_budget(collected)
+    if trimmed:
+        ctx.log.info("cross-checker trimmed %d sources to fit the budget", trimmed)
+
+    try:
+        output = await asyncio.wait_for(llm_pass.run(srcs, ctx), LLM_TIMEOUT_S)
+    except (TimeoutError, llm_pass.LLMPassError) as exc:
+        reason = exc.reason if isinstance(exc, llm_pass.LLMPassError) else "it took too long"
+        ctx.log.warning("cross-checker LLM pass failed (%s): keeping earlier results", reason)
+        # Keep the previous recap so the orchestrator does not send the same one again.
+        summary = previous.summary if previous and previous.summary else recap(rules)
+        # Empty input hash, so the next analysis retries.
+        return report([*rules, *carried, validate.not_run_finding(reason)], summary, "")
+
+    found, kept = validate.to_findings(output, srcs, rules, log=ctx.log)
+    summary = validate.clean_recap(output.recap, kept, rules) if kept else recap(rules)
+    return report(rules + found, summary, digest)
 
 
-def recap(findings: list[Finding]) -> str | None:
-    """One or two plain sentences naming what the sources disagree on; None when nothing does."""
-    disagreements = [f for f in findings if f.supports == "suspicious"]
-    topics = _topics(disagreements)
-    if not topics:
-        return None
-    sentence = _topic_sentence(topics)
-    return sentence + WARNING if any(_is_urgent(f) for f in disagreements) else sentence
-
-
-def _topic(title: str) -> str:
-    """The thing a title is about: "Rent differs between sources" becomes "rent"."""
-    return title.removesuffix(TITLE_SUFFIX).strip().lower()
-
-
-def _topics(findings: list[Finding]) -> list[str]:
-    """Unique topics in the order their findings appear."""
-    return list(dict.fromkeys(_topic(f.title) for f in findings))
-
-
-def _topic_sentence(topics: list[str]) -> str:
-    """The recap's first sentence; names at most `MAX_TOPICS` topics."""
-    if len(topics) == 1:
-        return f"Two sources disagree on the {topics[0]}."
-    shown = ", ".join(topics[:MAX_TOPICS])
-    hidden = len(topics) - MAX_TOPICS
-    more = f" and {hidden} more" if hidden > 0 else ""
-    return f"Sources disagree on: {shown}{more}."
-
-
-def _is_urgent(finding: Finding) -> bool:
-    """A disagreement serious enough to warn the student before paying."""
-    return finding.hard_flag or finding.severity in URGENT_SEVERITIES
+def _verified_before(previous: AgentReport | None) -> list[Finding]:
+    """The LLM findings of the previous run, when it was made by this version."""
+    if previous is None or previous.version != VERSION:
+        return []
+    return [f for f in previous.findings if validate.is_llm_finding(f)]

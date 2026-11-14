@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The agency holding the original images confirms Rowan Pike copied its expired advert and is not authorised to let Flat 2, 71 Example Mews, London W12 8QT.",
+        "title": "original agency denial"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/original_agency_denial"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_758b438cfc70_x1",
+      "key": "original_agency_denial",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 71 Example Mews, London W12 8QT",
+        "photos"
+      ],
+      "snippet": "The agency holding the original images confirms Rowan Pike copied its expired advert and is not authorised to let Flat 2, 71 Example Mews, London W12 8QT.",
+      "title": "original agency denial",
+      "url": "https://records.example/original_agency_denial"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

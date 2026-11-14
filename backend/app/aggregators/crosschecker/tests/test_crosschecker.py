@@ -1,8 +1,13 @@
+"""The rule-only recap (ported from the orchestrator's stub) and stub mode."""
+
 from typing import Literal
 
+from app.aggregators.crosschecker import crosschecker
 from app.aggregators.crosschecker.crosschecker import NAME, VERSION, recap, review
+from app.aggregators.crosschecker.stub import STUB_VERSION
 from app.contracts import AgentStatus, Case, Category, CheckId, EvidenceRef, Finding, Severity
 from app.core.agent import AgentContext
+from app.core.llm import FakeLLM
 
 
 def _finding(
@@ -26,6 +31,13 @@ def _finding(
         supports=supports,
         hard_flag=hard_flag,
     )
+
+
+def test_public_names_the_orchestrator_uses() -> None:
+    assert NAME == "crosscheck"
+    assert VERSION == "1.0.0"
+    assert crosschecker.recap is recap
+    assert crosschecker.LLM_TIMEOUT_S < 30.0  # below the orchestrator's own deadline
 
 
 def test_no_findings_gives_no_summary() -> None:
@@ -81,11 +93,13 @@ def test_topics_beyond_the_cap_are_counted() -> None:
     assert summary == "Sources disagree on: a, b, c, d, e, f and 2 more."
 
 
-async def test_review_passes_findings_through(fake_agency_case: Case, ctx: AgentContext) -> None:
+async def test_stub_passes_rule_findings_through_with_the_template_recap(
+    fake_agency_case: Case, ctx: AgentContext
+) -> None:
     findings = [_finding("Rent", Severity.HIGH), _finding("Deposit")]
     report = await review(fake_agency_case, findings, ctx)
     assert report.agent == NAME
-    assert report.version == VERSION
+    assert report.version == STUB_VERSION
     assert report.status == AgentStatus.OK
     assert report.input_hash == ""
     assert report.findings == findings
@@ -93,7 +107,13 @@ async def test_review_passes_findings_through(fake_agency_case: Case, ctx: Agent
     assert report.summary == "Sources disagree on: rent, deposit. Check these before you pay."
 
 
-async def test_review_with_no_findings(fake_agency_case: Case, ctx: AgentContext) -> None:
+async def test_stub_with_no_findings(fake_agency_case: Case, ctx: AgentContext) -> None:
     report = await review(fake_agency_case, [], ctx)
     assert report.findings == []
     assert report.summary is None
+
+
+async def test_stub_never_calls_the_llm(fake_agency_case: Case, ctx: AgentContext) -> None:
+    assert isinstance(ctx.llm, FakeLLM)
+    await review(fake_agency_case, [_finding("Rent")], ctx)
+    assert ctx.llm.calls == []

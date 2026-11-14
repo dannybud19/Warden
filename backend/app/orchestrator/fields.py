@@ -1,7 +1,7 @@
 """Case fields the student states in a reply (plan 4.7): validate, normalise, then apply.
 
-Pure functions. `read_fields` runs inside `conversation.parse` (no lock); `apply_fields` runs in the
-service under the state lock, on the latest stored case.
+Pure functions. `read_fields` runs inside `conversation.read_reply` (no lock); `apply_fields`
+runs in the service under the state lock, on the latest stored case.
 """
 
 import re

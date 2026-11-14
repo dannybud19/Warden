@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 
 /** States the animated mascot supports (see public/warden/README-mascot.md). */
-export type WardenState = "default" | "thinking" | "green" | "amber" | "red" | "stop";
+export type WardenState = "default" | "wave" | "thinking" | "green" | "amber" | "red" | "stop";
 
 type MascotEl = HTMLElement & { poke?: () => void };
 

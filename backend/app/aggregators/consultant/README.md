@@ -1,7 +1,10 @@
 # consultant
 
 Owner: Georgi (WS F). Picks the next 1 to 3 questions or actions for the student.
-Returning `[]` means nothing useful is left to ask, which triggers the final decision.
+The student never has more than 3 open at once: unanswered ones count, so answering one brings one
+new one.
+Returning `[]` means there is nothing to add right now. The orchestrator makes the final decision
+only when the list is empty and no action is still open.
 
 ## How it chooses
 

@@ -5,17 +5,18 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import {
-  Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Flag, Globe, HelpCircle, KeyRound,
-  Lock, PoundSterling, Share, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
+  Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Globe, HelpCircle, KeyRound,
+  PoundSterling, Share, Trash2, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
 } from "lucide-react";
 import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip } from "recharts";
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
 import type { Mood } from "@/lib/present";
-import { CHECK_TILE, SETTLE, goAheadUnlocked, sourceOf, tiles } from "@/lib/dashboard";
-import { currentScore, detailText, sourceUrls } from "@/lib/selectors";
-import { formatRent, shortAddress } from "@/lib/homes";
+import { CHECK_TILE, SETTLE, sourceOf, tiles } from "@/lib/dashboard";
+import { currentScore, detailText, quoteSource, sourceUrls } from "@/lib/selectors";
+import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
+import { useRouter } from "next/navigation";
 import { Mascot, SourceLinks, rise } from "./primitives";
-import { PILL, REPORT_URL, useDecision, writeDecision } from "./Dashboard";
+import { PILL } from "./Dashboard";
 
 const RED = "#e06a52";
 const AMBER = "#d99a2b";
@@ -174,6 +175,7 @@ export function RiskHeader({ c, photo, caseId }: { c: Case; photo: string | null
         <h1 className="truncate text-[30px] font-medium leading-[1.2] tracking-[-0.03em]">{title}</h1>
         <p className="mt-1 truncate text-[14.5px] text-ink/65">{meta.join("  ·  ") || "Details still to come"}</p>
       </div>
+      <RemoveHome caseId={caseId} />
       <motion.button
         type="button"
         onClick={share}
@@ -191,13 +193,60 @@ export function RiskHeader({ c, photo, caseId }: { c: Case; photo: string | null
   );
 }
 
+// ---- quiet "remove this home" bin, with a small confirm ----
+
+function RemoveHome({ caseId }: { caseId: string }) {
+  const router = useRouter();
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setConfirm((v) => !v)}
+        aria-label="Remove this home"
+        title="Remove this home"
+        className="flex size-10 cursor-pointer items-center justify-center rounded-full text-ink/40 transition-colors hover:bg-white/80 hover:text-[#c4513b]"
+      >
+        <Trash2 size={18} />
+      </button>
+      <AnimatePresence>
+        {confirm && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-12 z-30 w-[230px] rounded-[16px] border border-line bg-white p-4 shadow-glass"
+          >
+            <p className="text-[14px] font-medium">Remove this home?</p>
+            <p className="mt-1 text-[12.5px] leading-[1.4] text-muted">It disappears from your dashboard and inbox.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  forgetCase(caseId);
+                  router.push("/");
+                }}
+                className="cursor-pointer rounded-full bg-[#e06a52] px-3.5 py-1.5 text-[13px] font-medium text-white"
+              >
+                Remove
+              </button>
+              <button type="button" onClick={() => setConfirm(false)} className="cursor-pointer rounded-full px-3 py-1.5 text-[13px] text-ink/60 hover:text-ink">
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ---- 2. Verdict card: gauge + headline + decision ----
 
-export function VerdictCard({ c, mood, caseId, flags }: { c: Case; mood: Mood; caseId: string; flags: number }) {
+export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: number }) {
   const risk = riskOf(c, mood, flags);
   const pill = PILL[mood.state];
-  const decision = useDecision(caseId);
-  const unlocked = goAheadUnlocked(c);
   const tick = useSyncExternalStore(subscribeMinute, nowSnapshot, () => null);
   const history = c.score_history ?? [];
   const updated = ago(history[history.length - 1]?.at ?? c.created_at, tick);
@@ -220,57 +269,6 @@ export function VerdictCard({ c, mood, caseId, flags }: { c: Case; mood: Mood; c
           </motion.div>
         </AnimatePresence>
 
-        <AnimatePresence mode="wait" initial={false}>
-          {decision ? (
-            <motion.div key="d" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6 flex items-center gap-4">
-              <span className="flex size-9 items-center justify-center rounded-full bg-[#e0f4ec] text-[#1f6e58]"><Check size={18} /></span>
-              <p className="flex-1 text-[14.5px]">
-                {decision === "walked" ? "You walked away from this one. Good call." : "You're going ahead. See it in person and sign before paying."}
-              </p>
-              <button type="button" onClick={() => writeDecision(caseId, "")} className="cursor-pointer text-[13.5px] font-medium text-teal hover:underline">Undo</button>
-            </motion.div>
-          ) : (
-            <motion.div key="c" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6 flex flex-wrap items-center gap-3">
-              <motion.button
-                type="button"
-                onClick={() => writeDecision(caseId, "walked")}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.96 }}
-                className={`cursor-pointer rounded-full px-6 py-3 text-[15px] font-medium ${risk.danger ? "bg-[#2f6f73] text-white shadow-card" : "border border-line bg-white"}`}
-              >
-                Walk away
-              </motion.button>
-              <motion.a
-                href={REPORT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.96 }}
-                className="inline-flex items-center gap-2 rounded-full bg-[#fbe9e4] px-6 py-3 text-[15px] font-medium text-[#c4513b]"
-              >
-                <Flag size={17} /> Report scam
-              </motion.a>
-              {unlocked ? (
-                <motion.button
-                  type="button"
-                  onClick={() => writeDecision(caseId, "ahead")}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="ml-auto cursor-pointer rounded-full border border-line bg-white px-6 py-3 text-[15px] font-medium"
-                >
-                  Go ahead
-                </motion.button>
-              ) : (
-                <span className="group relative ml-auto inline-flex items-center gap-1.5 text-[14px] text-muted" tabIndex={0}>
-                  <Lock size={15} /> Go ahead locked
-                  <span role="tooltip" className="pointer-events-none absolute bottom-full right-0 mb-2 w-[230px] rounded-[12px] bg-ink px-3 py-2 text-[12px] leading-[1.4] text-white opacity-0 shadow-glass transition-opacity group-hover:opacity-100 group-focus:opacity-100">
-                    Unlocks when the agency, payment and right to let are all verified.
-                  </span>
-                </span>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </motion.section>
   );
@@ -281,7 +279,7 @@ export function VerdictCard({ c, mood, caseId, flags }: { c: Case; mood: Mood; c
 function FlagCard({ f, i, c }: { f: Finding; i: number; c: Case }) {
   const [open, setOpen] = useState(false);
   const Icon = CHECK_ICON[f.check_id as CheckId] ?? HelpCircle;
-  const quote = f.evidence?.[0]?.quote;
+  const quotes = (f.evidence ?? []).filter((r) => r.quote);
   const ev = (c.evidence ?? []).find((e) => e.id === f.evidence?.[0]?.evidence_id);
   const date = ev ? new Date(ev.uploaded_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" }) : null;
   const tone = f.severity === "critical" || f.severity === "high" || f.hard_flag ? RED : AMBER;
@@ -310,10 +308,15 @@ function FlagCard({ f, i, c }: { f: Finding; i: number; c: Case }) {
       <AnimatePresence initial={false}>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            {quote ? (
-              <blockquote className="mt-4 rounded-[14px] border-l-[3px] bg-field px-4 py-3 text-[14px] italic leading-[1.5] text-ink/80" style={{ borderColor: tone }}>
-                “{quote}”
-              </blockquote>
+            {quotes.length ? (
+              quotes.map((r, k) => (
+                <figure key={k} className="mt-4">
+                  <blockquote className="rounded-[14px] border-l-[3px] bg-field px-4 py-3 text-[14px] italic leading-[1.5] text-ink/80" style={{ borderColor: tone }}>
+                    “{r.quote}”
+                  </blockquote>
+                  <figcaption className="mt-1.5 pl-1 text-[12.5px] leading-[1.4] text-muted">{quoteSource(c, r)}</figcaption>
+                </figure>
+              ))
             ) : (
               <p className="mt-4 rounded-[14px] bg-field px-4 py-3 text-[14px] leading-[1.5] text-ink/80">{detailText(f)}</p>
             )}

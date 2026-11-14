@@ -19,12 +19,15 @@ from app.orchestrator.conversation import (
     InvalidActionError,
     ParseResult,
     apply,
+    confirmation_outcome,
     keyword_outcome,
     parse,
     parse_prompt,
+    read_reply,
     validate_target,
 )
 from app.orchestrator.fields import FieldUpdate
+from app.orchestrator.payment_confirmation import PREFIX as PAYMENT_CONFIRMATION_PREFIX
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -150,7 +153,7 @@ def test_validate_target_rejects_unknown_and_closed_ids() -> None:
 async def test_parse_raises_for_unknown_target_before_the_llm(ctx: AgentContext) -> None:
     llm = RaisingLLM()
     with pytest.raises(InvalidActionError):
-        await parse(one_open(), "yes", [], "nope", None, with_llm(ctx, llm))
+        await read_reply(one_open(), "yes", [], "nope", None, with_llm(ctx, llm))
     assert llm.calls == 0
 
 
@@ -165,7 +168,7 @@ async def test_free_text_updates_two_of_three_actions(ctx: AgentContext) -> None
     )
     ctx, llm = fake(ctx, reply)
 
-    result = await parse(three_open(), text, [], None, None, ctx)
+    result = await read_reply(three_open(), text, [], None, None, ctx)
 
     assert outcomes(result) == {COMPANY: "clears", VIEWING: "flags"}
     assert all(u.status == "done" for u in result.updates)
@@ -180,14 +183,14 @@ async def test_free_text_updates_two_of_three_actions(ctx: AgentContext) -> None
 
 async def test_payload_keeps_non_ascii_text(ctx: AgentContext) -> None:
     ctx, llm = fake(ctx, llm_json())
-    await parse(one_open(), "Deposit is £950", [], None, None, ctx)
+    await read_reply(one_open(), "Deposit is £950", [], None, None, ctx)
     assert "£950" in llm.calls[0]["user"]
 
 
 async def test_free_text_prompt_lists_only_open_actions(ctx: AgentContext) -> None:
     case = make_case(action(COMPANY, "q1", ActionStatus.DONE), action(VIEWING, "q2"))
     ctx, llm = fake(ctx, llm_json())
-    await parse(case, "hello", [], None, None, ctx)
+    await read_reply(case, "hello", [], None, None, ctx)
     assert [a["id"] for a in json.loads(llm.calls[0]["user"])["open_actions"]] == [VIEWING]
 
 
@@ -196,7 +199,7 @@ async def test_registered_reply_clears_where_keywords_would_flag(ctx: AgentConte
     text = "No problem, they're registered"
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "clears", "they're registered")))
 
-    result = await parse(one_open(), text, [], None, None, ctx)
+    result = await read_reply(one_open(), text, [], None, None, ctx)
 
     assert outcomes(result) == {COMPANY: "clears"}
     assert keyword_outcome(text) == "flags"
@@ -205,7 +208,7 @@ async def test_registered_reply_clears_where_keywords_would_flag(ctx: AgentConte
 async def test_registered_reply_takes_keyword_flags_when_llm_raises(ctx: AgentContext) -> None:
     # Documented limitation of the fallback.
     text = "No problem, they're registered"
-    result = await parse(one_open(), text, [], None, None, with_llm(ctx, RaisingLLM()))
+    result = await read_reply(one_open(), text, [], None, None, with_llm(ctx, RaisingLLM()))
     assert outcomes(result) == {COMPANY: "flags"}
     assert result.used_fallback
 
@@ -213,7 +216,7 @@ async def test_registered_reply_takes_keyword_flags_when_llm_raises(ctx: AgentCo
 async def test_refusal_flags(ctx: AgentContext) -> None:
     text = "they refused to give a company number"
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "flags", "refused to give a company number")))
-    result = await parse(one_open(), text, [], None, None, ctx)
+    result = await read_reply(one_open(), text, [], None, None, ctx)
     assert outcomes(result) == {COMPANY: "flags"}
 
 
@@ -224,7 +227,7 @@ async def test_quote_not_in_text_is_dropped(ctx: AgentContext) -> None:
         upd(VIEWING, "clears", "we did the viewing yesterday"),
     )
     ctx, _ = fake(ctx, reply)
-    result = await parse(three_open(), text, [], None, None, ctx)
+    result = await read_reply(three_open(), text, [], None, None, ctx)
     assert outcomes(result) == {COMPANY: "clears"}
 
 
@@ -232,7 +235,7 @@ async def test_quote_not_in_text_is_dropped(ctx: AgentContext) -> None:
 async def test_empty_or_long_quote_is_dropped(ctx: AgentContext, quote: str) -> None:
     text = "a" * 300
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "clears", quote)))
-    result = await parse(three_open(), text, [], None, None, ctx)
+    result = await read_reply(three_open(), text, [], None, None, ctx)
     assert result == ParseResult(unmatched=True)
 
 
@@ -240,7 +243,7 @@ async def test_quote_matches_after_normalising_quotes_and_spaces(ctx: AgentConte
     text = "They’re   REGISTERED with\nCompanies House"
     quote = "they're registered with companies house"
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "clears", quote)))
-    result = await parse(one_open(), text, [], None, None, ctx)
+    result = await read_reply(one_open(), text, [], None, None, ctx)
     assert result.updates == (ActionUpdate(COMPANY, "done", "clears", quote),)
 
 
@@ -248,7 +251,7 @@ async def test_curly_quote_from_llm_matches_straight_text(ctx: AgentContext) -> 
     text = 'He said "pay now" and won\'t show it'
     quote = "He said “pay now” and won’t show it"
     ctx, _ = fake(ctx, llm_json(upd(VIEWING, "flags", quote)))
-    result = await parse(three_open(), text, [], None, None, ctx)
+    result = await read_reply(three_open(), text, [], None, None, ctx)
     assert outcomes(result) == {VIEWING: "flags"}
 
 
@@ -260,7 +263,7 @@ async def test_update_for_closed_action_is_discarded(ctx: AgentContext) -> None:
         upd(VIEWING, "clears", "saw the flat"),
     )
     ctx, _ = fake(ctx, reply)
-    result = await parse(case, text, [], None, None, ctx)
+    result = await read_reply(case, text, [], None, None, ctx)
     assert outcomes(result) == {VIEWING: "clears"}
 
 
@@ -271,26 +274,26 @@ async def test_duplicate_updates_keep_the_first(ctx: AgentContext) -> None:
         upd(VIEWING, "neutral", "all fine"),
     )
     ctx, _ = fake(ctx, reply)
-    result = await parse(three_open(), text, [], None, None, ctx)
+    result = await read_reply(three_open(), text, [], None, None, ctx)
     assert result.updates == (ActionUpdate(VIEWING, "done", "clears", "saw the flat"),)
 
 
 async def test_empty_updates_on_free_text_is_unmatched(ctx: AgentContext) -> None:
     ctx, _ = fake(ctx, llm_json())
-    result = await parse(three_open(), "ok", [], None, None, ctx)
+    result = await read_reply(three_open(), "ok", [], None, None, ctx)
     assert result == ParseResult(unmatched=True)
 
 
 async def test_all_quotes_dropped_on_free_text_is_unmatched(ctx: AgentContext) -> None:
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "clears", "not in the reply")))
-    result = await parse(three_open(), "ok", [], None, None, ctx)
+    result = await read_reply(three_open(), "ok", [], None, None, ctx)
     assert result == ParseResult(unmatched=True)
 
 
 async def test_no_open_actions_is_unmatched_without_llm(ctx: AgentContext) -> None:
     llm = RaisingLLM()
     case = make_case(action(COMPANY, "q", ActionStatus.DONE))
-    result = await parse(case, "hello", [], None, None, with_llm(ctx, llm))
+    result = await read_reply(case, "hello", [], None, None, with_llm(ctx, llm))
     assert result == ParseResult(unmatched=True)
     assert llm.calls == 0
 
@@ -306,7 +309,7 @@ async def test_targeted_reply_discards_updates_for_other_ids(ctx: AgentContext) 
     )
     ctx, llm = fake(ctx, reply)
 
-    result = await parse(three_open(), text, [], VIEWING, "done", ctx)
+    result = await read_reply(three_open(), text, [], VIEWING, "done", ctx)
 
     assert outcomes(result) == {VIEWING: "clears"}
     assert [a["id"] for a in json.loads(llm.calls[0]["user"])["open_actions"]] == [VIEWING]
@@ -314,20 +317,22 @@ async def test_targeted_reply_discards_updates_for_other_ids(ctx: AgentContext) 
 
 async def test_targeted_reply_with_empty_updates_is_done_neutral(ctx: AgentContext) -> None:
     ctx, _ = fake(ctx, llm_json())
-    result = await parse(three_open(), "yes", ["e1"], VIEWING, None, ctx)
+    result = await read_reply(three_open(), "yes", ["e1"], VIEWING, None, ctx)
     assert result == ParseResult(updates=(ActionUpdate(VIEWING, "done", "neutral", "", ("e1",)),))
 
 
 async def test_targeted_reply_with_all_quotes_dropped_is_done_neutral(ctx: AgentContext) -> None:
     ctx, _ = fake(ctx, llm_json(upd(VIEWING, "clears", "made up quote")))
-    result = await parse(three_open(), "yes", [], VIEWING, "done", ctx)
+    result = await read_reply(three_open(), "yes", [], VIEWING, "done", ctx)
     assert result == ParseResult(updates=(ActionUpdate(VIEWING, "done", "neutral", ""),))
 
 
 @pytest.mark.parametrize("status", ["skipped", "impossible"])
 async def test_skipped_and_impossible_never_call_the_llm(ctx: AgentContext, status: Any) -> None:
     llm = RaisingLLM()
-    result = await parse(three_open(), "can't", ["e2", "e1"], DEPOSIT, status, with_llm(ctx, llm))
+    result = await read_reply(
+        three_open(), "can't", ["e2", "e1"], DEPOSIT, status, with_llm(ctx, llm)
+    )
     assert result == ParseResult(
         updates=(ActionUpdate(DEPOSIT, status, "neutral", "", ("e2", "e1")),)
     )
@@ -341,7 +346,7 @@ async def test_llm_error_falls_back_on_one_open_action(
     ctx: AgentContext, caplog: pytest.LogCaptureFixture
 ) -> None:
     with caplog.at_level(logging.WARNING):
-        result = await parse(
+        result = await read_reply(
             one_open(), "yes, confirmed", ["e1"], None, None, with_llm(ctx, RaisingLLM())
         )
     assert result == ParseResult(
@@ -351,12 +356,12 @@ async def test_llm_error_falls_back_on_one_open_action(
 
 
 async def test_llm_error_with_two_open_actions_is_unmatched(ctx: AgentContext) -> None:
-    result = await parse(three_open(), "yes", [], None, None, with_llm(ctx, RaisingLLM()))
+    result = await read_reply(three_open(), "yes", [], None, None, with_llm(ctx, RaisingLLM()))
     assert result == ParseResult(used_fallback=True, unmatched=True)
 
 
 async def test_llm_error_on_targeted_reply_uses_keywords(ctx: AgentContext) -> None:
-    result = await parse(
+    result = await read_reply(
         three_open(), "they refused", [], VIEWING, "done", with_llm(ctx, RaisingLLM())
     )
     assert result == ParseResult(
@@ -374,7 +379,7 @@ async def test_llm_error_on_targeted_reply_uses_keywords(ctx: AgentContext) -> N
 )
 async def test_bad_llm_output_falls_back(ctx: AgentContext, reply: str) -> None:
     ctx, _ = fake(ctx, reply)
-    result = await parse(one_open(), "yes", [], None, None, ctx)
+    result = await read_reply(one_open(), "yes", [], None, None, ctx)
     assert result.used_fallback
     assert outcomes(result) == {COMPANY: "clears"}
 
@@ -394,11 +399,11 @@ async def test_bare_braces_fall_back_but_empty_updates_mean_matched_nothing(
     """Same case, same reply: only the LLM output differs. One open action is the deciding
     setup, because there the keyword fallback would assign the reply to it."""
     ctx, _ = fake(ctx, reply)
-    assert await parse(one_open(), "yes", [], None, None, ctx) == expected
+    assert await read_reply(one_open(), "yes", [], None, None, ctx) == expected
 
 
 async def test_ctx_fake_llm_default_takes_the_fallback(ctx: AgentContext) -> None:
-    result = await parse(one_open(), "yes", [], None, None, ctx)
+    result = await read_reply(one_open(), "yes", [], None, None, ctx)
     assert result.used_fallback
 
 
@@ -407,7 +412,7 @@ async def test_all_unknown_ids_fall_back(
 ) -> None:
     ctx, _ = fake(ctx, llm_json(upd("invented", "clears", "yes")))
     with caplog.at_level(logging.WARNING):
-        result = await parse(one_open(), "yes", [], None, None, ctx)
+        result = await read_reply(one_open(), "yes", [], None, None, ctx)
     assert result.used_fallback
     assert outcomes(result) == {COMPANY: "clears"}
     assert "parse fallback: unknown action ids" in caplog.text
@@ -416,7 +421,7 @@ async def test_all_unknown_ids_fall_back(
 async def test_some_unknown_ids_are_discarded_without_fallback(ctx: AgentContext) -> None:
     reply = llm_json(upd("invented", "clears", "yes"), upd(COMPANY, "clears", "yes"))
     ctx, _ = fake(ctx, reply)
-    result = await parse(three_open(), "yes", [], None, None, ctx)
+    result = await read_reply(three_open(), "yes", [], None, None, ctx)
     assert not result.used_fallback
     assert outcomes(result) == {COMPANY: "clears"}
 
@@ -424,16 +429,16 @@ async def test_some_unknown_ids_are_discarded_without_fallback(ctx: AgentContext
 async def test_a_free_text_hedge_does_not_close_a_step(ctx: AgentContext) -> None:
     text = "I'll ask them for the number tomorrow"
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "neutral", "I'll ask them for the number")))
-    result = await parse(three_open(), text, [], None, None, ctx)
+    result = await read_reply(three_open(), text, [], None, None, ctx)
     assert result.updates == () and result.unmatched
     # The same reading on the step's own card does answer it.
-    targeted = await parse(three_open(), text, [], COMPANY, None, ctx)
+    targeted = await read_reply(three_open(), text, [], COMPANY, None, ctx)
     assert outcomes(targeted) == {COMPANY: "neutral"}
 
 
 async def test_llm_timeout_falls_back(ctx: AgentContext, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(conversation, "PARSE_TIMEOUT_S", 0.01)
-    result = await parse(one_open(), "yes", [], None, None, with_llm(ctx, SlowLLM()))
+    result = await read_reply(one_open(), "yes", [], None, None, with_llm(ctx, SlowLLM()))
     assert result.used_fallback
     assert outcomes(result) == {COMPANY: "clears"}
 
@@ -448,7 +453,7 @@ async def test_listed_evidence_ids_keep_only_the_replys(ctx: AgentContext) -> No
         upd(VIEWING, "clears", "the viewing booking"),
     )
     ctx, _ = fake(ctx, reply)
-    result = await parse(three_open(), text, ["e1", "e2"], None, None, ctx)
+    result = await read_reply(three_open(), text, ["e1", "e2"], None, None, ctx)
     assert {u.action_id: u.evidence_ids for u in result.updates} == {COMPANY: ("e1",), VIEWING: ()}
 
 
@@ -459,7 +464,7 @@ async def test_no_listed_evidence_ids_go_to_every_done_update(ctx: AgentContext)
         upd(VIEWING, "clears", "the viewing booking", ["invented"]),
     )
     ctx, _ = fake(ctx, reply)
-    result = await parse(three_open(), text, ["e1", "e2"], None, None, ctx)
+    result = await read_reply(three_open(), text, ["e1", "e2"], None, None, ctx)
     assert [u.evidence_ids for u in result.updates] == [("e1", "e2"), ("e1", "e2")]
 
 
@@ -520,7 +525,7 @@ async def test_fields_and_question_come_back_with_action_updates(ctx: AgentConte
     )
     ctx, _ = fake(ctx, reply)
 
-    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    result = await read_reply(three_open(), text, [], None, None, ctx, today=TODAY)
 
     assert outcomes(result) == {COMPANY: "clears"}
     assert result.field_updates == (
@@ -535,27 +540,27 @@ async def test_fields_and_question_come_back_with_action_updates(ctx: AgentConte
 async def test_free_text_that_only_gives_a_rent_is_not_unmatched(ctx: AgentContext) -> None:
     text = "the rent is 950 a month"
     ctx, _ = fake(ctx, full_json(fields=[fld("listing.rent_pcm", "950", "the rent is 950")]))
-    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    result = await read_reply(three_open(), text, [], None, None, ctx, today=TODAY)
     assert result == ParseResult(field_updates=(FieldUpdate("listing.rent_pcm", 950),))
 
 
 async def test_a_question_alone_is_not_unmatched(ctx: AgentContext) -> None:
     text = "is a holding deposit normal?"
     ctx, _ = fake(ctx, full_json(question=text))
-    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    result = await read_reply(three_open(), text, [], None, None, ctx, today=TODAY)
     assert result == ParseResult(question=text)
 
 
 async def test_an_unusable_field_alone_is_not_unmatched(ctx: AgentContext) -> None:
     text = "rent is about 900 or so"
     ctx, _ = fake(ctx, full_json(fields=[fld("listing.rent_pcm", "about 900", "about 900")]))
-    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    result = await read_reply(three_open(), text, [], None, None, ctx, today=TODAY)
     assert result == ParseResult(invalid_fields=("rent",))
 
 
 async def test_made_up_field_quote_leaves_the_reply_unmatched(ctx: AgentContext) -> None:
     ctx, _ = fake(ctx, full_json(fields=[fld("listing.rent_pcm", "950", "rent is 950")]))
-    result = await parse(three_open(), "ok thanks", [], None, None, ctx, today=TODAY)
+    result = await read_reply(three_open(), "ok thanks", [], None, None, ctx, today=TODAY)
     assert result == ParseResult(unmatched=True)
 
 
@@ -564,7 +569,7 @@ async def test_question_is_blank_or_truncated(
     ctx: AgentContext, raw: str, expected: str | None
 ) -> None:
     ctx, _ = fake(ctx, full_json(question=raw))
-    result = await parse(three_open(), "hm", [], None, None, ctx, today=TODAY)
+    result = await read_reply(three_open(), "hm", [], None, None, ctx, today=TODAY)
     assert result.question == expected
     assert result.unmatched is (expected is None)
 
@@ -573,7 +578,7 @@ async def test_targeted_reply_also_reads_fields(ctx: AgentContext) -> None:
     text = "deposit is £1,200"
     reply = full_json(fields=[fld("listing.deposit", "£1,200", "deposit is £1,200")])
     ctx, _ = fake(ctx, reply)
-    result = await parse(three_open(), text, [], DEPOSIT, "done", ctx, today=TODAY)
+    result = await read_reply(three_open(), text, [], DEPOSIT, "done", ctx, today=TODAY)
     assert result == ParseResult(
         updates=(ActionUpdate(DEPOSIT, "done", "neutral", ""),),
         field_updates=(FieldUpdate("listing.deposit", 1200),),
@@ -583,8 +588,8 @@ async def test_targeted_reply_also_reads_fields(ctx: AgentContext) -> None:
 async def test_today_bounds_the_move_in_date(ctx: AgentContext) -> None:
     text = "I move in on 1 March 2027"
     ctx, _ = fake(ctx, full_json(fields=[fld("student.move_in_date", "1 March 2027", text)]))
-    inside = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
-    outside = await parse(three_open(), text, [], None, None, ctx, today=date(2028, 6, 1))
+    inside = await read_reply(three_open(), text, [], None, None, ctx, today=TODAY)
+    outside = await read_reply(three_open(), text, [], None, None, ctx, today=date(2028, 6, 1))
     assert inside.field_updates == (FieldUpdate("student.move_in_date", date(2027, 3, 1)),)
     assert outside.field_updates == () and outside.invalid_fields == ("move-in date",)
 
@@ -597,13 +602,13 @@ async def test_fallback_path_reads_no_fields_or_question(ctx: AgentContext) -> N
         "Is that normal?",
     )
     ctx, _ = fake(ctx, reply)
-    result = await parse(one_open(), text, [], None, None, ctx, today=TODAY)
+    result = await read_reply(one_open(), text, [], None, None, ctx, today=TODAY)
     assert result.used_fallback
     assert result.field_updates == () and result.invalid_fields == () and result.question is None
 
 
 async def test_llm_error_reads_no_fields(ctx: AgentContext) -> None:
-    result = await parse(
+    result = await read_reply(
         three_open(), "rent is 950", [], None, None, with_llm(ctx, RaisingLLM()), today=TODAY
     )
     assert result == ParseResult(used_fallback=True, unmatched=True)
@@ -611,8 +616,71 @@ async def test_llm_error_reads_no_fields(ctx: AgentContext) -> None:
 
 async def test_skipped_reply_still_never_calls_the_llm(ctx: AgentContext) -> None:
     llm = RaisingLLM()
-    result = await parse(
+    result = await read_reply(
         three_open(), "rent is 950", [], DEPOSIT, "skipped", with_llm(ctx, llm), today=TODAY
     )
     assert result == ParseResult(updates=(ActionUpdate(DEPOSIT, "skipped", "neutral", ""),))
     assert llm.calls == 0
+
+
+# Payment confirmation (Bill's rule, on both paths)
+
+CONFIRM = f"{PAYMENT_CONFIRMATION_PREFIX}abc_1"
+
+
+def with_confirmation() -> Case:
+    """Three ordinary open actions, then an open payment confirmation (asked last)."""
+    case = three_open()
+    case.actions.append(action(CONFIRM, "Are they asking you to pay before a viewing? Reply yes."))
+    return case
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("yes", "flags"), ("Yes!", "flags"), ("no", "neutral"), ("unsure", "neutral")],
+)
+def test_confirmation_outcome_is_a_plain_yes_rule(text: str, expected: str) -> None:
+    assert confirmation_outcome(text) == expected
+
+
+async def test_free_text_answers_an_open_confirmation_first(ctx: AgentContext) -> None:
+    ctx, llm = fake(ctx, llm_json(upd(CONFIRM, "neutral", "yes")))
+    result = await read_reply(with_confirmation(), "yes", [], None, None, ctx)
+    assert outcomes(result) == {CONFIRM: "flags"}
+    # The LLM saw only the confirmation, not the three older actions.
+    assert [a["id"] for a in json.loads(llm.calls[0]["user"])["open_actions"]] == [CONFIRM]
+
+
+async def test_the_llm_cannot_clear_a_confirmation(ctx: AgentContext) -> None:
+    ctx, _ = fake(ctx, llm_json(upd(CONFIRM, "clears", "no, they did not")))
+    result = await read_reply(with_confirmation(), "no, they did not", [], CONFIRM, None, ctx)
+    assert outcomes(result) == {CONFIRM: "neutral"}
+
+
+async def test_a_yes_the_llm_did_not_map_still_confirms(ctx: AgentContext) -> None:
+    ctx, _ = fake(ctx, llm_json())
+    result = await read_reply(with_confirmation(), "yes", [], CONFIRM, None, ctx)
+    assert outcomes(result) == {CONFIRM: "flags"}
+
+
+@pytest.mark.parametrize(("text", "expected"), [("yes", "flags"), ("they refused", "neutral")])
+async def test_the_keyword_fallback_uses_the_confirmation_rule(
+    ctx: AgentContext, text: str, expected: str
+) -> None:
+    result = await read_reply(
+        with_confirmation(), text, [], None, None, with_llm(ctx, RaisingLLM())
+    )
+    assert result.used_fallback
+    assert outcomes(result) == {CONFIRM: expected}
+
+
+def test_sync_parse_is_the_keyword_reading() -> None:
+    """`parse` returns the actions `read_reply` would produce with no LLM."""
+    actions = parse(with_confirmation(), "yes", [])
+    by_id = {a.id: a for a in actions}
+    assert by_id[CONFIRM].outcome == "flags" and by_id[CONFIRM].status == ActionStatus.DONE
+    assert all(by_id[i].status == ActionStatus.OPEN for i in (COMPANY, VIEWING, DEPOSIT))
+    # Free text with several ordinary open actions is not guessed (decision 11).
+    assert [a.model_dump() for a in parse(three_open(), "yes", [])] == [
+        a.model_dump() for a in three_open().actions
+    ]

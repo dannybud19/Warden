@@ -44,7 +44,7 @@ is confirmed, it gives a final decision with the full evidence trail.
 | --- | --- |
 | Backend | Python 3.12, FastAPI, Pydantic v2, asyncio, managed with `uv` |
 | Quality | ruff (lint + format), pyright (basic), pytest + pytest-asyncio, import-linter, pre-commit |
-| LLM | One `LLMClient` protocol in `app/core/llm.py`; Anthropic adapter first, provider set by env. `FakeLLM` for tests |
+| LLM | One `LLMClient` protocol in `app/core/llm.py`. `LLM_PROVIDER=anthropic` (default) or `openai_compatible` (Gemini, Groq and others, for free-tier development; see `.env.example`). `FakeLLM` for tests |
 | Live web | Linkup via `WebSearchClient` protocol in `app/core/search.py`; `FakeSearch` for tests |
 | Registers | Companies House public API (key in `.env`) |
 | Storage | `CaseRepository` protocol: `InMemoryCaseRepo` (default), `MongoCaseRepo` (MongoDB Atlas, motor) |
@@ -161,7 +161,10 @@ Warden/
       severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
    5. `scoring.score()` appends a ScoreResult.
-   6. If any confirmed `hard_flag` finding: `decide()` and stop.
+   6. Payment hard flags first require a targeted confirmation of their quoted evidence. Yes confirms
+      that concern; no/unsure/skip keeps the case open and asks for clarification without clearing the
+      payment check. Other hard flags still decide immediately. Confirmations are bound to a finding
+      and its evidence, so changing the quoted demand requires a new answer.
    7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
       Else store and emit any new actions, then one **round message** (`orchestrator/composer.py`): what
       changed (score delta, checks that moved, checks that did not run, notes about the reply), then the
@@ -212,11 +215,20 @@ Verdict rules (`decision.py`):
 | proceed_with_care | Those three CLEARED, some other check not CLEARED |
 | no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
 
-Hard flags (a finding with `hard_flag=true` closes the case as `likely_scam`): payment before a viewing
+Hard flags (a finding with `hard_flag=true` can close the case as `likely_scam`): payment before a viewing
 or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
 liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
 the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
 hard flag.
+
+Payment hard flags require an explicit student yes to their targeted confirmation question before
+closure. The orchestrator prioritises these questions even for SUSPICIOUS payment checks; this is an
+exception to the consultant's usual UNVERIFIED-only selection. Free chat targets an open payment
+confirmation first. These questions parse only an exact yes (optional terminal punctuation) as
+confirmation; no, unsure or longer ambiguous answers remain neutral and trigger clarification.
+Payment confirmations count towards the same maximum of three open actions as consultant questions.
+If all three slots are occupied, the case stays open and a confirmation is offered when a slot opens.
+Identity/contract hard flags still close immediately, including when a payment question is pending.
 
 API (`api/`):
 
