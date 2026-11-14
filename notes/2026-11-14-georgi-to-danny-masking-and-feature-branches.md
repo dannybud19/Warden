@@ -55,3 +55,17 @@ cd backend && uv run pytest -q tests/test_redact.py             # the masking te
 
 `make check` results when pushed: `feat/d-message-checker` 126 passed, `feat/e-emotion` 125 passed
 (3 skipped on each).
+
+## Update (Georgi, 2026-11-14 evening)
+
+- All five branches now include current `main` (`c517411`: contract checker, crosscheck, Companies
+  House). Merged with a merge commit, no force-push.
+- `make check` is green on each branch: #1 151 passed, #2 162, #3 161, #4 141, #5 133 (3 skipped each).
+- All five merged together on top of `main` in a scratch worktree: no conflicts, 216 passed, 3 skipped.
+  They can merge in any order.
+- One clash fixed on #2: `contract_checker/tests/test_rules.py` on `main` and
+  `message_checker/tests/test_rules.py` had the same basename, which stops pytest collecting.
+  Mine is renamed to `test_message_rules.py`. Worth knowing for other agents: test file names must
+  be unique across agent folders (or the `tests/` folders need `__init__.py`).
+- Nothing has been merged into `main` from Georgi's side. Waiting on which PRs to merge and who
+  merges them (#1 and #5 touch your paths and are still drafts).
