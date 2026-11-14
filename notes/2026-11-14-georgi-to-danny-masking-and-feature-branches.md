@@ -3,8 +3,8 @@
 - From: Georgi
 - To: Danny
 - Status: open
-- Branch / PR: `fix/mask-at-intake`, `feat/d-message-checker`, `feat/e-emotion`, `feat/f-consultant`,
-  `fix/agent-handoffs`
+- Branch / PR: #1 `fix/mask-at-intake` (draft), #2 `feat/d-message-checker`, #3 `feat/e-emotion`,
+  #4 `feat/f-consultant`, #5 `fix/agent-handoffs` (draft)
 
 ## What happened
 
