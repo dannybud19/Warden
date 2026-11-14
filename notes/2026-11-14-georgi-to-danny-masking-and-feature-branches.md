@@ -69,3 +69,16 @@ cd backend && uv run pytest -q tests/test_redact.py             # the masking te
   be unique across agent folders (or the `tests/` folders need `__init__.py`).
 - Nothing has been merged into `main` from Georgi's side. Waiting on which PRs to merge and who
   merges them (#1 and #5 touch your paths and are still drafts).
+
+## Update 2 (Georgi, 2026-11-14 evening): workstreams merged
+
+- Merged into `main` at Danny's request (relayed by Georgi): #2 message checker, #3 emotion
+  classifier, #4 consultant. `main` is now `a426595`.
+- `make check` on the new `main`: green, 198 passed, 3 skipped.
+- Still open as drafts, waiting on Danny because they change his paths: #1 intake masking, #5 handoff
+  docs. Both still merge cleanly on top of the new `main` (tested together: 216 passed).
+- Everyone with an open branch should merge or rebase on `main` now. Note the test file naming
+  point above.
+- The real agents for D, E and F are now on `main`, but agents still default to stubs. To run them:
+  `AGENT_MODE_MESSAGE_CHECKER=real`, `AGENT_MODE_EMOTION_CLASSIFIER=real` in `.env`, or
+  `DEFAULT_AGENT_MODE=real make dev`. They run rules-only when no LLM key is set.
