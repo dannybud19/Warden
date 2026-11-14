@@ -22,6 +22,11 @@ make check                    # lint, types, import rules, tests
 `DEFAULT_AGENT_MODE=real make dev` runs every agent's real code, which is how you see the question loop
 before the agents are finished.
 
+## What's new
+
+The latest changes (new agents, contract changes, behaviour changes) are listed at the top of `CLAUDE.md`.
+Check it after every `git pull`.
+
 ## Where things are
 
 | Read | For |

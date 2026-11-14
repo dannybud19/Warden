@@ -33,8 +33,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ctx = build_context(settings)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
+        await app.state.service.shutdown()
         await ctx.http.aclose()
 
     app = FastAPI(title="Rental Scam Shield", lifespan=lifespan)

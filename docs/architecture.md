@@ -31,7 +31,8 @@ is confirmed, it gives a final decision with the full evidence trail.
 5. **Storage behind an interface.** `CaseRepository` has an in-memory implementation (default for dev and
    tests) and a MongoDB Atlas implementation. Nobody waits on database setup.
 6. **The orchestrator core is deterministic.** It decides which agents run, tracks checks, computes the
-   score and decides when to close. LLMs are used inside agents, the consultant and the chat layer only.
+   score and decides when to close. LLMs are used inside agents, the Cross-checker, the consultant and the
+   chat layer only.
 7. **Frontend builds against mocks.** The web app can run fully on `fixtures/reports/*.json` with
    `NEXT_PUBLIC_USE_MOCK=1`, using TypeScript types generated from the Python contracts.
 
@@ -92,6 +93,7 @@ Warden/
       aggregators/
         scoring/                 scoring.py, weights.yaml, tests/
         consultant/              consultant.py, action_library.yaml, prompts/, tests/
+        crosschecker/            crosschecker.py, stub.py, prompts/, tests/ (WS J, being built)
       orchestrator/
         registry.py              the ONE list of agents; stub/real switch per agent
         events.py                in-process EventBus (per-case pub/sub for the WebSocket)
@@ -135,13 +137,26 @@ Warden/
 `CaseService` methods, each persists the Case and emits `StreamEvent`s:
 
 1. `open_case(student, listing, landlord) -> Case`: all 8 checks UNVERIFIED, first ScoreResult = 100.
-2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages, then `analyse()`.
+   If the landlord has a company name or number, the agency check starts at once in the background.
+2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages and saves them, returns the
+   Case, then analyses in the background.
+
+   **Analysis runs in the background.** `open_case`, `add_evidence` and `reply` return before any agent
+   finishes; progress and results arrive as `StreamEvent`s (a client that connects late is sent
+   `agent_started` for the agents still running). One analysis runs per case at a time (analysis lock);
+   its results are applied to the latest stored case under a short state lock, so uploads and replies are
+   never blocked or overwritten, and a request that arrives while one is queued shares it. A failed
+   analysis becomes an `orchestrator_message`. `analyse(case_id)` is the awaited form, used by tests.
 3. `analyse(case_id)`:
    1. For each agent in the registry: skip if a `Need` is missing (`SKIPPED` report). Skip if
       `input_hash` equals the last report's (no rerun). Otherwise schedule.
    2. Run scheduled agents with `asyncio.gather`, each under `asyncio.wait_for(timeout_s)`.
       Exceptions and timeouts become `ERROR` reports; the run continues.
-   3. `crosscheck.compare(facts)` adds CONSISTENCY findings (rule-based).
+   3. `crosscheck.compare(facts)` adds CONSISTENCY findings (rule-based). Then the Cross-checker
+      (`aggregators/crosschecker`, WS J) reads every OK report together, adds LLM consistency findings that
+      quote both sides and name both agents, and writes a recap. Its report is stored as
+      `case.reports["crosscheck"]`; a changed recap is emitted as an `orchestrator_message` before the
+      consultant's actions. It never sets `hard_flag` itself.
    4. `checks.update(case)`: a check becomes SUSPICIOUS if it has any `supports="suspicious"` finding with
       severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
@@ -175,6 +190,12 @@ Verdict rules (`decision.py`):
 | not_verified | Otherwise, if any of those three is not CLEARED |
 | proceed_with_care | Those three CLEARED, some other check not CLEARED |
 | no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
+
+Hard flags (a finding with `hard_flag=true` closes the case as `likely_scam`): payment before a viewing
+or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
+liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
+the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
+hard flag.
 
 API (`api/`):
 

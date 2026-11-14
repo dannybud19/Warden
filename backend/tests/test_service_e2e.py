@@ -15,12 +15,18 @@ from app.contracts import (
 from app.orchestrator.checks import initial_checks
 from app.orchestrator.events import EventBus
 from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService, Upload
+from tests.conftest import add_evidence_and_settle, reply_and_settle
 
 MakeService = Callable[[list | None], CaseService]
 
 
 async def _open(service: CaseService, case: Case) -> Case:
-    return await service.open_case(case.student, case.listing, case.landlord)
+    """Open without a company name or number, so nothing is analysed until the first upload
+    (opening with one starts the agency check at once: see test_service_background.py)."""
+    landlord = case.landlord
+    if landlord:
+        landlord = landlord.model_copy(update={"company_name": None, "company_number": None})
+    return await service.open_case(case.student, case.listing, landlord)
 
 
 def _chat_upload(case: Case) -> Upload:
@@ -54,7 +60,7 @@ async def test_hard_flag_closes_the_case_as_likely_scam(
     case = await _open(service, fake_agency_case)
     queue = bus.subscribe(case.case_id)
 
-    case = await service.add_evidence(case.case_id, _chat_upload(fake_agency_case))
+    case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
 
     assert len(case.messages) == 8
     assert case.status == "decided"
@@ -92,11 +98,11 @@ async def test_a_decided_case_rejects_more_work(
 ) -> None:
     service = make_service(None)
     case = await _open(service, fake_agency_case)
-    case = await service.add_evidence(case.case_id, _chat_upload(fake_agency_case))
+    case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
     with pytest.raises(CaseClosedError):
-        await service.add_evidence(case.case_id, _chat_upload(fake_agency_case))
+        await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
     with pytest.raises(CaseClosedError):
-        await service.reply(case.case_id, "yes")
+        await reply_and_settle(service, case.case_id, "yes")
 
 
 async def test_unknown_case(make_service: MakeService) -> None:

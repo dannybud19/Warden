@@ -7,6 +7,7 @@ import * as api from "@/lib/api";
 import type { OpenCaseInput } from "@/lib/api";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { rememberCase } from "@/lib/homes";
 
 const EMPTY = {
   name: "", landlordName: "", companyName: "", companyNumber: "", url: "", address: "",
@@ -73,7 +74,8 @@ export function OpenCaseForm() {
       const c = await api.openCase(input);
       // NOTE: if case_id is missing from the response we show an error rather than navigate.
       if (!c.case_id) throw new Error("The server did not return a case id.");
-      router.push(`/case/${c.case_id}`);
+      rememberCase(c.case_id);
+      router.push(`/dev/case/${c.case_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);

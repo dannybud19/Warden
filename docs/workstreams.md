@@ -18,7 +18,7 @@ cd ../rss-<ws> && cp ../Warden/.env .env 2>/dev/null; make install && claude
 
 | Person | Branches |
 | --- | --- |
-| Danny | `feat/a-orchestrator`, `feat/b-companies-house`, `feat/c-intake`, `contracts/ts-types`, `feat/web-shell` |
+| Danny | `feat/a-orchestrator`, `feat/b-companies-house`, `feat/c-intake`, `feat/j-crosschecker`, `contracts/report-summary` |
 | Georgi | `feat/d-message-checker`, `feat/e-emotion`, `feat/f-consultant` |
 | Bill | `feat/g-contract-checker`, `feat/h-scoring-eval` |
 | Audrey | `feat/i-web` (after the web shell merges and `docs/design.md` exists) |
@@ -31,13 +31,14 @@ A workstream may edit ONLY its owned paths. Anything else is a contract change (
 | WS | Owner | Owned paths | Deliverable | Done when |
 | --- | --- | --- | --- | --- |
 | A Orchestrator + API | Danny | `orchestrator/`, `api/`, `storage/mongo.py` | Real conversation parsing (LLM maps reply to actions), MongoDB wired, rerun-on-change verified | Full loop on a fixture with real agents flipped on |
-| B Companies House | Danny | `agents/companies_house/` | Search by name/number, status, incorporation date, officers, virtual office check; redress scheme via Linkup with cited urls | Flags dissolved/missing agency in `fake_agency.json`; clears it in `genuine_flat.json` |
+| B Companies House | Danny | `agents/companies_house/` | Background check: register (number, status, age, officers), reputation (scam reports, negative reviews, redress, London Rogue Landlord Checker), contact details, postcode; Linkup with cited URLs | Hard-flags a dissolved match in `fake_agency.json`; a name with no match is high, not hard; clears an established agency |
 | C Intake | Danny | `intake/` | Screenshot OCR via `LLMClient.describe_image`, then message extraction; audio later | A WhatsApp screenshot becomes `Message`s with sender and text |
 | D Message checker | Georgi | `agents/message_checker/` | Rules (links, sort codes, payment words) + one LLM pass; facts: bank_account, email_domain, address, rent, deposit | Catches payment-before-viewing, pre-paid card, off-platform, overseas landlord in fixtures |
 | E Emotion classifier | Georgi | `agents/emotion_classifier/` | Facts vs feelings for both sides; pricing fact vs area rent table | Splits pressure language from facts on fixtures |
 | F Consultant | Georgi | `aggregators/consultant/` | `action_library.yaml` (candidate actions per check) + LLM ranking by score impact; returns [] when nothing useful remains | Picks sensible top 3 on each fixture; returns [] when all checks settled |
-| G Contract checker | Bill | `agents/contract_checker/` | PDF text to clauses; address/landlord mismatch, deposit > 5 weeks' rent, banned fees, no deposit protection clause; red flags vs "check with agency" | Flags mismatches in fixtures |
+| G Contract checker | Bill | `agents/contract_checker/`; contract-specific evaluation in `backend/eval/` | Standalone PDF/text extraction, contract-local checks and a second LLM review; quoted JSON findings, questions and a shared-report adapter | Offline checks pass; paired synthetic evaluation records missed/unexpected issues, latency and API cost |
 | H Scoring + evaluation | Bill | `aggregators/scoring/`, `backend/eval/` | Tune weights; synthetic case generator; eval script reporting catches and false positives. Danny's real case stays in `fixtures/private/` as the held-out test | Eval prints a table over all synthetic cases |
+| J Cross-checker | Danny | `aggregators/crosschecker/`, orchestrator wiring | Generalist agent: reads all reports, flags disagreements quoting both agents, writes a recap the orchestrator relays | The utilities example (contract £60/month vs messages "bills included") gives one finding citing both agents and a recap message |
 | I Web app | Audrey | `web/` | Starting from the web shell, keeping `src/lib/`, per `docs/design.md`: open case, upload, live agent progress, score + checks, chat with orchestrator, final decision | Works on mocks, then on the live API |
 
 Agents that are not ready keep running as stubs, so the integrated app always works.
@@ -49,8 +50,8 @@ Agents that are not ready keep running as stubs, so the integrated app always wo
 | Time | Danny | Georgi | Bill | Audrey |
 | --- | --- | --- | --- | --- |
 | 15:15 to 16:15 | Phase 0 (done 15:15), review, push, web shell session, contracts/ts-types | Red flag lists + prompts for messages and emotion (no code needed) | Contract checklist + 6 synthetic cases | design.md, frontend plan, Figma |
-| 16:15 to 18:00 | WS A, B, C | WS D, E | WS G | WS I from the web shell |
-| 18:00 to 20:30 | Flip real agents on, integrate | WS F | WS H | WS I on live API |
+| 16:15 to 18:00 | WS B (background check), report summary field | WS D, E | WS G | WS I from the web shell |
+| 18:00 to 20:30 | WS J Cross-checker, WS C OCR, WS A; then flip real agents on, integrate | WS F | WS H | WS I on live API |
 | 20:30 | **Gate: full live run on Danny's case** | | | |
 | Overnight (optional) | Fixes | Prompt tuning | Eval numbers | Polish |
 | Sun 10:00 to 11:00 | Feature freeze. Record 2-min video, write-up, README | | | Video edit |
@@ -101,7 +102,21 @@ Owned: `app/orchestrator/`, `app/api/`, `app/storage/mongo.py`.
 
 ### WS B: Companies House agent (Danny)
 
-Owned: `app/agents/companies_house/`.
+Updated Sat 18:30: this is now a background check (register, reputation, contact, property) in one agent.
+The changes from the original brief below:
+- Hard flags only from the register: a given company number that returns 404, or status dissolved or in
+  liquidation. A company NAME with no match is suspicious (high) and asks for the number.
+- Officer mismatch: medium, confidence 0.5 (shown, does not flip the check). `registered-active` clears
+  with confidence 0.6 only.
+- Facts: `company_number` (zero-padded to 8) and `email_domain` only. No `address` and no `landlord_name`:
+  the cross-check compares those with the listing and the agent's name and would flag genuine cases.
+- Evidence: `evidence_id` is `"companies_house"`, `"web"` or `"london_rogue_checker"`, with the URL in a
+  `Source:` line in `detail`.
+- Linkup only, at most 8 queries (deep for scam reports and reviews); one batched LLM call labels snippets.
+  Only negative reviews and scam reports count; absence from a search gives no finding.
+- Errors never count as "not found"; web failures give an info "could not run" finding; `timeout_s = 120`.
+
+Original brief (superseded where it conflicts with the list above):
 1. Client in `client.py`: `GET https://api.company-information.service.gov.uk/search/companies?q=<name>`,
    `/company/{number}` and `/company/{number}/officers`, with HTTP basic auth (API key as username, empty password).
 2. Resolve the company: use `landlord.company_number` if given, else search by `company_name` and take
@@ -118,6 +133,30 @@ Owned: `app/agents/companies_house/`.
 5. Facts: `company_number`, `landlord_name` (from officers), `address` (registered office).
 6. Questions when the name is ambiguous: "Ask the agent for their Companies House number."
 7. Tests with canned JSON responses for: active old agency, dissolved, not found, new company.
+
+### WS J: Cross-checker (Danny)
+
+Owned: `app/aggregators/crosschecker/`, plus the wiring in `app/orchestrator/service.py`.
+Why: each checker sees only its own slice of the evidence, so none of them can see that the contract
+charges £60 a month for utilities while the messages say bills are included.
+1. `async def review(case, rule_findings, ctx) -> AgentReport` with `agent="crosscheck"`: the rule-based
+   findings from `orchestrator/crosscheck.py` (passed in, since aggregators may not import the
+   orchestrator) plus LLM consistency findings, and a recap of at most 80 words in `summary` (after the
+   `contracts/report-summary` change).
+2. LLM input: each OK report's findings and facts (agent, title, detail, quotes) and short evidence
+   excerpts. Output model per inconsistency: topic, agent_a, claim_a, quote_a, agent_b, claim_b, quote_b,
+   check_id, severity.
+3. Every inconsistency quotes both sides; drop any whose quotes are not in the source text. Category
+   `consistency`, `supports="suspicious"`, check usually `contract_consistency` (payment topics:
+   `payment_safety`). Never sets `hard_flag`; the rule-based address mismatch keeps its hard flag.
+4. Stable ids `crosscheck:<topic-slug>`. Only call the LLM when 2+ reports are OK and their combined hash
+   changed. Stub (`AGENT_MODE_CROSSCHECK=stub`, default) replays `fixtures/reports/crosscheck.json`.
+5. Orchestrator: after the checker agents and `crosscheck.compare`, call `review`, store it as
+   `case.reports["crosscheck"]`, emit the recap as an `orchestrator_message` when it changed, then
+   `checks.update`, scoring and decision as before.
+6. Tests: the utilities example gives one finding citing both agents; a made-up quote is dropped; rule
+   findings pass through (the address hard flag still closes the case); no LLM call with fewer than 2 OK
+   reports; stub works; the orchestrator emits the recap.
 
 ### WS C: Intake OCR (Danny)
 
@@ -183,18 +222,44 @@ Owned: `app/aggregators/consultant/`.
 
 ### WS G: Contract checker (Bill)
 
-Owned: `app/agents/contract_checker/`.
-1. LLM extraction from contract text into a local model: parties, landlord name, property address,
-   rent, deposit, holding deposit, fees listed, deposit protection clause (yes/no + scheme name),
-   break clause, tenancy start and end.
-2. Rules over the extraction:
-   - deposit greater than 5 weeks' rent (rent_pcm * 12 / 52 * 5): deposit_protection, high
-   - holding deposit greater than 1 week's rent: payment_safety, medium
-   - fees other than rent, deposits, and permitted default fees (Tenant Fees Act 2019): contract_consistency, high
-   - no deposit protection clause: deposit_protection, high; a named scheme (DPS, TDS, mydeposits): cleared, 0.6
-   - clauses that do not fit the property type (garden for a flat, parking with none listed): contract_consistency, low, tagged "check with the agency"
-3. Facts: address, landlord_name, rent_pcm, deposit, move_in_date (the crosscheck does the comparing, not this agent).
-4. Tests: two synthetic contract texts (clean and dodgy) with FakeLLM canned extractions.
+Owned: `app/agents/contract_checker/`, with contract-specific evaluation in `backend/eval/`
+and synthetic fixtures in `fixtures/cases/contract_checker/`.
+
+The standalone first version is implemented. Its agreed scope and run commands are in
+[README_BILL.md](../backend/app/agents/contract_checker/README_BILL.md) and the
+[checker README](../backend/app/agents/contract_checker/README.md).
+
+1. Entry point: `review_contract(data, filename, context, ctx)` accepts text-based PDF bytes or
+   UTF-8 plain text and extracts the text itself. Supply explicit `ReviewContext` facts, including
+   `assessment_date`; unknown applicability stays conditional. Scope is ordinary private tenancies
+   in England. Scans, OCR and Word documents are excluded.
+2. Review flow: structured LLM extraction, exact quote and amount validation, Python calculations
+   and explicit-clause checks, then a second LLM pass challenging proposed findings. The maintained
+   legal rule collection supplies applicability dates and official sources. Checks cover tenancy
+   and holding deposits, fees, advance rent, tenancy/notice clauses, internal contradictions,
+   missing schedules and potentially unlawful obligations.
+3. Detailed JSON contains issues, rule-level passes, validated money/facts, questions and coverage.
+   Issues include observed clause/page references, legal links where applicable, assumptions,
+   uncertainty, importance and resolution conditions. Failed or incomplete reviews are explicit;
+   a completed review is not a safety or authenticity verdict.
+4. The existing `ContractCheckerAgent.run(case, ctx)` adapter accepts one already-extracted contract
+   and keeps the frozen `AgentReport` schema. It exports concerns and supported contract facts:
+   property address, landlord name, move-in date, unambiguous monthly rent and tenancy deposit.
+   Conditional concerns have low severity and no hard flag. The stub remains available.
+5. Integration boundary: rule-level passes use `supports="cleared"` in detailed JSON, but the adapter
+   does not promote them to whole-check clears. Meeting a deposit amount cap does not establish
+   `deposit_protection`. Agree finer clearing semantics and transport for the richer fields with
+   Danny before upload-pipeline integration. Cross-source comparisons belong to WS J; this checker
+   uses only the contract and explicit caller context. Deposit-protection information checks and
+   ordinary costly-commitment advice are excluded.
+6. Validation: offline tests cover extraction, calculations, evidence guards, challenge behaviour,
+   adapter/stub compatibility and budget accounting. The 26-contract paired live evaluation completed
+   with no missed or unexpected issue categories; these are development fixtures, not real-world
+   accuracy estimates. See [results and measured cost](../backend/eval/CONTRACT_CHECKER_RESULTS.md).
+
+Remaining integration work: connect raw uploads, agree shared-report clearing/field semantics, and
+add persistent issue history with revision matching. IDs and hashes currently support identical
+reruns only. The broader WS H scoring and system evaluation remain a separate deliverable.
 
 ### WS H: Scoring tuning + evaluation (Bill)
 

@@ -43,3 +43,16 @@ export function closedActions(c: Case): Action[] {
 export function isDecided(c: Case): boolean {
   return c.status === "decided";
 }
+
+const SOURCE_LINE = /^\s*Source:\s*(https?:\/\/\S+)\s*$/i;
+
+/** Web pages a finding cites, read from "Source: <url>" lines in its detail (Companies House, Linkup). */
+export function sourceUrls(f: Finding): string[] {
+  const urls = (f.detail ?? "").split("\n").flatMap((line) => SOURCE_LINE.exec(line)?.[1] ?? []);
+  return [...new Set(urls)];
+}
+
+/** The finding's detail without its "Source:" lines (those are shown as links instead). */
+export function detailText(f: Finding): string {
+  return (f.detail ?? "").split("\n").filter((line) => !SOURCE_LINE.test(line)).join("\n").trim();
+}

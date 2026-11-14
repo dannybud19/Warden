@@ -1,0 +1,223 @@
+/* Warden onboarding, restyled to the product: teal, General Sans (inherited), glass panel over the
+   shared pixel band. Everything is scoped to .wd-onb. */
+
+.wd-onb {
+  --o-ink: #0f2a2e;
+  --o-muted: #6b8287;
+  --o-teal: #138a93;
+  --o-teal-d: #0f6d74;
+  --o-line: #e2ebed;
+  --glow: #d7f0f1;
+  color: var(--o-ink);
+  min-height: calc(100dvh - 2rem);
+  display: grid;
+  grid-template-columns: minmax(200px, 340px) minmax(0, 520px);
+  column-gap: clamp(32px, 6vw, 96px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0 48px;
+  transition: --glow 1s ease;
+}
+.wd-onb[data-mood="amber"] { --glow: #fbebcb; }
+.wd-onb[data-mood="stop"] { --glow: #fbddd8; }
+.wd-onb[data-mood="green"] { --glow: #dbf3e6; }
+.wd-onb[data-mood="think"] { --glow: #dcecf3; }
+@property --glow { syntax: "<color>"; inherits: true; initial-value: #d7f0f1; }
+
+/* ---- Warden ---- */
+.wd-onb .stage { position: relative; width: 100%; }
+.wd-onb .halo {
+  position: absolute; left: 50%; top: 48%; width: 125%; aspect-ratio: 1; border-radius: 50%;
+  transform: translate(-50%, -50%); pointer-events: none;
+  background: radial-gradient(closest-side, var(--glow), rgba(255, 255, 255, 0));
+  animation: wd-breathe 5s ease-in-out infinite;
+}
+@keyframes wd-breathe { 50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.8; } }
+.wd-onb warden-mascot { display: block; width: 100%; position: relative; }
+.wd-onb .tag {
+  position: absolute; left: 50%; top: 4%; transform: translateX(-50%) scale(0.7); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  font-size: 13.5px; font-weight: 500; color: var(--o-ink);
+  background: rgba(255, 255, 255, 0.9); padding: 8px 14px; border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(15, 42, 46, 0.08);
+  transition: opacity 0.3s, transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.wd-onb .tag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2e9a7c; }
+.wd-onb .tag.on { opacity: 1; transform: translateX(-50%) scale(1); }
+
+/* ---- the glass panel that holds Warden's words and the form ---- */
+.wd-onb .panel { position: relative; border-radius: 28px; padding: 36px 40px 38px; }
+
+.wd-onb .progress { display: flex; align-items: center; gap: 12px; height: 16px; margin-bottom: 22px; font-size: 13px; color: var(--o-muted); opacity: 0; transition: opacity 0.5s; }
+.wd-onb .progress.on { opacity: 1; }
+.wd-onb .dashes { display: flex; gap: 5px; }
+.wd-onb .dashes i { width: 18px; height: 4px; border-radius: 4px; background: rgba(15, 42, 46, 0.1); transition: background 0.4s, width 0.4s; }
+.wd-onb .dashes i.done { background: var(--o-teal); }
+.wd-onb .dashes i.now { background: var(--o-teal); width: 28px; }
+
+/* Warden's line: calm. Words fade up (see engine); no blur, spin or jelly. */
+.wd-onb .line {
+  margin: 0; font-size: clamp(30px, 3vw, 40px); line-height: 1.12; font-weight: 500; letter-spacing: -0.031em;
+  text-wrap: balance; min-height: 1.12em;
+}
+.wd-onb .line .w { display: inline-block; white-space: pre; opacity: 0; }
+.wd-onb .line b { font-weight: 500; color: var(--o-teal); }
+.wd-onb .sub {
+  margin: 12px 0 0; max-width: 440px; font-size: 17px; line-height: 1.45; color: var(--o-muted); text-wrap: pretty;
+  opacity: 0; transition: opacity 0.45s;
+}
+.wd-onb .sub.in { opacity: 1; }
+
+/* ---- form ---- */
+.wd-onb .form { margin-top: 26px; }
+.wd-onb .form.bare .row { margin-top: 0; }
+.wd-onb .form > * { opacity: 0; transform: translateY(8px); }
+.wd-onb .form.in > * { animation: wd-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.wd-onb .form.in > *:nth-child(2) { animation-delay: 0.05s; }
+.wd-onb .form.in > *:nth-child(3) { animation-delay: 0.1s; }
+.wd-onb .form.in > *:nth-child(4) { animation-delay: 0.15s; }
+.wd-onb .form.in > *:nth-child(5) { animation-delay: 0.2s; }
+.wd-onb .form.in > *:nth-child(6) { animation-delay: 0.25s; }
+.wd-onb .form.in > *:nth-child(7) { animation-delay: 0.3s; }
+.wd-onb .form.in > *:nth-child(8) { animation-delay: 0.35s; }
+@keyframes wd-rise { to { opacity: 1; transform: none; } }
+
+.wd-onb .field { margin-bottom: 12px; }
+.wd-onb label { display: block; margin: 0 0 6px 2px; font-size: 13px; color: var(--o-muted); }
+.wd-onb input[type="text"], .wd-onb input[type="email"], .wd-onb input[type="url"], .wd-onb input[type="date"] {
+  width: 100%; font: inherit; font-size: 15.5px; color: var(--o-ink);
+  background: #fff; border: 1px solid var(--o-line); border-radius: 16px; padding: 13px 16px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.25s;
+}
+.wd-onb input::placeholder { color: #9db0b4; }
+.wd-onb input:focus { border-color: #5cc6c9; box-shadow: 0 0 0 4px rgba(92, 198, 201, 0.15); }
+
+.wd-onb .q { margin: 12px 0 8px 2px; font-size: 14.5px; font-weight: 500; }
+.wd-onb .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.wd-onb .chip {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font: inherit; font-size: 14px; color: var(--o-ink);
+  background: rgba(255, 255, 255, 0.85); border: 1px solid var(--o-line); border-radius: 999px; padding: 9px 15px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.wd-onb .chip::before { content: ""; width: 0; height: 8px; border-radius: 50%; background: var(--o-teal); transition: width 0.25s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.wd-onb .chip:hover { border-color: #5cc6c9; }
+.wd-onb .chip[aria-pressed="true"] { background: #fff; border-color: var(--o-teal); }
+.wd-onb .chip[aria-pressed="true"]::before { width: 8px; }
+
+.wd-onb .status { min-height: 22px; margin: 2px 0 8px 2px; font-size: 14px; color: var(--o-muted); }
+.wd-onb .status .ok { color: var(--o-teal-d); font-weight: 500; }
+
+.wd-onb .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px; }
+.wd-onb .tile {
+  position: relative; cursor: pointer; text-align: center; font-size: 13px; color: var(--o-muted);
+  border: 1.5px dashed rgba(19, 138, 147, 0.35); border-radius: 18px; padding: 14px 8px 12px; background: rgba(255, 255, 255, 0.6);
+  transition: border-color 0.2s, background 0.2s, transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.wd-onb .tile:hover { border-color: var(--o-teal); transform: translateY(-2px); }
+.wd-onb .tile img { display: block; width: 48px; height: 48px; margin: 0 auto 6px; }
+.wd-onb .tile.has { border-style: solid; border-color: var(--o-teal); background: #fff; color: var(--o-teal-d); }
+.wd-onb .tile input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+.wd-onb .note {
+  display: flex; gap: 10px; align-items: baseline; margin: 8px 0; padding: 12px 14px;
+  border-radius: 16px; background: #fbf2df; color: #6b4a10; font-size: 14px; line-height: 1.45;
+}
+.wd-onb .note::before { content: ""; flex: 0 0 8px; height: 8px; border-radius: 50%; background: #d99a2b; transform: translateY(-1px); }
+
+.wd-onb .row { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+.wd-onb .btn {
+  font: inherit; font-size: 15.5px; font-weight: 500; color: #fff; cursor: pointer;
+  background: var(--o-teal); border: 0; border-radius: 999px; padding: 14px 28px;
+  transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.2s, opacity 0.25s;
+}
+.wd-onb .btn:hover { transform: translateY(-1px); background: var(--o-teal-d); }
+.wd-onb .btn:active { transform: scale(0.97); }
+.wd-onb .btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.wd-onb .link { font: inherit; font-size: 14.5px; color: var(--o-muted); background: none; border: 0; padding: 8px 4px; cursor: pointer; }
+.wd-onb .link:hover { color: var(--o-ink); }
+
+.wd-onb .fly {
+  position: fixed; z-index: 50; pointer-events: none; display: flex; align-items: center; gap: 8px;
+  background: #fff; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--o-ink);
+  box-shadow: 0 12px 30px rgba(15, 42, 46, 0.14);
+}
+.wd-onb .fly img { width: 22px; height: 22px; }
+
+.wd-onb .opening { gap: 12px; font-size: 15.5px; color: var(--o-muted); }
+.wd-onb .spin { display: inline-flex; gap: 5px; }
+.wd-onb .spin i { width: 7px; height: 7px; border-radius: 50%; background: var(--o-teal); animation: wd-hop 1s ease-in-out infinite; }
+.wd-onb .spin i:nth-child(2) { animation-delay: 0.15s; }
+.wd-onb .spin i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes wd-hop { 0%, 100% { transform: translateY(0); opacity: 0.35; } 40% { transform: translateY(-5px); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-onb .halo, .wd-onb .spin i { animation: none; }
+}
+
+/* on the white onboarding background the glass card needs a soft lift */
+.wd-onb .panel.liquid-glass { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 18px 50px rgba(15, 42, 46, 0.1); }
+
+/* ---- layout polish: Warden and his speech bubble read as one unit ---- */
+.wd-onb {
+  grid-template-columns: minmax(200px, 300px) minmax(0, 500px);
+  column-gap: 28px;
+}
+.wd-onb .panel { padding: 32px 36px 34px; align-self: center; }
+/* tail pointing at Warden */
+.wd-onb .panel::before {
+  content: ""; position: absolute; left: -11px; top: 50%; width: 22px; height: 22px; transform: translateY(-50%) rotate(45deg);
+  background: rgba(255, 255, 255, 0.9); border-left: 1px solid rgba(255, 255, 255, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 0 0 0 5px; box-shadow: -6px 6px 14px rgba(15, 42, 46, 0.04);
+}
+/* the step counter takes no space until it's showing */
+.wd-onb .progress { height: 0; margin-bottom: 0; overflow: hidden; transition: opacity 0.5s, height 0.4s, margin 0.4s; }
+.wd-onb .progress.on { height: 16px; margin-bottom: 20px; }
+.wd-onb .form { margin-top: 24px; }
+.wd-onb .line { font-size: clamp(28px, 2.6vw, 36px); text-wrap: pretty; }
+
+/* ---- bigger: Warden and his bubble fill the screen ---- */
+.wd-onb {
+  grid-template-columns: minmax(260px, 440px) minmax(0, 640px);
+  column-gap: 36px;
+}
+.wd-onb .panel { padding: 44px 52px 48px; border-radius: 34px; }
+.wd-onb .panel::before { left: -14px; width: 28px; height: 28px; }
+.wd-onb .line { font-size: clamp(36px, 3.5vw, 54px); line-height: 1.08; }
+.wd-onb .sub { font-size: clamp(18px, 1.45vw, 21px); max-width: 540px; margin-top: 16px; }
+.wd-onb .form { margin-top: 30px; }
+.wd-onb .progress.on { height: 18px; margin-bottom: 24px; font-size: 14px; }
+.wd-onb .dashes i { width: 22px; height: 5px; }
+.wd-onb .dashes i.now { width: 34px; }
+.wd-onb label { font-size: 14px; }
+.wd-onb input[type="text"], .wd-onb input[type="email"], .wd-onb input[type="url"], .wd-onb input[type="date"] {
+  font-size: 17px; padding: 15px 18px; border-radius: 18px;
+}
+.wd-onb .q { font-size: 16px; margin-top: 16px; }
+.wd-onb .chip { font-size: 15.5px; padding: 11px 18px; }
+.wd-onb .btn { font-size: 17px; padding: 17px 34px; }
+.wd-onb .link { font-size: 16px; }
+.wd-onb .tile img { width: 60px; height: 60px; }
+.wd-onb .tile { font-size: 14px; padding: 18px 10px 14px; }
+.wd-onb .note, .wd-onb .status { font-size: 15px; }
+.wd-onb .tag { font-size: 15px; padding: 9px 16px; }
+.wd-onb { grid-template-columns: minmax(260px, 420px) minmax(0, 700px); }
+.wd-onb .line { font-size: clamp(34px, 3.1vw, 46px); }
+.wd-onb .panel { padding: 40px 52px 44px; }
+
+/* performance: the onboarding sits on white, so the card needs no backdrop blur */
+.wd-onb .panel {
+  background: linear-gradient(160deg, #ffffff, #fbfdfd);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 18px 50px rgba(15, 42, 46, 0.09);
+}
+.wd-onb .panel::before { background: #ffffff; border-color: #ffffff; }
+/* the inner sizer clips during the glide; a little slack keeps focus rings and hops visible */
+.wd-onb .panel-size { overflow: hidden; margin: -8px; padding: 8px; box-sizing: content-box; }
+
+/* new case: address + rent side by side; extra documents in a 2x2 grid */
+.wd-onb .pair { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
+.wd-onb .tiles.grid2 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.wd-onb .tiles.grid2 .tile { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 16px; }
+.wd-onb .tiles.grid2 .tile img { width: 44px; height: 44px; margin: 0; flex-shrink: 0; }
+.wd-onb .tiles.grid2 .tile span { line-height: 1.3; }

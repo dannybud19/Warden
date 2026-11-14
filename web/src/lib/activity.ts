@@ -1,0 +1,108 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import * as api from "./api";
+import type { Action, Case } from "./types";
+import { agentRows, whyAsk, type Tone } from "./present";
+import { openActions } from "./selectors";
+import { AGENTS_FOR } from "./dashboard";
+import { VERDICT_LABELS } from "./labels";
+import {
+  caseToHome, parseIds, sortByNeed, useRememberedCaseIdsRaw, type Home,
+} from "./homes";
+
+// Agent activity across every home: powers the Inbox.
+
+export const AGENT_PROFILE: Record<string, { name: string; icon: string; role: string }> = {
+  warden: { name: "Warden", icon: "/warden/mascot.png", role: "Your lead agent" },
+  companies_house: { name: "Agency checker", icon: "/warden/agent-agency.png", role: "Companies House" },
+  message_checker: { name: "Chat reader", icon: "/warden/agent-chat.png", role: "Reads your chats" },
+  emotion_classifier: { name: "Pressure spotter", icon: "/warden/agent-pressure.png", role: "Tone of your chats" },
+  contract_checker: { name: "Contract reader", icon: "/warden/agent-contract.png", role: "Reads the contract" },
+  video_analysis: { name: "Video checker", icon: "/warden/agent-video.png", role: "Viewing videos" },
+};
+
+export type ActivityStatus = "needs_you" | "done" | "waiting" | "checking" | "error";
+
+export interface Activity {
+  id: string;
+  caseId: string;
+  agent: string;
+  status: ActivityStatus;
+  line: string;
+  tone: Tone;
+  at: string;
+  home: Home;
+  action?: Action;
+  why?: string;
+}
+
+const CHIP_TO_STATUS = { done: "done", waiting: "waiting", checking: "checking", error: "error" } as const;
+
+/** Everything one case's agents have done, newest information first. */
+export function activityFromCase(c: Case, home: Home): Activity[] {
+  const evidence = [...(c.evidence ?? [])].sort((a, b) => a.uploaded_at.localeCompare(b.uploaded_at));
+  const firstFeed = (agent: string) => evidence.find((e) => AGENTS_FOR[e.kind]?.includes(agent))?.uploaded_at;
+  const out: Activity[] = agentRows(c, {}).map((r) => ({
+    id: `${c.case_id}:${r.name}`,
+    caseId: c.case_id,
+    agent: r.name,
+    status: CHIP_TO_STATUS[r.chip],
+    line: r.line,
+    tone: r.tone,
+    at: (r.chip === "done" && firstFeed(r.name)) || c.created_at,
+    home,
+  }));
+  for (const a of openActions(c)) {
+    out.push({
+      id: `${c.case_id}:action:${a.id}`, caseId: c.case_id, agent: "warden", status: "needs_you",
+      line: a.text, tone: "red", at: a.asked_at ?? c.created_at, home, action: a, why: whyAsk(a),
+    });
+  }
+  if (c.decision) {
+    out.push({
+      id: `${c.case_id}:decision`, caseId: c.case_id, agent: "warden", status: "done",
+      line: VERDICT_LABELS[c.decision.verdict], tone: c.decision.verdict === "likely_scam" ? "red" : c.decision.verdict === "not_verified" ? "amber" : "green",
+      at: c.decision.decided_at ?? c.created_at, home,
+    });
+  }
+  return out;
+}
+
+// ---- Hook: every home this browser knows about, and their agents' activity ----
+
+export function useWardenData() {
+  const key = parseIds(useRememberedCaseIdsRaw()).join(",");
+  const [load, setLoad] = useState<{ key: string; tick: number; cases: Case[] } | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    Promise.allSettled(key.split(",").map((id) => api.getCase(id))).then((results) => {
+      if (cancelled) return;
+      setLoad({ key, tick, cases: results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : [])) });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, tick]);
+
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
+
+  return useMemo(() => {
+    const empty = { homes: [] as Home[], items: [] as Activity[], loading: false, sample: false, refresh };
+    if (!key) return empty;
+    if (!load || load.key !== key) return { homes: [] as Home[], items: [] as Activity[], loading: true, sample: false, refresh };
+    if (!load.cases.length) return empty;
+    const homes = load.cases.map(caseToHome);
+    const items = load.cases.flatMap((c, i) => activityFromCase(c, homes[i]));
+    return { homes: sortByNeed(homes), items, loading: false, sample: false, refresh };
+    // `tick` re-reads the in-memory demo case after a skip
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, load, refresh, tick]);
+}
+
+export function shortWhen(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London",
+  });
+}

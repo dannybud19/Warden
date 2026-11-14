@@ -1,0 +1,21 @@
+{
+  "total_results": 2,
+  "items": [
+    {
+      "title": "ZENITH ROOFING LTD",
+      "company_number": "08000004",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2012-03-01",
+      "address_snippet": "4 Roof Road, London, N1 1AA"
+    },
+    {
+      "title": "HARBOUR FISH LTD",
+      "company_number": "08000005",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2012-03-01",
+      "address_snippet": "5 Quay Road, Hull, HU1 1AA"
+    }
+  ]
+}
