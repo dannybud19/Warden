@@ -83,8 +83,8 @@ export async function uploadEvidence(caseId: string, input: UploadInput): Promis
 
 export async function reply(caseId: string, input: ReplyInput): Promise<Case> {
   if (USE_MOCK) return mock.getCase();
-  // NOTE: backend ReplyRequest currently accepts only text + evidence_ids; action_id and status are
-  // sent per plan 10A.10 and ignored (pydantic drops unknown fields) until the backend adds them.
+  // NOTE: action cards send action_id + status together; free chat sends neither (backend then
+  // answers the oldest open action). An unknown or already-closed action_id returns 422.
   return request<Case>(`/cases/${caseId}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

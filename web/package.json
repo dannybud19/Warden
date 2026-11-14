@@ -5,6 +5,7 @@
   "scripts": {
     "predev": "node scripts/copy-fixture.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-fixture.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
