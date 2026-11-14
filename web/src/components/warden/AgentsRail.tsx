@@ -259,7 +259,7 @@ function ChatPane({
               <Mascot width={36} height={43} />
             </motion.div>
             <p className="text-[14px] font-medium text-ink/80">Ask me anything about this home</p>
-            <p className="mt-1 text-[12.5px] leading-[1.45] text-ink/55">Or call me, or forward the agent&apos;s reply.</p>
+            <p className="mt-1 text-[12.5px] leading-[1.45] text-ink/55">Alternatively, hop on a call!</p>
           </div>
         ) : (
           chat.map((m, i) => (

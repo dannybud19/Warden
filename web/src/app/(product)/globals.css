@@ -47,9 +47,12 @@ body {
   overflow-x: hidden;
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-teal);
-  outline-offset: 2px;
+/* keyboard focus ring; in the base layer so components (e.g. text fields with outline-none) can override it */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+  }
 }
 
 /* Liquid glass: a bright, uneven rim (light catching the top-left and bottom-right edges) drawn as a
