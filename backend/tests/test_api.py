@@ -8,10 +8,13 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from app.api.main import _check_storage as check_storage
 from app.api.main import create_app
 from app.contracts import Case
+from app.core.agent import AgentContext
 from app.core.settings import Settings
 from app.intake import service as intake_service
+from app.storage.mongo import MongoCaseRepo
 from tests.conftest import EmptyAgent
 from tests.test_service_background import GateAgent
 
@@ -222,3 +225,17 @@ def test_status_without_action_id_is_rejected(client: TestClient) -> None:
     assert response.status_code == 422
     assert "status needs action_id" in response.text
     assert client.get(f"/cases/{case_id}").json() == before  # case unchanged
+
+
+async def test_an_unreachable_mongo_fails_at_startup(
+    ctx: AgentContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = MongoCaseRepo("mongodb://localhost:1")  # motor connects lazily: nothing is dialled
+
+    async def unreachable() -> None:
+        raise ConnectionError("no cluster")
+
+    monkeypatch.setattr(repo, "ping", unreachable)
+    with pytest.raises(ConnectionError):
+        await check_storage(repo, ctx)
+    repo.close()

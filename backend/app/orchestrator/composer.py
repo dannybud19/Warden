@@ -6,6 +6,7 @@ import asyncio
 import json
 import re
 from dataclasses import asdict, dataclass
+from functools import cache
 from pathlib import Path
 from typing import Literal
 
@@ -13,6 +14,7 @@ from app.core.agent import AgentContext
 
 COMPOSE_TIMEOUT_S = 10.0
 MAX_WORDS = 60
+MAX_RECAP_WORDS = 80
 
 EM_DASH = "\u2014"  # the em dash character, written as an escape so no literal one is in the file
 SCORE_SCALE = 100  # the "/100" in the score sentence
@@ -21,7 +23,9 @@ MAX_NOTES = 2
 MAX_FACT_WORDS = 8  # a note's text longer than this is replaced by a generic sentence
 
 _BANNED = re.compile(
-    r"\b(safe|safely|legit|legitimate|scam|scams|scammer|genuine|fraud|fraudulent)\b",
+    # NOTE: explicit word forms, not `\w*`: "payment safety" is a check label and must pass.
+    r"\b(safe|safely|safer|safest|legit|legitimate|legitimately|scam|scams|scammed|scammer|"
+    r"scammers|genuine|genuinely|fraud|frauds|fraudulent|fraudster|fraudsters)\b",
     re.IGNORECASE,
 )
 _LONG_DIGITS = re.compile(r"\d{6,}")
@@ -31,7 +35,6 @@ _NUMBER = re.compile(r"\d+")
 NoteKind = Literal[
     "unmatched",
     "dropped",
-    "fallback",
     "field_changed",
     "field_invalid",
     "question",
@@ -65,6 +68,7 @@ class RoundInput:
     grounding: tuple[str, ...] = ()  # P2: check states and finding titles, to answer a question
 
 
+@cache
 def compose_prompt() -> str:
     """The system prompt for the round message."""
     return (Path(__file__).parent / "prompts" / "compose.md").read_text(encoding="utf-8")
@@ -105,6 +109,22 @@ def validate(text: str, inp: RoundInput) -> list[str]:
         ("banned_word", _has_banned_word(text)),
         ("long_digits", _has_long_digits(text)),
         ("unknown_number", _has_unknown_number(text, inp)),
+        ("empty", not text.strip()),
+        ("em_dash", EM_DASH in text),
+        ("not_prose", _not_prose(text)),
+    )
+    return [name for name, broken in rules if broken]
+
+
+def validate_recap(text: str) -> list[str]:
+    """Names of the rules a Cross-checker recap breaks before it is relayed (empty list: OK).
+
+    The recap quotes no round input, so there is no number rule; the rest match `validate`.
+    """
+    rules = (
+        ("too_long", len(text.split()) > MAX_RECAP_WORDS),
+        ("banned_word", _has_banned_word(text)),
+        ("long_digits", _has_long_digits(text)),
         ("empty", not text.strip()),
         ("em_dash", EM_DASH in text),
         ("not_prose", _not_prose(text)),
@@ -202,7 +222,7 @@ def _note_sentences(notes: tuple[RoundNote, ...]) -> list[str]:
 
 
 def _note_sentence(note: RoundNote) -> str:
-    """One sentence for a note, or "" for kinds the template does not render (fallback)."""
+    """One sentence for a note ("" for a kind the template does not know)."""
     if note.kind in _FIXED_NOTES:
         return _FIXED_NOTES[note.kind]
     if note.kind in _FACT_NOTES:

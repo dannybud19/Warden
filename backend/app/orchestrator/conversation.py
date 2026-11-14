@@ -15,6 +15,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
+from functools import cache
 from pathlib import Path
 from typing import Literal
 
@@ -65,6 +66,7 @@ class ParseResult:
     unmatched: bool = False  # free text that matched no open action
 
 
+@cache
 def parse_prompt() -> str:
     """The system prompt for the reply parser."""
     return (Path(__file__).parent / "prompts" / "parse.md").read_text(encoding="utf-8")
@@ -206,6 +208,10 @@ async def parse(
         return _fallback(actions, text, evidence_ids)
 
     usable = _usable(known, text)
+    if action_id is None:
+        # In free text a neutral reading ("I'll ask them") must not close a step the student has
+        # not done; only a reply to that step's own card can close it as neutral.
+        usable = [u for u in usable if u.outcome != "neutral"]
     if usable:
         return ParseResult(updates=_to_updates(usable, evidence_ids))
     if action_id is not None:

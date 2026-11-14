@@ -156,7 +156,7 @@ def test_template_score_up_with_upload_hint() -> None:
     )
 
 
-def test_template_limits_moves_and_notes_and_skips_fallback() -> None:
+def test_template_limits_moves_and_notes() -> None:
     inp = RoundInput(
         score_before=None,
         score_after=100,
@@ -168,7 +168,6 @@ def test_template_limits_moves_and_notes_and_skips_fallback() -> None:
         not_run=("companies_house",),
         new_actions=1,
         notes=(
-            RoundNote("fallback"),
             RoundNote("dropped"),
             RoundNote("field_changed", "rent set to 950."),
             RoundNote("question"),
@@ -233,7 +232,7 @@ TEMPLATE_INPUTS = [
     RoundInput(
         score_before=90,
         score_after=80,
-        notes=(RoundNote("question", "is it 2 bedrooms?"), RoundNote("fallback")),
+        notes=(RoundNote("question", "is it 2 bedrooms?"),),
         grounding=("fair price: cleared",),
         recap_sent=True,
         open_actions=4,

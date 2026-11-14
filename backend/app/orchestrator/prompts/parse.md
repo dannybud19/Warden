@@ -11,7 +11,8 @@ Return ONLY JSON:
  "question": null}
 
 Rules:
-1. Include an action only if the reply actually answers it. If the reply answers nothing, return
+1. Include an action only if the reply actually answers it. Leave out actions the student has not
+   done yet ("I'll ask them tomorrow"). If the reply answers nothing, return
    {"updates": [], "question": null}.
 2. "flags": the student reports a concrete red flag for that action: the agent refused, would not
    show the property, asked for money before a viewing, gave no company number, is abroad, the

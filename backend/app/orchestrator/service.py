@@ -9,6 +9,7 @@ from app.aggregators.consultant.consultant import propose_actions
 from app.aggregators.crosschecker import crosschecker
 from app.aggregators.scoring.scoring import Weights, score
 from app.contracts import (
+    Action,
     ActionsProposed,
     ActionStatus,
     AgentFinished,
@@ -23,6 +24,7 @@ from app.contracts import (
     Landlord,
     Listing,
     OrchestratorMessage,
+    ScoreResult,
     ScoreUpdated,
     StreamEvent,
     StudentContext,
@@ -36,6 +38,11 @@ from app.orchestrator.composer import RoundNote
 from app.orchestrator.events import EventBus
 from app.orchestrator.runner import run_agents
 from app.storage.repository import CaseRepository
+
+# NOTE: the LLM steps of a round get their own deadlines, because the LLM client's default
+# timeout is minutes and a hung call would hold the analysis lock for that long.
+CROSSCHECK_TIMEOUT_S = 30.0
+CONSULTANT_TIMEOUT_S = 30.0
 
 FAILED_ANALYSIS_TEXT = (
     "One of the checks failed to run. Your evidence is saved: "
@@ -190,7 +197,7 @@ class CaseService:
         """
         ids = list(evidence_ids or [])
         snapshot = await self._load(case_id, must_be_open=True)
-        conversation.validate_target(snapshot, action_id)  # 422 before any slow work
+        # NOTE: parse checks `action_id` first (InvalidActionError, 422) before any LLM call.
         result = await conversation.parse(snapshot, text, ids, action_id, status, self.ctx)
 
         async with self._locks[case_id]:
@@ -293,20 +300,54 @@ class CaseService:
             return await self._finish_analysis(snapshot, new_reports, notes)
 
     async def _review(self, case: Case) -> AgentReport:
-        """The Cross-checker's report: rule findings plus its recap. A failing review keeps the
-        rule findings and drops the recap, so the hard-flag rules still apply."""
+        """The Cross-checker's report: rule findings plus its recap.
+
+        A failing or slow review keeps the rule findings, so the hard-flag rules still apply, and
+        keeps the previous recap, so the same recap is not sent again next round.
+        """
         rule_findings = crosscheck.compare(case, case.reports)
         try:
-            return await crosschecker.review(case, rule_findings, self.ctx)
-        except Exception:  # noqa: BLE001 - the round must not fail on the Cross-checker
-            self.ctx.log.warning("cross-checker failed: using the rule findings only")
+            return await asyncio.wait_for(
+                crosschecker.review(case, rule_findings, self.ctx), CROSSCHECK_TIMEOUT_S
+            )
+        except Exception as exc:  # noqa: BLE001 - the round must not fail on the Cross-checker
+            self.ctx.log.warning(
+                "cross-checker failed (%s): rule findings only", type(exc).__name__
+            )
+            previous = case.reports.get(crosschecker.NAME)
             return AgentReport(
                 agent=crosschecker.NAME,
                 version=crosschecker.VERSION,
                 status=AgentStatus.OK,
                 input_hash="",
                 findings=rule_findings,
+                summary=previous.summary if previous else None,
             )
+
+    def _relayable_recap(self, previous: str | None, current: str | None) -> str | None:
+        """The recap to relay this round: changed, and within the student-facing rules."""
+        recap = rounds.changed_recap(previous, current)
+        if recap is None:
+            return None
+        violations = composer.validate_recap(recap)
+        if violations:
+            self.ctx.log.warning("recap not relayed: %s", ", ".join(violations))
+            return None
+        return recap
+
+    async def _propose(self, case: Case, result: ScoreResult) -> list[Action] | None:
+        """The consultant's next steps, or None when it failed or timed out.
+
+        None is not "nothing left": it must not trigger a decision, so the round just asks
+        nothing new and the next analysis tries again.
+        """
+        try:
+            return await asyncio.wait_for(
+                propose_actions(case, result, self.ctx), CONSULTANT_TIMEOUT_S
+            )
+        except Exception as exc:  # noqa: BLE001 - the round must not fail on the consultant
+            self.ctx.log.warning("consultant failed (%s): no new steps", type(exc).__name__)
+            return None
 
     async def _finish_analysis(
         self, snapshot: Case, new_reports: dict[str, AgentReport], notes: list[RoundNote]
@@ -328,7 +369,7 @@ class CaseService:
             score_before = case.score_history[-1] if case.score_history else None
             states_before = {c.id: c.state for c in case.checks}
             previous = case.reports.get(crosschecker.NAME)
-            recap = rounds.changed_recap(previous.summary if previous else None, cross.summary)
+            recap = self._relayable_recap(previous.summary if previous else None, cross.summary)
 
             case.reports.update(new_reports)
             case.reports[crosschecker.NAME] = cross
@@ -345,10 +386,13 @@ class CaseService:
 
         # Step 2 (no lock): next steps and the round message.
         existing = {a.id for a in case.actions}
-        proposals = await propose_actions(case, result, self.ctx)
+        proposals = await self._propose(case, result)
         now = datetime.now(UTC)
-        fresh = [a.model_copy(update={"asked_at": now}) for a in proposals if a.id not in existing]
-        if not fresh and not any(a.status == ActionStatus.OPEN for a in case.actions):
+        fresh = [
+            a.model_copy(update={"asked_at": now}) for a in proposals or [] if a.id not in existing
+        ]
+        nothing_open = not any(a.status == ActionStatus.OPEN for a in case.actions)
+        if proposals is not None and not fresh and nothing_open:
             return await self._decide_if_still_done(case_id)
         inp = rounds.round_input(
             score_before=score_before,

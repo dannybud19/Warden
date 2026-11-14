@@ -29,9 +29,9 @@ def _kinds(notes: list[RoundNote]) -> list[str]:
     return [n.kind for n in notes]
 
 
-def test_reply_notes_unmatched_fallback_and_dropped() -> None:
-    result = ParseResult(unmatched=True, used_fallback=True)
-    assert _kinds(rounds.reply_notes(result, [], "ok")) == ["fallback", "unmatched"]
+def test_reply_notes_unmatched_and_dropped() -> None:
+    result = ParseResult(unmatched=True, used_fallback=True)  # the fallback itself is only logged
+    assert _kinds(rounds.reply_notes(result, [], "ok")) == ["unmatched"]
     dropped = ParseResult(updates=(_update(),))
     assert _kinds(rounds.reply_notes(dropped, ["a1"], "yes")) == ["dropped"]
 

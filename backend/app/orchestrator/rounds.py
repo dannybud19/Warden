@@ -32,8 +32,6 @@ def label(check_id: CheckId) -> str:
 def reply_notes(result: ParseResult, dropped: list[str], text: str) -> list[RoundNote]:
     """What the next round message should say about this reply."""
     notes: list[RoundNote] = []
-    if result.used_fallback:
-        notes.append(RoundNote(kind="fallback"))  # logged, never shown
     if result.unmatched:
         notes.append(RoundNote(kind="unmatched"))
     if dropped:

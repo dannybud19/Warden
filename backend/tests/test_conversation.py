@@ -381,11 +381,21 @@ async def test_all_unknown_ids_fall_back(
 
 
 async def test_some_unknown_ids_are_discarded_without_fallback(ctx: AgentContext) -> None:
-    reply = llm_json(upd("invented", "clears", "yes"), upd(COMPANY, "neutral", "yes"))
+    reply = llm_json(upd("invented", "clears", "yes"), upd(COMPANY, "clears", "yes"))
     ctx, _ = fake(ctx, reply)
     result = await parse(three_open(), "yes", [], None, None, ctx)
     assert not result.used_fallback
-    assert outcomes(result) == {COMPANY: "neutral"}
+    assert outcomes(result) == {COMPANY: "clears"}
+
+
+async def test_a_free_text_hedge_does_not_close_a_step(ctx: AgentContext) -> None:
+    text = "I'll ask them for the number tomorrow"
+    ctx, _ = fake(ctx, llm_json(upd(COMPANY, "neutral", "I'll ask them for the number")))
+    result = await parse(three_open(), text, [], None, None, ctx)
+    assert result.updates == () and result.unmatched
+    # The same reading on the step's own card does answer it.
+    targeted = await parse(three_open(), text, [], COMPANY, None, ctx)
+    assert outcomes(targeted) == {COMPANY: "neutral"}
 
 
 async def test_llm_timeout_falls_back(ctx: AgentContext, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -413,7 +423,7 @@ async def test_no_listed_evidence_ids_go_to_every_done_update(ctx: AgentContext)
     text = "here is the number and the viewing booking"
     reply = llm_json(
         upd(COMPANY, "clears", "here is the number"),
-        upd(VIEWING, "neutral", "the viewing booking", ["invented"]),
+        upd(VIEWING, "clears", "the viewing booking", ["invented"]),
     )
     ctx, _ = fake(ctx, reply)
     result = await parse(three_open(), text, ["e1", "e2"], None, None, ctx)

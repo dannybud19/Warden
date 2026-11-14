@@ -1,15 +1,18 @@
 """One analysis round end to end: Cross-checker recap, round message, chat history, reply notes."""
 
+import asyncio
 import dataclasses
 from collections.abc import Callable
 from typing import Any
 
 import pytest
 
+from app.aggregators.consultant.consultant import reword_prompt
 from app.aggregators.scoring.scoring import load_weights
 from app.contracts import (
     ActionStatus,
     AgentReport,
+    AgentStatus,
     Case,
     CheckState,
     EvidenceKind,
@@ -22,8 +25,11 @@ from app.contracts import (
 )
 from app.core.agent import AgentContext, BaseAgent, Need
 from app.core.llm import FakeLLM
+from app.core.settings import Settings
 from app.orchestrator import conversation
 from app.orchestrator import service as service_module
+from app.orchestrator.composer import compose_prompt
+from app.orchestrator.conversation import parse_prompt
 from app.orchestrator.events import EventBus
 from app.orchestrator.service import FAILED_ANALYSIS_TEXT, CaseService, Upload
 from app.storage.memory import InMemoryCaseRepo
@@ -237,35 +243,116 @@ async def test_a_failed_analysis_is_recorded_in_the_chat(
 
 
 class LockWatchingLLM(FakeLLM):
-    """A FakeLLM that records, on every call, whether any case's state lock was held."""
+    """A FakeLLM that records, for every call, its system prompt and whether any case's state
+    lock was held at that moment."""
 
-    def __init__(self, service_ref: list[CaseService], **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+    def __init__(self, service_ref: list[CaseService]) -> None:
+        super().__init__()
         self._service_ref = service_ref
-        self.locked_during_call: list[bool] = []
+        self.seen: list[tuple[str, bool]] = []
 
-    def _record(self) -> None:
+    def _record(self, system: str) -> None:
         locks = self._service_ref[0]._locks.values()  # noqa: SLF001 - the property under test
-        self.locked_during_call.append(any(lock.locked() for lock in locks))
+        self.seen.append((system, any(lock.locked() for lock in locks)))
 
     async def complete(self, system: str, user: str, *, model: str | None = None) -> str:
-        self._record()
+        self._record(system)
         return await super().complete(system, user, model=model)
 
     async def complete_json(self, system: str, user: str, schema: Any, *, model: Any = None) -> Any:
-        self._record()
+        self._record(system)
         return await super().complete_json(system, user, schema, model=model)
 
 
 async def test_no_llm_call_holds_the_state_lock(ctx: AgentContext, bus: EventBus) -> None:
     ref: list[CaseService] = []
     llm = LockWatchingLLM(ref)
-    service = CaseService(
-        InMemoryCaseRepo(), bus, [EmptyAgent()], dataclasses.replace(ctx, llm=llm), load_weights()
-    )
+    # Real mode so the consultant rewords its actions with the LLM too (the agent list is fixed).
+    real = Settings(_env_file=None, default_agent_mode="real", storage="memory")  # type: ignore[call-arg]
+    live_ctx = dataclasses.replace(ctx, llm=llm, settings=real)
+    service = CaseService(InMemoryCaseRepo(), bus, [EmptyAgent()], live_ctx, load_weights())
     ref.append(service)
-    case, _ = await _open_with_three_actions(service, bus)
-    await reply_and_settle(service, case.case_id, "yes", action_id="act_viewing")
+    case = await service.open_case(StudentContext(), LISTING, None)
+    case = await add_evidence_and_settle(service, case.case_id, EMAIL)
+    await reply_and_settle(service, case.case_id, "yes", action_id=case.actions[0].id)
 
-    assert len(llm.locked_during_call) >= 3  # parse, consultant reword, composer
-    assert not any(llm.locked_during_call)
+    prompts = {system for system, _ in llm.seen}
+    assert {parse_prompt(), compose_prompt()} <= prompts
+    assert any(system.startswith(reword_prompt()) for system in prompts)  # the consultant
+    assert not any(locked for _, locked in llm.seen)
+
+
+async def test_a_failing_cross_checker_keeps_the_rules_and_the_previous_recap(
+    make_service: MakeService, bus: EventBus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = make_service([RentAgent()])
+    case = await service.open_case(StudentContext(), LISTING, None)
+    queue = bus.subscribe(case.case_id)
+    await add_evidence_and_settle(service, case.case_id, EMAIL)
+    assert RENT_RECAP in _messages(_drain(queue))
+
+    async def broken(*_: object) -> AgentReport:
+        raise RuntimeError("cross-checker down")
+
+    monkeypatch.setattr(service_module.crosschecker, "review", broken)
+    case = await add_evidence_and_settle(service, case.case_id, EMAIL)
+    report = case.reports["crosscheck"]
+    assert [f.id for f in report.findings] == ["crosscheck:rent_pcm"]  # rule findings kept
+    assert report.summary == RENT_RECAP  # so the recap is not re-sent once it recovers
+
+    monkeypatch.undo()
+    await add_evidence_and_settle(service, case.case_id, EMAIL)
+    assert RENT_RECAP not in _messages(_drain(queue))
+
+
+async def test_a_failing_cross_checker_still_lets_the_address_hard_flag_decide(
+    make_service: MakeService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def broken(*_: object) -> AgentReport:
+        raise RuntimeError("cross-checker down")
+
+    monkeypatch.setattr(service_module.crosschecker, "review", broken)
+    service = make_service([ContractAddressAgent()])
+    case = await service.open_case(StudentContext(), LISTING, None)
+    contract = Upload(EvidenceKind.CONTRACT, b"Tenancy agreement for 9 Other Road, E1 6AN")
+    case = await add_evidence_and_settle(service, case.case_id, contract)
+    assert case.status == "decided"
+
+
+async def test_a_recap_that_breaks_the_rules_is_not_relayed(
+    make_service: MakeService, bus: EventBus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def loud(case: Case, rule_findings: list[Any], ctx: AgentContext) -> AgentReport:
+        return AgentReport(
+            agent="crosscheck",
+            version="x",
+            status=AgentStatus.OK,
+            input_hash="",
+            findings=rule_findings,
+            summary="This listing is a scam.",
+        )
+
+    monkeypatch.setattr(service_module.crosschecker, "review", loud)
+    service = make_service([RentAgent()])
+    case = await service.open_case(StudentContext(), LISTING, None)
+    queue = bus.subscribe(case.case_id)
+    await add_evidence_and_settle(service, case.case_id, EMAIL)
+    assert all("scam" not in m for m in _messages(_drain(queue)))
+
+
+async def test_a_slow_consultant_neither_blocks_nor_decides(
+    make_service: MakeService, bus: EventBus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def hangs(*_: object) -> list[Any]:
+        await asyncio.sleep(10)
+        return []
+
+    monkeypatch.setattr(service_module, "propose_actions", hangs)
+    monkeypatch.setattr(service_module, "CONSULTANT_TIMEOUT_S", 0.01)
+    service = make_service([EmptyAgent()])
+    case = await service.open_case(StudentContext(), None, None)
+    queue = bus.subscribe(case.case_id)
+    case = await add_evidence_and_settle(service, case.case_id, EMAIL)
+    # No actions are open, but a failed consultant is not "nothing left to check".
+    assert case.status == "open"
+    assert _messages(_drain(queue)) == ["Your risk score is 100/100."]
