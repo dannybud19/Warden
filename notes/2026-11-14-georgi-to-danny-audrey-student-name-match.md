@@ -27,3 +27,8 @@ first-name match when exactly one person in the chat has that first name. A plac
 ## How to check it
 
 `make check` on the branch: 586 passed, 3 skipped. Tests in `backend/tests/test_whatsapp.py`.
+
+## Update (Georgi, evening): merged
+
+#12 merged into `main`. `make check` on `main` after the merge: green. The Audrey point above (the
+"student" placeholder when no name is set) is still open.
