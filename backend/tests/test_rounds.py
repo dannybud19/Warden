@@ -1,0 +1,122 @@
+"""Pure helpers that build round notes and the composer's input."""
+
+from datetime import UTC, datetime
+
+from app.contracts import (
+    Action,
+    ActionKind,
+    ActionStatus,
+    AgentReport,
+    AgentStatus,
+    Category,
+    Check,
+    CheckId,
+    CheckState,
+    Finding,
+    ScoreResult,
+    Severity,
+)
+from app.orchestrator import rounds
+from app.orchestrator.composer import CheckMove, RoundNote
+from app.orchestrator.conversation import ActionUpdate, ParseResult
+
+
+def _update(outcome: str = "neutral", quote: str = "", action_id: str = "a1") -> ActionUpdate:
+    return ActionUpdate(action_id, "done", outcome, quote)  # type: ignore[arg-type]
+
+
+def _kinds(notes: list[RoundNote]) -> list[str]:
+    return [n.kind for n in notes]
+
+
+def test_reply_notes_unmatched_fallback_and_dropped() -> None:
+    result = ParseResult(unmatched=True, used_fallback=True)
+    assert _kinds(rounds.reply_notes(result, [], "ok")) == ["fallback", "unmatched"]
+    dropped = ParseResult(updates=(_update(),))
+    assert _kinds(rounds.reply_notes(dropped, ["a1"], "yes")) == ["dropped"]
+
+
+def test_upload_hint_only_for_a_flagged_payment_answer() -> None:
+    flagged = ParseResult(updates=(_update("flags", "asked me to pay first"),))
+    assert _kinds(rounds.reply_notes(flagged, [], "x")) == ["upload_hint"]
+    # The keyword fallback has no quote: the reply text is read instead.
+    fallback = ParseResult(updates=(_update("flags"),), used_fallback=True)
+    assert "upload_hint" in _kinds(rounds.reply_notes(fallback, [], "No, bank transfer only"))
+    viewing = ParseResult(updates=(_update("flags", "they refused a viewing"),))
+    assert rounds.reply_notes(viewing, [], "x") == []
+    cleared = ParseResult(updates=(_update("clears", "I paid by card after the viewing"),))
+    assert rounds.reply_notes(cleared, [], "x") == []
+    closed = ParseResult(updates=(_update("flags", "pay first"),))
+    assert _kinds(rounds.reply_notes(closed, ["a1"], "x")) == ["dropped"]
+
+
+def test_moved_checks_lists_only_changes() -> None:
+    before = {
+        CheckId.LANDLORD_IDENTITY: CheckState.UNVERIFIED,
+        CheckId.FAIR_PRICE: CheckState.UNVERIFIED,
+    }
+    after = [
+        Check(id=CheckId.LANDLORD_IDENTITY, state=CheckState.CLEARED),
+        Check(id=CheckId.FAIR_PRICE),
+    ]
+    assert rounds.moved_checks(before, after) == [
+        CheckMove(check="landlord identity", before="unverified", after="cleared")
+    ]
+
+
+def test_not_run_reports_errors_and_not_run_notes() -> None:
+    note = Finding(
+        id="companies_house:not-run-reputation",
+        agent="companies_house",
+        check_id=CheckId.LANDLORD_IDENTITY,
+        title="Reputation check did not run",
+        detail="search was down",
+        category=Category.IDENTITY,
+        severity=Severity.INFO,
+        confidence=0.0,
+    )
+    reports = {
+        "companies_house": AgentReport(
+            agent="companies_house",
+            version="1",
+            status=AgentStatus.OK,
+            input_hash="h",
+            findings=[note],
+        ),
+        "message_checker": AgentReport(
+            agent="message_checker", version="1", status=AgentStatus.ERROR, input_hash="h"
+        ),
+    }
+    assert rounds.not_run(reports) == [
+        "Reputation check did not run",
+        "message_checker did not finish",
+    ]
+
+
+def test_changed_recap() -> None:
+    assert rounds.changed_recap(None, "Two sources disagree on the rent.") is not None
+    assert rounds.changed_recap("same", "same") is None
+    assert rounds.changed_recap("old", None) is None
+    assert rounds.changed_recap("old", "") is None
+
+
+def test_round_input_counts_and_rounds_scores() -> None:
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+    open_action = Action(
+        id="a1", check_id=CheckId.IN_PERSON_VIEWING, kind=ActionKind.ACTION, text="Book a viewing"
+    )
+    done = open_action.model_copy(update={"id": "a0", "status": ActionStatus.DONE})
+    inp = rounds.round_input(
+        score_before=ScoreResult(at=at, score=100.0, contributions={}),
+        score_after=ScoreResult(at=at, score=81.6, contributions={}),
+        states_before={},
+        checks_after=[],
+        new_reports={},
+        fresh=[open_action],
+        actions=[done, open_action],
+        recap_sent=True,
+        notes=[RoundNote(kind="dropped")],
+    )
+    assert (inp.score_before, inp.score_after) == (100, 82)
+    assert (inp.new_actions, inp.open_actions, inp.recap_sent) == (1, 1, True)
+    assert inp.notes == (RoundNote(kind="dropped"),)

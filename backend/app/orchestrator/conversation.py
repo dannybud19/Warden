@@ -233,35 +233,3 @@ def apply(actions: list[Action], result: ParseResult, text: str) -> tuple[list[A
         target.answer = text
         target.answer_evidence_ids = list(update.evidence_ids)
     return new_actions, dropped
-
-
-def legacy_parse(
-    case: Case,
-    text: str,
-    evidence_ids: list[str],
-    action_id: str | None = None,
-    status: ReplyStatus | None = None,
-) -> list[Action]:
-    """TEMPORARY Phase 0 behaviour kept until the service uses `parse` + `apply` (Phase 4)."""
-    actions = [a.model_copy(deep=True) for a in case.actions]
-    if action_id is not None:
-        target = next((a for a in actions if a.id == action_id), None)
-        if target is None:
-            raise InvalidActionError(f"unknown action: {action_id}")
-        if target.status != ActionStatus.OPEN:
-            raise InvalidActionError(f"action is not open: {action_id}")
-    else:
-        open_actions = [a for a in actions if a.status == ActionStatus.OPEN]
-        if not open_actions:
-            return actions
-        target = open_actions[0]
-
-    if status in ("skipped", "impossible"):
-        target.status = ActionStatus(status)
-        target.outcome = "neutral"
-    else:
-        target.status = ActionStatus.DONE
-        target.outcome = keyword_outcome(text)
-    target.answer = text
-    target.answer_evidence_ids = list(evidence_ids)
-    return actions
