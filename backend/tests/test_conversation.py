@@ -379,6 +379,24 @@ async def test_bad_llm_output_falls_back(ctx: AgentContext, reply: str) -> None:
     assert outcomes(result) == {COMPANY: "clears"}
 
 
+@pytest.mark.parametrize(
+    ("reply", "expected"),
+    [
+        # A bare `{}` (FakeLLM's default when no API key is set) is malformed: keywords decide.
+        ("{}", ParseResult(updates=(ActionUpdate(COMPANY, "done", "clears"),), used_fallback=True)),
+        # A real "matched nothing" is an answer, not a failure: no fallback, nothing changes.
+        ('{"updates": []}', ParseResult(unmatched=True)),
+    ],
+)
+async def test_bare_braces_fall_back_but_empty_updates_mean_matched_nothing(
+    ctx: AgentContext, reply: str, expected: ParseResult
+) -> None:
+    """Same case, same reply: only the LLM output differs. One open action is the deciding
+    setup, because there the keyword fallback would assign the reply to it."""
+    ctx, _ = fake(ctx, reply)
+    assert await parse(one_open(), "yes", [], None, None, ctx) == expected
+
+
 async def test_ctx_fake_llm_default_takes_the_fallback(ctx: AgentContext) -> None:
     result = await parse(one_open(), "yes", [], None, None, ctx)
     assert result.used_fallback
