@@ -16,7 +16,7 @@ import { currentScore, detailText, sourceUrls } from "@/lib/selectors";
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
 import { useRouter } from "next/navigation";
 import { Mascot, SourceLinks, rise } from "./primitives";
-import { PILL, useDecision, writeDecision } from "./Dashboard";
+import { PILL } from "./Dashboard";
 
 const RED = "#e06a52";
 const AMBER = "#d99a2b";
@@ -244,10 +244,9 @@ function RemoveHome({ caseId }: { caseId: string }) {
 
 // ---- 2. Verdict card: gauge + headline + decision ----
 
-export function VerdictCard({ c, mood, caseId, flags }: { c: Case; mood: Mood; caseId: string; flags: number }) {
+export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: number }) {
   const risk = riskOf(c, mood, flags);
   const pill = PILL[mood.state];
-  const decision = useDecision(caseId);
   const tick = useSyncExternalStore(subscribeMinute, nowSnapshot, () => null);
   const history = c.score_history ?? [];
   const updated = ago(history[history.length - 1]?.at ?? c.created_at, tick);
@@ -270,29 +269,6 @@ export function VerdictCard({ c, mood, caseId, flags }: { c: Case; mood: Mood; c
           </motion.div>
         </AnimatePresence>
 
-        <AnimatePresence mode="wait" initial={false}>
-          {decision ? (
-            <motion.div key="d" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6 flex items-center gap-4">
-              <span className="flex size-9 items-center justify-center rounded-full bg-[#e0f4ec] text-[#1f6e58]"><Check size={18} /></span>
-              <p className="flex-1 text-[14.5px]">
-                {decision === "walked" ? "You walked away from this one. Good call." : "You're going ahead. See it in person and sign before paying."}
-              </p>
-              <button type="button" onClick={() => writeDecision(caseId, "")} className="cursor-pointer text-[13.5px] font-medium text-teal hover:underline">Undo</button>
-            </motion.div>
-          ) : (
-            <motion.div key="c" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6 flex flex-wrap items-center gap-3">
-              <motion.button
-                type="button"
-                onClick={() => writeDecision(caseId, "walked")}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.96 }}
-                className={`cursor-pointer rounded-full px-6 py-3 text-[15px] font-medium ${risk.danger ? "bg-[#2f6f73] text-white shadow-card" : "border border-line bg-white"}`}
-              >
-                Walk away
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </motion.section>
   );

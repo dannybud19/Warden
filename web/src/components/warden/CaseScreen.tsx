@@ -127,7 +127,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             {state.error && (
               <p role="alert" className="rounded-[16px] bg-[#fbe6e1] px-4 py-3 text-[13px] text-[#a8402b]">{state.error}</p>
             )}
-            <VerdictCard c={c} mood={view.mood} caseId={caseId} flags={view.flags.length} />
+            <VerdictCard c={c} mood={view.mood} flags={view.flags.length} />
             <WhyFlags c={c} flags={view.flags} />
             <StillKeen top={view.flags[0]} />
             <SettleChecks c={c} disabled={closed || state.busy} onUpload={onUpload} />
