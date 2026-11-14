@@ -137,7 +137,16 @@ Warden/
 `CaseService` methods, each persists the Case and emits `StreamEvent`s:
 
 1. `open_case(student, listing, landlord) -> Case`: all 8 checks UNVERIFIED, first ScoreResult = 100.
-2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages, then `analyse()`.
+   If the landlord has a company name or number, the agency check starts at once in the background.
+2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages and saves them, returns the
+   Case, then analyses in the background.
+
+   **Analysis runs in the background.** `open_case`, `add_evidence` and `reply` return before any agent
+   finishes; progress and results arrive as `StreamEvent`s (a client that connects late is sent
+   `agent_started` for the agents still running). One analysis runs per case at a time (analysis lock);
+   its results are applied to the latest stored case under a short state lock, so uploads and replies are
+   never blocked or overwritten, and a request that arrives while one is queued shares it. A failed
+   analysis becomes an `orchestrator_message`. `analyse(case_id)` is the awaited form, used by tests.
 3. `analyse(case_id)`:
    1. For each agent in the registry: skip if a `Need` is missing (`SKIPPED` report). Skip if
       `input_hash` equals the last report's (no rerun). Otherwise schedule.
@@ -181,6 +190,12 @@ Verdict rules (`decision.py`):
 | not_verified | Otherwise, if any of those three is not CLEARED |
 | proceed_with_care | Those three CLEARED, some other check not CLEARED |
 | no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
+
+Hard flags (a finding with `hard_flag=true` closes the case as `likely_scam`): payment before a viewing
+or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
+liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
+the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
+hard flag.
 
 API (`api/`):
 

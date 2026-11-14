@@ -12,7 +12,9 @@ from app.contracts import (
     Action,
     ActionsProposed,
     ActionStatus,
+    AgentFinished,
     AgentReport,
+    AgentStarted,
     AgentStatus,
     Case,
     DecisionMade,
@@ -68,8 +70,17 @@ class CaseService:
         self.agents = agents
         self.ctx = ctx
         self.weights = weights
-        # NOTE: one lock per case so overlapping requests cannot overwrite each other.
+        # NOTE: two locks per case. `_locks` guards every read-modify-write of the stored case and
+        # is only ever held briefly. `_analysis_locks` makes sure one analysis runs at a time; it is
+        # held for the whole (slow) agent run, so uploads and replies are never blocked by it.
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._analysis_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        # Background analyses: strong references (so they are not garbage collected), the cases that
+        # have one waiting to start (a second request would find the same latest state, so skip it),
+        # and the agents currently running per case (replayed to a client that connects late).
+        self._tasks: set[asyncio.Task[None]] = set()
+        self._queued: set[str] = set()
+        self._running: defaultdict[str, set[str]] = defaultdict(set)
 
     async def _load(self, case_id: str, *, must_be_open: bool = False) -> Case:
         case = await self.repo.get(case_id)
@@ -117,10 +128,16 @@ class CaseService:
         await self._emit(case.case_id, ScoreUpdated(score=first))
         if note:
             await self._emit(case.case_id, OrchestratorMessage(text=note))
+        landlord = case.landlord
+        if landlord and (
+            (landlord.company_name or "").strip() or (landlord.company_number or "").strip()
+        ):
+            # NOTE: the agency check starts now; its results arrive over the stream.
+            self._schedule(case.case_id)
         return case
 
     async def add_evidence(self, case_id: str, upload: Upload) -> Case:
-        """Ingest an upload (text and messages), then analyse."""
+        """Ingest an upload (text and messages) and save it, then analyse in the background."""
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
             case = await ingest(
@@ -132,13 +149,13 @@ class CaseService:
                 upload.student_name,
             )
             await self.repo.save(case)
-            return await self._analyse(case)
+        self._schedule(case_id)
+        return case
 
     async def analyse(self, case_id: str) -> Case:
-        """Run the agents, crosscheck, update checks and score, then ask or decide."""
-        async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
-            return await self._analyse(case)
+        """Run the agents, crosscheck, update checks and score, then ask or decide (awaited)."""
+        await self._load(case_id, must_be_open=True)
+        return await self._run_analysis(case_id)
 
     async def reply(
         self,
@@ -148,12 +165,56 @@ class CaseService:
         action_id: str | None = None,
         status: conversation.ReplyStatus | None = None,
     ) -> Case:
-        """Apply the student's reply to the targeted (or oldest open) action, then analyse."""
+        """Apply the student's reply to the targeted (or oldest open) action and save it, then
+        analyse in the background."""
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
             case.actions = conversation.parse(case, text, evidence_ids or [], action_id, status)
             await self.repo.save(case)
-            return await self._analyse(case)
+        self._schedule(case_id)
+        return case
+
+    def running_agents(self, case_id: str) -> list[str]:
+        """Agents that have started and not finished for this case (sorted)."""
+        return sorted(self._running.get(case_id, ()))
+
+    async def wait_idle(self) -> None:
+        """Wait for every background analysis to finish (tests and graceful shutdown)."""
+        while self._tasks:
+            await asyncio.gather(*list(self._tasks), return_exceptions=True)
+
+    async def shutdown(self) -> None:
+        """Cancel background analyses that are still running (app shutdown)."""
+        for task in list(self._tasks):
+            task.cancel()
+        await asyncio.gather(*list(self._tasks), return_exceptions=True)
+
+    def _schedule(self, case_id: str) -> None:
+        """Start an analysis in the background, unless one is already waiting to start."""
+        if case_id in self._queued:
+            return
+        self._queued.add(case_id)
+        task = asyncio.create_task(self._background_analyse(case_id))
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+
+    async def _background_analyse(self, case_id: str) -> None:
+        """Run one analysis; a failure becomes a message to the student, never a crash."""
+        try:
+            await self._run_analysis(case_id, queued=True)
+        except (CaseNotFoundError, CaseClosedError):
+            return  # the case is gone or already decided: nothing left to analyse
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001 - a background task must never die silently
+            self.ctx.log.exception("analysis failed for case %s", case_id)
+            await self._emit(
+                case_id,
+                OrchestratorMessage(
+                    text="One of the checks failed to run. Your evidence is saved: "
+                    "send another message or upload to try again."
+                ),
+            )
 
     async def decide(self, case_id: str) -> Case:
         """Close the case with a final decision."""
@@ -168,11 +229,31 @@ class CaseService:
         await self._emit(case.case_id, DecisionMade(decision=case.decision))
         return case
 
-    async def _analyse(self, case: Case) -> Case:
-        async def publish(event: StreamEvent) -> None:
-            await self._emit(case.case_id, event)
+    async def _run_analysis(self, case_id: str, *, queued: bool = False) -> Case:
+        """Run the agents on a snapshot (slow, no state lock), then apply the results to the
+        latest stored case under the short state lock, so evidence or answers that arrived
+        meanwhile are kept. Agents whose inputs changed meanwhile rerun on the next analysis."""
 
-        new_reports = await run_agents(case, self.agents, self.ctx, publish)
+        async def publish(event: StreamEvent) -> None:
+            if isinstance(event, AgentStarted):
+                self._running[case_id].add(event.agent)
+            elif isinstance(event, AgentFinished):
+                self._running[case_id].discard(event.report.agent)
+            await self._emit(case_id, event)
+
+        async with self._analysis_locks[case_id]:
+            if queued:
+                self._queued.discard(case_id)  # later requests must schedule a fresh analysis
+            snapshot = await self._load(case_id, must_be_open=True)
+            try:
+                new_reports = await run_agents(snapshot, self.agents, self.ctx, publish)
+            finally:
+                self._running.pop(case_id, None)
+            async with self._locks[case_id]:
+                case = await self._load(case_id, must_be_open=True)
+                return await self._finish_analysis(case, new_reports)
+
+    async def _finish_analysis(self, case: Case, new_reports: dict[str, AgentReport]) -> Case:
         case.reports.update(new_reports)
 
         # NOTE: crosscheck findings are stored as a pseudo-report named "crosscheck" so that
