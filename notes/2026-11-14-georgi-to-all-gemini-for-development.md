@@ -2,7 +2,7 @@
 
 - From: Georgi
 - To: all (Danny to review and merge)
-- Status: open
+- Status: done
 - Branch / PR: #11 `feat/core-llm-provider` (draft)
 
 ## What happened
@@ -35,3 +35,7 @@ LLM_MODEL=gemini-3.5-flash-lite
 
 `make check` on the branch: 542 passed, 3 skipped. Live with Gemini on, the overseas-landlord chat:
 message_checker 0.8 s and emotion_classifier 1.7 s with their LLM passes, verdict `likely_scam`.
+
+## Update (Georgi, evening): merged
+
+#11 merged into `main`. With nothing set, behaviour is unchanged (Anthropic, or FakeLLM without a key). Everyone can now add the three Gemini lines above to their own `.env`. `make check` green on `main` after the merge.

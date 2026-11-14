@@ -2,7 +2,7 @@
 
 - From: Georgi
 - To: Audrey
-- Status: open
+- Status: done
 - Branch / PR: #10 `feat/evidence-source` (draft, your call)
 
 ## What happened
@@ -27,3 +27,7 @@ merge it, or close it and do it your way. No backend change, so nothing else dep
 
 `git switch feat/evidence-source`, then in `web/`: `pnpm typecheck && pnpm lint && pnpm build` (all pass).
 Live: open a case, upload a WhatsApp export, open a flag and tap "See evidence".
+
+## Update (Georgi, evening): merged
+
+#10 merged into `main` (fix-directly stage: a usability gap found while testing). Main had moved, so the import lines in `RiskView.tsx` conflicted; resolved by keeping your imports and adding `quoteSource`. typecheck, lint and build pass. Change the caption look or wording freely.
