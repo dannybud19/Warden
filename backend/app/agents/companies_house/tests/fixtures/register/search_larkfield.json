@@ -1,0 +1,21 @@
+{
+  "total_results": 2,
+  "items": [
+    {
+      "title": "LARKFIELD & CO LETTINGS LTD",
+      "company_number": "09123456",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2014-07-03",
+      "address_snippet": "21 Mercer Street, London, SE1 7LP"
+    },
+    {
+      "title": "LARKFIELD GARDENS MANAGEMENT LIMITED",
+      "company_number": "06000002",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2008-01-01",
+      "address_snippet": "2 Larkfield Road, Kent, ME1 1AA"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "total_results": 2,
+  "items": [
+    {
+      "title": "PRIME CITY LETTINGS LTD",
+      "company_number": "11223344",
+      "company_status": "dissolved",
+      "company_type": "ltd",
+      "date_of_creation": "2018-02-01",
+      "address_snippet": "71-75 Shelton Street, London, WC2H 9JQ"
+    },
+    {
+      "title": "PRIMEVAL FARMS LTD",
+      "company_number": "07000001",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2009-01-01",
+      "address_snippet": "1 Field Lane, Leeds, LS1 1AA"
+    }
+  ]
+}
