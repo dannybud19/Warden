@@ -46,12 +46,16 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
             duration_ms=int((time.monotonic() - started) * 1000),
         )
 
+    # Disagreements this version already verified. Kept when this run can't check again, so a
+    # report or LLM call that fails for now does not make them (and the recap) disappear.
+    carried = _verified_before(previous)
+
     if len(inputs) < MIN_INPUTS:
-        return report(rules, recap(rules), digest)
+        summary = previous.summary if previous and carried else recap(rules)
+        return report(rules + carried, summary, digest)
 
     if previous and previous.input_hash == digest and previous.version == VERSION:
-        reused = [f for f in previous.findings if validate.is_llm_finding(f)]
-        return report(rules + reused, previous.summary, digest)
+        return report(rules + carried, previous.summary, digest)
 
     collected = sources.collect(case, inputs)
     srcs, trimmed = sources.fit_budget(collected)
@@ -62,12 +66,19 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
         output = await asyncio.wait_for(llm_pass.run(srcs, ctx), LLM_TIMEOUT_S)
     except (TimeoutError, llm_pass.LLMPassError) as exc:
         reason = exc.reason if isinstance(exc, llm_pass.LLMPassError) else "it took too long"
-        ctx.log.warning("cross-checker LLM pass failed (%s): rule findings only", reason)
+        ctx.log.warning("cross-checker LLM pass failed (%s): keeping earlier results", reason)
         # Keep the previous recap so the orchestrator does not send the same one again.
         summary = previous.summary if previous and previous.summary else recap(rules)
         # Empty input hash, so the next analysis retries.
-        return report([*rules, validate.not_run_finding(reason)], summary, "")
+        return report([*rules, *carried, validate.not_run_finding(reason)], summary, "")
 
     found, kept = validate.to_findings(output, srcs, rules, log=ctx.log)
     summary = validate.clean_recap(output.recap, kept, rules) if kept else recap(rules)
     return report(rules + found, summary, digest)
+
+
+def _verified_before(previous: AgentReport | None) -> list[Finding]:
+    """The LLM findings of the previous run, when it was made by this version."""
+    if previous is None or previous.version != VERSION:
+        return []
+    return [f for f in previous.findings if validate.is_llm_finding(f)]

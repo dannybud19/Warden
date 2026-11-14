@@ -1,5 +1,6 @@
 """The numbered sources the LLM may quote, and the input hash that decides reruns."""
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from typing import Any, Literal
@@ -30,6 +31,9 @@ EVIDENCE_KINDS = frozenset(
 )
 TRIMMABLE_KINDS: frozenset[SourceKind] = frozenset({"evidence", "message"})
 NOT_RUN_MARK = ":not-run"  # in the id of an info finding that says part of an agent failed
+FACT_SEPARATOR = " = "  # fact source text: "<key> = <value>"
+FIELD_SEPARATOR = ": "  # student source text: "<field>: <value>"
+SENDER_PREFIX = re.compile(r"^\[(?:student|agent|unknown)\] ", re.MULTILINE)  # message lines
 SENTENCE_ENDS = (".", "!", "?")
 
 
@@ -112,6 +116,26 @@ def build_sources(case: Case) -> list[Source]:
     return fit_budget(collect(case, input_reports(case)))[0]
 
 
+def quotable(source: Source) -> str:
+    """The part of a source's text that really is in its evidence, which quotes must come from.
+
+    The labels this module adds ("[agent] ", "rent_pcm = ", "description: ") are not evidence,
+    and a finding's own words are the agent's, not the upload's: its quotes are checked against
+    the `quote` sources that follow it, which carry each quote's own evidence id.
+    """
+    match source.kind:
+        case "finding":
+            return ""
+        case "fact":
+            return source.text.partition(FACT_SEPARATOR)[2]
+        case "student":
+            return source.text.partition(FIELD_SEPARATOR)[2]
+        case "message":
+            return SENDER_PREFIX.sub("", source.text)
+        case "quote" | "evidence":
+            return source.text
+
+
 def _report_sources(reports: dict[str, AgentReport]) -> Iterator[Source]:
     """Each report's findings (each followed by its quotes), then its facts."""
     for name, report in reports.items():
@@ -123,21 +147,31 @@ def _report_sources(reports: dict[str, AgentReport]) -> Iterator[Source]:
             for ref in _quoted_refs(finding):
                 yield _source(name, ref.evidence_id, "quote", ref.quote or "")
         for fact in report.facts:
-            yield _source(name, fact.source, "fact", f"{fact.key.value} = {fact.value}")
+            yield _source(
+                name, fact.source, "fact", f"{fact.key.value}{FACT_SEPARATOR}{fact.value}"
+            )
 
 
 def _evidence_sources(case: Case) -> Iterator[Source]:
-    """An excerpt of each readable upload."""
+    """An excerpt of each readable upload whose messages were not parsed out (those are sent as
+    message sources instead, so a chat is not sent twice)."""
+    parsed = {message.evidence_id for message in case.messages}
     for evidence in case.evidence:
-        if _readable(evidence):
+        if _readable(evidence) and evidence.id not in parsed:
             text = (evidence.extracted_text or "")[:EVIDENCE_EXCERPT]
             yield _source(UPLOAD, evidence.id, "evidence", text)
 
 
 def _message_sources(case: Case) -> Iterator[Source]:
-    """Each parsed message, with its sender."""
+    """One source per upload with its parsed messages, one "[<sender>] <text>" line each.
+
+    One source per chat rather than per message, so the budget can trim a long chat.
+    """
+    chats: dict[str, list[str]] = {}
     for message in case.messages:
-        yield _source(UPLOAD, message.evidence_id, "message", f"[{message.sender}] {message.text}")
+        chats.setdefault(message.evidence_id, []).append(f"[{message.sender}] {message.text}")
+    for evidence_id, lines in chats.items():
+        yield _source(UPLOAD, evidence_id, "message", "\n".join(lines))
 
 
 def _student_sources(case: Case) -> Iterator[Source]:
@@ -148,7 +182,7 @@ def _student_sources(case: Case) -> Iterator[Source]:
         for field, value in model.model_dump().items():
             if value is None or (isinstance(value, str) and not value.strip()):
                 continue
-            yield _source(STUDENT, evidence_id, "student", f"{field}: {value}")
+            yield _source(STUDENT, evidence_id, "student", f"{field}{FIELD_SEPARATOR}{value}")
 
 
 def _source(agent: str, evidence_id: str, kind: SourceKind, text: str) -> Source:

@@ -32,13 +32,18 @@ for a personal account), who the landlord or agency is.
 
 Every LLM finding:
 
-- quotes **both** sides verbatim. Both quotes are checked against the source text (case, whitespace,
-  curly quotes and `£ 60` normalised) and the finding is dropped if either is not found. The
-  stored quote is the source's own wording, not the LLM's retyped copy;
+- quotes **both** sides verbatim, from evidence only: an upload's text, a message, an agent's
+  quote, a fact's or field's value. Labels we add (`[agent]`, `rent_pcm =`) and an agent's own
+  words never count; a quote the LLM takes from a finding is moved to that finding's own quote,
+  with that quote's evidence id. Matching ignores case, whitespace, curly quotes and `£ 60`
+  spacing; the finding is dropped if either quote is missing or over 200 characters. The stored
+  quote is the source's own wording, not the LLM's retyped copy;
 - uses two different sources (not the same agent and the same evidence);
 - is not a repeat of a rule finding (same topic and same values);
 - has id `crosscheck:<topic-slug>`, so a rerun replaces it instead of adding a copy;
 - is category `consistency`, `supports="suspicious"`, severity at most `high`, **never** a hard flag;
+- uses no verdict or legal word in its title or claims (else it is dropped; an explanation that
+  uses one is left out);
 - has confidence 0.7, enough to make a check suspicious at medium severity or above. If one side is
   something the student typed (listing or landlord fields), the confidence is 0.5, because typed
   values are often approximate. A 0.5 finding is shown but does not flip the check.
@@ -50,7 +55,8 @@ At most 5 findings per run. Web-sourced findings keep their `Source: <url>` line
 - Other agents' reports with status `ok` (never its own previous `crosscheck` report): their
   findings, the quotes they cite and their facts.
 - Excerpts of the uploads: the first 4,000 characters of contract, document, email and chat-export
-  text, and every parsed message.
+  text, and the parsed messages, one source per upload (an upload whose messages were parsed is
+  sent as its messages only, not twice).
 - What the student entered: listing and landlord fields.
 
 Each item becomes a numbered source (`S1`, `S2`, ...) that the LLM may quote. The total is capped at
@@ -62,9 +68,9 @@ characters; findings, quotes, facts and student fields are never trimmed.
 | Situation | LLM call | Findings | `summary` |
 | --- | --- | --- | --- |
 | Stub mode (default) | no | rule findings | template recap of the rule findings, or `None` |
-| Fewer than 2 OK reports | no | rule findings | template recap of the rule findings, or `None` |
+| Fewer than 2 OK reports | no | rule + previous LLM findings | previous summary if there were any, else the template recap of the rule findings, or `None` |
 | Inputs unchanged since the last run (same input hash and version) | no | rule + previous LLM findings | previous summary |
-| LLM error, bad JSON or over 25 s | yes, failed | rule findings + `crosscheck:not-run` (info, confidence 0) | previous summary, else the template; `input_hash=""` so the next analysis retries |
+| LLM error, bad JSON or over 25 s | yes, failed | rule + previous LLM findings + `crosscheck:not-run` (info, confidence 0) | previous summary, else the template; `input_hash=""` so the next analysis retries |
 | LLM finds nothing that survives validation | yes | rule findings | template recap of the rule findings, or `None` |
 | LLM finds disagreements | yes | rule + LLM findings | the LLM's recap if it passes the checks below, else a fixed template |
 
@@ -74,6 +80,9 @@ terms in writing.") if it is empty, uses a verdict or legal word (safe, scam, fr
 guarantee, illegal, sue, lawyer, genuine, fake, and their inflections), or mentions a topic that is
 neither a kept disagreement nor a rule finding. The orchestrator decides whether to send it: only
 when it is non-empty and different from the previous one.
+
+"Previous LLM findings" are those of the last run by this version: a report or LLM call that
+fails for now never makes verified disagreements disappear.
 
 The 25 s limit sits below the orchestrator's own 30 s deadline around `review()`, so this module's
 fallback, with its not-run finding, applies first.

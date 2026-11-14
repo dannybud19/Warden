@@ -324,13 +324,14 @@ async def test_x6_same_agent_and_same_evidence_is_dropped(
     utilities: Case, ctx: AgentContext
 ) -> None:
     sources = build_sources(utilities)
-    a = sid(sources, "all bills are included", kind="message")
-    b = sid(sources, "send it to my personal account", kind="message")
+    # Two different sources, both the contract checker's reading of the contract.
+    a = sid(sources, "Utilities: £60 per month", agent="contract_checker", kind="quote")
+    b = sid(sources, "950", agent="contract_checker", kind="fact")
     assert a != b
-    item = inconsistency(
-        "utilities", side(a, "all bills are included"), side(b, "send it to my personal account")
-    )
-    report = await review(utilities, [], real(ctx, llm_reply(item)))
+    item = inconsistency("rent", side(a, "Utilities: £60 per month"), side(b, "950"))
+    llm = llm_reply(item)
+    report = await review(utilities, [], real(ctx, llm))
+    assert len(llm.calls) == 1
     assert report.findings == []
 
 
@@ -642,3 +643,67 @@ async def test_x16_same_topic_gives_the_same_id(utilities: Case, ctx: AgentConte
     second = await review(utilities, [], real(ctx, llm_reply(renamed)))
     assert [f.id for f in first.findings] == [f.id for f in second.findings]
     assert [f.id for f in first.findings] == ["crosscheck:utilities"]
+
+
+# --- carried over when this run can't check again ---------------------------------------------
+
+
+async def _first_run(utilities: Case, ctx: AgentContext) -> AgentReport:
+    llm = llm_reply(utilities_item(build_sources(utilities)), recap_text=UTILITIES_RECAP)
+    report = await review(utilities, [], real(ctx, llm))
+    assert [f.id for f in report.findings] == ["crosscheck:utilities"]
+    return report
+
+
+async def test_llm_failure_keeps_the_disagreements_already_verified(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    changed = utilities.reports["contract_checker"].model_copy(update={"input_hash": "h-new"})
+    case = with_reports(utilities, crosscheck=first, contract_checker=changed)
+    report = await review(case, [], real(ctx, RaisingLLM()))
+
+    assert [f.id for f in report.findings] == ["crosscheck:utilities", "crosscheck:not-run"]
+    assert report.findings[0] == first.findings[0]
+    assert report.summary == UTILITIES_RECAP
+    assert report.input_hash == ""
+
+
+async def test_a_report_failing_for_now_keeps_the_disagreements_already_verified(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    failed = utilities.reports["message_checker"].model_copy(update={"status": AgentStatus.ERROR})
+    case = with_reports(utilities, crosscheck=first, message_checker=failed)
+    llm = llm_reply()
+    report = await review(case, [], real(ctx, llm))
+
+    assert llm.calls == []
+    assert report.findings == first.findings
+    assert report.summary == UTILITIES_RECAP
+
+
+async def test_a_new_version_checks_again_and_carries_nothing(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    older = first.model_copy(update={"version": "0.9.0"})
+    llm = llm_reply()
+    report = await review(with_reports(utilities, crosscheck=older), [], real(ctx, llm))
+
+    assert len(llm.calls) == 1  # same input hash, but another version: no reuse
+    assert report.findings == []
+
+
+class CancelledLLM(FakeLLM):
+    """An LLM call cancelled from outside (the orchestrator's own deadline)."""
+
+    async def complete_json(
+        self, system: str, user: str, schema: type[T], *, model: str | None = None
+    ) -> T:
+        raise asyncio.CancelledError
+
+
+async def test_cancellation_is_not_swallowed(utilities: Case, ctx: AgentContext) -> None:
+    with pytest.raises(asyncio.CancelledError):
+        await review(utilities, [], real(ctx, CancelledLLM()))

@@ -14,6 +14,7 @@ from app.aggregators.crosschecker.sources import (
     fit_budget,
     input_hash,
     input_reports,
+    quotable,
 )
 from app.contracts import (
     AgentReport,
@@ -190,7 +191,7 @@ def test_evidence_excerpt_is_cut_to_4000_chars() -> None:
 def test_message_sources_note_the_sender() -> None:
     messages = [_message("m1", "All bills are included"), _message("m2", "Great", "student")]
     sources = collect(_case(messages=messages), {})
-    assert [s.text for s in sources] == ["[agent] All bills are included", "[student] Great"]
+    assert [s.text for s in sources] == ["[agent] All bills are included\n[student] Great"]
     assert {(s.kind, s.agent, s.evidence_id) for s in sources} == {("message", UPLOAD, "ev_chat")}
 
 
@@ -228,10 +229,9 @@ def test_sorted_by_agent_stably_and_numbered() -> None:
         ("contract_checker", "quote"),
         (STUDENT, "student"),
         (UPLOAD, "message"),
-        (UPLOAD, "message"),
         ("video_analysis", "fact"),
     ]
-    assert [s.text for s in sources if s.kind == "message"] == ["[agent] first", "[agent] second"]
+    assert [s.text for s in sources if s.kind == "message"] == ["[agent] first\n[agent] second"]
 
 
 def test_own_report_and_non_ok_reports_are_never_sources() -> None:
@@ -373,3 +373,56 @@ def test_input_hash_ignores_unreadable_evidence_and_own_report() -> None:
     with_own = _with_report(_report("crosscheck", [_finding("crosscheck", "utilities")]))
     assert _digest(with_video) == base
     assert _digest(with_own) == base
+
+
+def test_messages_are_one_source_per_upload_in_order() -> None:
+    other = _message("m3", "Hi from email").model_copy(update={"evidence_id": "ev_mail"})
+    messages = [_message("m1", "first"), other, _message("m2", "second", "student")]
+    sources = collect(_case(messages=messages), {})
+    assert [(s.evidence_id, s.text) for s in sources] == [
+        ("ev_chat", "[agent] first\n[student] second"),
+        ("ev_mail", "[agent] Hi from email"),
+    ]
+
+
+def test_an_upload_with_parsed_messages_is_not_sent_twice() -> None:
+    evidence = [
+        _evidence("ev_chat", EvidenceKind.CHAT_EXPORT, "[05/11] Agent: All bills are included"),
+        _evidence("ev_contract", EvidenceKind.CONTRACT, "Rent £850"),
+    ]
+    sources = collect(_case(evidence=evidence, messages=[_message("m1", "All bills")]), {})
+    assert [(s.kind, s.evidence_id) for s in sources] == [
+        ("evidence", "ev_contract"),
+        ("message", "ev_chat"),
+    ]
+
+
+def test_a_long_chat_is_trimmed_as_one_source() -> None:
+    messages = [_message(f"m{n}", f"message number {n:03d} " * 4) for n in range(300)]
+    raw = collect(_case(messages=messages), {})
+    assert len(raw) == 1 and len(raw[0].text) > 24_000
+    fitted, trimmed = fit_budget(raw)
+    assert trimmed == 1
+    assert sum(len(s.text) for s in fitted) <= 24_000
+
+
+def test_quotable_text_leaves_out_labels_and_agents_words() -> None:
+    finding = _finding("contract_checker", "fee")
+    report = _report(
+        "contract_checker",
+        [finding],
+        facts=[_fact("contract_checker", FactKey.RENT_PCM, "950")],
+    )
+    case = _case(
+        messages=[_message("m1", "All bills"), _message("m2", "[agent] in text", "student")],
+        listing=Listing(description="Available 1 Sep"),
+        evidence=[_evidence("ev_contract", EvidenceKind.CONTRACT, "Rent £950")],
+    )
+    by_kind = {s.kind: quotable(s) for s in collect(case, {"contract_checker": report})}
+    assert by_kind["finding"] == ""  # the agent's own words are not evidence
+    assert by_kind["quote"] == finding.evidence[0].quote
+    assert by_kind["fact"] == "950"
+    assert by_kind["student"] == "Available 1 Sep"
+    # Only the sender label we add is removed; "[agent]" typed in the message itself stays.
+    assert by_kind["message"] == "All bills\n[agent] in text"
+    assert by_kind["evidence"] == "Rent £950"

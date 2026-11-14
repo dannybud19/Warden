@@ -63,6 +63,7 @@ SOURCES = [
     _src("S13", "message_checker", "", "finding", "Odd wording. No quote."),
     _src("S14", "upload", "ev_mail2", "message", "[agent] Rent is £8500 a year"),
     _src("S15", "message_checker", "ev_chat", "finding", f"Bills flagged.\nSource: {TENANCY_URL}"),
+    _src("S16", "message_checker", "ev_chat", "quote", "All bills are included in the rent"),
 ]
 
 
@@ -177,10 +178,14 @@ def test_student_side_lowers_confidence_and_copies_source_via_fact() -> None:
 
 def test_source_line_copied_from_a_finding_side_and_deduped() -> None:
     (finding,) = _run(
-        _inc("company status", ("S9", "Dissolved"), ("S1", "Utilities charged")),
+        _inc("company number", ("S10", "01234567"), ("S1", "Utilities: £60 per month")),
     )
     assert finding.detail.endswith(f"\nSource: {CH_URL}\nSource: {TENANCY_URL}")
-    (twice,) = _run(_inc("bills", ("S1", "Utilities charged"), ("S15", "Bills flagged")))
+    # Both sides point at findings: each moves to its agent's quote source, keeping the URL.
+    (twice,) = _run(
+        _inc("bills", ("S1", "Utilities: £60 per month"), ("S15", "All bills are included"))
+    )
+    assert [r.evidence_id for r in twice.evidence] == ["ev_c", "ev_chat"]
     assert twice.detail.count("Source: ") == 1
     assert twice.detail.endswith(f"\nSource: {TENANCY_URL}")
 
@@ -225,7 +230,7 @@ def test_v2_drops_same_agent_and_same_evidence() -> None:
 
 def test_v2_keeps_same_agent_on_different_evidence_and_same_evidence_from_another_agent() -> None:
     assert len(_run(_inc("rent", ("S4", "Rent is £850"), ("S5", "Rent: £950")))) == 1
-    assert len(_run(_inc("rent", ("S7", "rent_pcm = 950"), ("S5", "Rent: £950")))) == 1
+    assert len(_run(_inc("rent", ("S7", "950"), ("S5", "Rent: £950")))) == 1
 
 
 @pytest.mark.parametrize(
@@ -345,7 +350,7 @@ def test_v5_number_must_match_whole() -> None:
 def test_v5_keeps_other_topics_and_ignores_non_rule_findings() -> None:
     assert len(_run(_inc(), rules=[RENT_RULE])) == 1
     other = RENT_RULE.model_copy(update={"id": "message_checker:rent"})
-    inc = _inc("rent", ("S6", "rent_pcm: 850"), ("S7", "rent_pcm = 950"))
+    inc = _inc("rent", ("S6", "850"), ("S7", "950"))
     assert len(_run(inc, rules=[other])) == 1
 
 
@@ -546,3 +551,80 @@ def test_is_llm_finding() -> None:
     assert not is_llm_finding(RENT_RULE)
     assert not is_llm_finding(not_run_finding("x"))
     assert not is_llm_finding(RENT_RULE.model_copy(update={"id": "contract_checker:utilities"}))
+
+
+# --- quotes come from evidence, not from labels or an agent's own words -------------------------
+
+
+@pytest.mark.parametrize(
+    ("source_id", "quote"),
+    [
+        ("S3", "[agent] All bills"),  # the sender label is ours, not the chat's
+        ("S7", "rent_pcm = 950"),  # the fact label
+        ("S6", "rent_pcm: 850"),  # the field label
+        ("S1", "Utilities charged"),  # the agent's title, not the contract's text
+        ("S13", "Odd wording"),  # a finding with no quote sources at all
+    ],
+)
+def test_quotes_must_be_evidence_text(source_id: str, quote: str) -> None:
+    assert _run(_inc(a=(source_id, quote))) == []
+
+
+def test_a_quote_on_a_finding_takes_the_evidence_id_of_its_own_ref() -> None:
+    sources = [
+        _src(
+            "S1",
+            "message_checker",
+            "ev_contract",
+            "finding",
+            "Payee mismatch. Contract and chat differ.\n"
+            'quote: "pay Prime Ltd"\nquote: "my own account"',
+        ),
+        _src("S2", "message_checker", "ev_contract", "quote", "pay Prime Ltd"),
+        _src("S3", "message_checker", "ev_chat", "quote", "my own account"),
+        _src("S4", "upload", "ev_contract", "evidence", "Rent is paid to Prime Ltd."),
+    ]
+    inc = _inc("who to pay", ("S4", "paid to Prime Ltd"), ("S1", "my own account"))
+    (finding,) = to_findings(ReviewOutput(inconsistencies=[inc]), sources, [])[0]
+    assert [(r.evidence_id, r.quote) for r in finding.evidence] == [
+        ("ev_contract", "paid to Prime Ltd"),
+        ("ev_chat", "my own account"),
+    ]
+
+
+def test_both_sides_on_one_findings_quotes_from_the_same_evidence_are_dropped() -> None:
+    inc = _inc("utilities", ("S1", "Utilities: £60 per month"), ("S2", "Utilities: £60"))
+    assert _run(inc) == []  # both resolve to S2: one agent, one evidence (V2)
+
+
+def test_quotes_over_200_chars_are_dropped() -> None:
+    long_text = "word " * 60
+    sources = [*SOURCES, _src("S99", "upload", "ev_long", "evidence", long_text)]
+    inc = _inc(a=("S99", long_text.strip()))
+    assert to_findings(ReviewOutput(inconsistencies=[inc]), sources, [])[0] == []
+
+
+@pytest.mark.parametrize("field", ["topic", "claim"])
+def test_verdict_words_in_topic_or_claim_drop_the_item(field: str) -> None:
+    if field == "topic":
+        inc = _inc("scam utilities")
+    else:
+        inc = _inc(claims=("this is a scam", "bills are included"))
+    assert _run(inc) == []
+
+
+def test_verdict_words_in_why_are_left_out() -> None:
+    (finding,) = _run(_inc(why="This looks like a scam."))
+    assert "scam" not in finding.detail.lower()
+    assert '("All bills are included").\nSource: ' in finding.detail  # nothing after the quotes
+
+
+@pytest.mark.parametrize(
+    "recap",
+    [
+        "The contract charges £60 for utilities. Check if the room is still available.",
+        "Take the utilities charge into account before you agree.",
+    ],
+)
+def test_everyday_words_are_not_topics(recap: str) -> None:
+    assert clean_recap(recap, [_inc()], []) == recap

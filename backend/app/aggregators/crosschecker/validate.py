@@ -9,11 +9,12 @@ from types import MappingProxyType
 from app.aggregators.crosschecker.constants import AGENT, ID_PREFIX, NOT_RUN_ID, RULE_IDS
 from app.aggregators.crosschecker.models import Inconsistency, ReviewOutput, Side
 from app.aggregators.crosschecker.rule_recap import rule_topics
-from app.aggregators.crosschecker.sources import STUDENT, Source
+from app.aggregators.crosschecker.sources import STUDENT, Source, quotable
 from app.contracts import Category, CheckId, EvidenceRef, FactKey, Finding, Severity
 
 MAX_KEPT = 5  # V7
 MIN_QUOTE_CHARS = 3  # V3
+MAX_QUOTE_CHARS = 200  # V3: a longer "quote" is a pasted excerpt, not a claim
 SLUG_MAX_CHARS = 40
 COLLISION_SUFFIX = "-2"  # keeps an LLM id off a rule finding's or the not-run finding's id
 CONF_VERIFIED = 0.7  # both quotes verified: enough to flip a check at medium severity or above
@@ -93,8 +94,8 @@ _RECAP_FAMILIES: Mapping[str, re.Pattern[str]] = MappingProxyType(
         "address": _words(r"address(?:es)?|postcodes?"),
         "landlord": _words(r"landlords?|owners?"),
         "company": _words(r"compan(?:y|ies)"),
-        "dates": _words(r"move[- ]in|start date|starts|available|availability"),
-        "payment": _words(r"banks?|accounts?|transfers?|sort code"),
+        "dates": _words(r"move[- ]in|start date|starts|available (?:from|on)|availability"),
+        "payment": _words(r"banks?|personal accounts?|account numbers?|transfers?|sort codes?"),
     }
 )
 # Verdict words and legal advice (golden rule 9). Whole words, so "unsafe" and "safety" pass.
@@ -129,7 +130,7 @@ def to_findings(
     rules = [finding for finding in rule_findings if finding.id in RULE_IDS]
     verified: list[_Verified] = []
     for inconsistency in output.inconsistencies:
-        result = _verify(inconsistency, by_id, rules)
+        result = _verify(inconsistency, by_id, sources, rules)
         if isinstance(result, str):
             reason = result
         elif any(v.finding_id == result.finding_id for v in verified):
@@ -196,20 +197,28 @@ def friendly_name(agent: str) -> str:
 
 
 def _verify(
-    inconsistency: Inconsistency, by_id: Mapping[str, Source], rules: list[Finding]
+    inconsistency: Inconsistency,
+    by_id: Mapping[str, Source],
+    sources: list[Source],
+    rules: list[Finding],
 ) -> _Verified | str:
-    """The verified inconsistency, or why it is dropped (V1, V2, V3, empty slug, V5)."""
+    """The verified inconsistency, or why it is dropped (V1, V2, V3, verdict words, empty slug,
+    V5)."""
     source_a, source_b = by_id.get(inconsistency.a.source_id), by_id.get(inconsistency.b.source_id)
     if source_a is None or source_b is None or source_a.id == source_b.id:
         return "V1: unknown source or both sides on one source"
+    shown = " ".join([inconsistency.topic, inconsistency.a.claim, inconsistency.b.claim])
+    if _BANNED.search(normalise(shown)):
+        return "a verdict word in the topic or a claim"
+    side_a = _resolve(inconsistency.a, source_a, sources)
+    side_b = _resolve(inconsistency.b, source_b, sources)
+    if side_a is None or side_b is None:
+        return "V3: a quote is too short, too long or not in its source's evidence"
+    (source_a, quote_a), (source_b, quote_b) = side_a, side_b
     if not source_a.evidence_id or not source_b.evidence_id:
         return "V1: a source has no evidence to cite"
     if source_a.agent == source_b.agent and source_a.evidence_id == source_b.evidence_id:
         return "V2: both sides come from the same agent and evidence"
-    quote_a = _verified_quote(inconsistency.a, source_a)
-    quote_b = _verified_quote(inconsistency.b, source_b)
-    if quote_a is None or quote_b is None:
-        return "V3: a quote is too short or not found in its source"
     topic_slug = slug(inconsistency.topic)
     if not topic_slug:
         return "the topic has no usable words"
@@ -218,14 +227,27 @@ def _verify(
     return _Verified(inconsistency, source_a, source_b, quote_a, quote_b, _finding_id(topic_slug))
 
 
-def _verified_quote(side: Side, source: Source) -> str | None:
-    """The quote as it is written in the source, when the LLM's quote is long enough and found in
-    the source's text after normalising (V3)."""
+def _resolve(side: Side, source: Source, sources: list[Source]) -> tuple[Source, str] | None:
+    """The source the side's quote really comes from and the quote as written there (V3).
+
+    The quote must be in the source's quotable text (`sources.quotable`), so labels and an
+    agent's own words never pass as evidence. A side that points at a finding is moved to that
+    agent's `quote` source holding the quote, which carries the quote's own evidence id.
+    """
     quote = clean_quote(side.quote)
     needle = normalise(quote)
-    if len(needle) < MIN_QUOTE_CHARS or needle not in normalise(source.text):
+    if len(needle) < MIN_QUOTE_CHARS or len(quote) > MAX_QUOTE_CHARS:
         return None
-    return original_span(quote, source.text)
+    candidates = (
+        [s for s in sources if s.kind == "quote" and s.agent == source.agent]
+        if source.kind == "finding"
+        else [source]
+    )
+    for candidate in candidates:
+        text = quotable(candidate)
+        if needle in normalise(text):
+            return candidate, original_span(quote, text)
+    return None
 
 
 def original_span(quote: str, text: str) -> str:
@@ -321,6 +343,8 @@ def _finding(verified: _Verified, sources: list[Source]) -> Finding:
         else f"{topic}: {who_a} and {who_b} disagree"
     )
     why = inconsistency.why_it_matters.strip()
+    if _BANNED.search(normalise(why)):
+        why = ""  # shown to the student: no verdict words, even in the explanation
     detail = (
         f'{who_a} says {_claim(inconsistency.a)} ("{verified.quote_a}"). '
         f'{who_b} says {_claim(inconsistency.b)} ("{verified.quote_b}").'
