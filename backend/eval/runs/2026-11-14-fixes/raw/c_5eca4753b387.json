@@ -1,0 +1,567 @@
+{
+  "case_id": "c_5eca4753b387",
+  "family": "robustness",
+  "variant": "robustness",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 5541,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [
+    "payment_safety",
+    "no_pressure"
+  ],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [
+    "message_checker:payment_before_viewing"
+  ],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_5eca4753b387",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_5eca4753b387",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3794",
+      "platform": "rental listing",
+      "address": "Flat 2, 14 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_5eca4753b387_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I have not viewed Flat 2, 14 Example Mews, London W12 8QT. Can we arrange a viewing before I pay?\nRowan Pike: Absolutely, we care deeply about students and you can trust us. For your peace of mind, transfer GBP 1500 to reserve the viewing. We will not arrange access until the transfer arrives in account ****3794. Everything is fully guaranteed.\nAlex Reed: Your friendly explanation is reassuring, but I still need to see the flat first.\nRowan Pike: We understand and are always here to help. Our policy remains payment first, viewing afterwards.\n",
+        "note": null
+      },
+      {
+        "id": "c_5eca4753b387_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 14 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_5eca4753b387_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 14 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3794\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_5eca4753b387_m1",
+        "evidence_id": "c_5eca4753b387_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I have not viewed Flat 2, 14 Example Mews, London W12 8QT. Can we arrange a viewing before I pay?"
+      },
+      {
+        "id": "c_5eca4753b387_m2",
+        "evidence_id": "c_5eca4753b387_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "Absolutely, we care deeply about students and you can trust us. For your peace of mind, transfer GBP 1500 to reserve the viewing. We will not arrange access until the transfer arrives in account ****3794. Everything is fully guaranteed."
+      },
+      {
+        "id": "c_5eca4753b387_m3",
+        "evidence_id": "c_5eca4753b387_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "Your friendly explanation is reassuring, but I still need to see the flat first."
+      },
+      {
+        "id": "c_5eca4753b387_m4",
+        "evidence_id": "c_5eca4753b387_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "We understand and are always here to help. Our policy remains payment first, viewing afterwards."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:payment_before_viewing"
+        ],
+        "reason": "Money requested before any viewing"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "emotion_classifier:pressure_authority",
+          "emotion_classifier:pressure_jargon"
+        ],
+        "reason": "Credibility you cannot check"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_confirm_payment_c35f62ce4a291dbe_1",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Please confirm this payment concern before we reach a decision. Money requested before any viewing: “transfer GBP 1500 to reserve the viewing.” / “We will not arrange access until the transfer arrives in account ****3794.” Are they requiring payment before you or someone you trust can view in person? Reply exactly yes, no, or unsure.",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:05.241766Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "40075b17028b96b4",
+        "findings": [
+          {
+            "id": "message_checker:payment_before_viewing",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Money requested before any viewing",
+            "detail": "The agent asks for money before you have seen the property in person. Paying before a viewing is the most common way students lose a deposit.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.9,
+            "evidence": [
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "transfer GBP 1500 to reserve the viewing."
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "We will not arrange access until the transfer arrives in account ****3794."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": true
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 14 Example Mews, London W12 8QT",
+            "source": "c_5eca4753b387_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "bank_account",
+            "value": "account ****3794",
+            "source": "c_5eca4753b387_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Did the agent give a sort code or IBAN for the account ending 3794, and is it a UK bank account?"
+        ],
+        "error": null,
+        "duration_ms": 3054
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "8821139a240ce723",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The arithmetic is supported: s5 gives rent of GBP 1300 per calendar month, so annual rent is GBP 15,600 and the five-week cap is GBP 1,500.00. The s6 deposit of GBP 1,500 equals the cap and does not exceed it. This is a correctly limited amount-cap pass, not a breach. The cap only applies to covered tenancies, and jurisdiction, tenancy type and rent basis are all unknown in the context. The contract also does not state whether the rent and deposit cover the same whole tenancy. I cannot dismiss or fully uphold it until those facts are confirmed. A compliant amount says nothing about deposit protection or authenticity, and I make no finding on either. No quote defeats the interpretation, so dismissal is not warranted. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_5eca4753b387_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 14 Example Mews, London W12 8QT",
+            "source": "c_5eca4753b387_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_5eca4753b387_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_5eca4753b387_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_5eca4753b387_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_5eca4753b387_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 5486
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "4e7d478dbca943bf",
+        "findings": [
+          {
+            "id": "emotion_classifier:pressure_authority",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Credibility you cannot check",
+            "detail": "This promises safety without saying who guarantees what or how you could confirm it; the plain version would name the actual terms, such as whether the money is refundable. Calling this a policy makes it sound fixed and official, though you cannot check it; the plain version is that they are refusing a viewing until you pay.",
+            "category": "pressure",
+            "severity": "high",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "Everything is fully guaranteed."
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "Our policy remains payment first, viewing afterwards."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:pressure_jargon",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Wording that hides a plain meaning",
+            "detail": "This frames a request for £1500 up front as something done for your benefit; the plain version is that you are being asked to pay before you see the flat.",
+            "category": "pressure",
+            "severity": "high",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "For your peace of mind"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:pressure_flattery",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Praise that lowers your guard",
+            "detail": "This asks you to trust them because of how they describe themselves, rather than giving you anything you can check; the plain version is simply the terms of the viewing. This sounds warm and understanding, but it does not change the answer to your request; the plain version is that the viewing is still conditional on payment.",
+            "category": "pressure",
+            "severity": "low",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "we care deeply about students and you can trust us"
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "We understand and are always here to help."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The student has not viewed Flat 2, 14 Example Mews, London W12 8QT. • The student is asking to arrange a viewing before paying. • A payment of GBP 1500 by transfer is requested to reserve the viewing. • Access to the flat will not be arranged until the transfer arrives in the named account. • The student wants to see the flat before going ahead. • The agent's stated policy is payment first, viewing afterwards.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "I have not viewed Flat 2, 14 Example Mews, London W12 8QT."
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "Can we arrange a viewing before I pay?"
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "transfer GBP 1500 to reserve the viewing"
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "We will not arrange access until the transfer arrives in account ****3794."
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "I still need to see the flat first."
+              },
+              {
+                "evidence_id": "c_5eca4753b387_e1",
+                "quote": "Our policy remains payment first, viewing afterwards."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 5536
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:55:05.241766Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false
+}

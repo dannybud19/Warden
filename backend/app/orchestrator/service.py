@@ -30,7 +30,7 @@ from app.core.agent import AgentContext, BaseAgent
 from app.core.ids import new_id
 from app.intake.service import ingest
 from app.orchestrator import checks as checks_mod
-from app.orchestrator import conversation, crosscheck, decision
+from app.orchestrator import conversation, crosscheck, decision, payment_confirmation
 from app.orchestrator.events import EventBus
 from app.orchestrator.runner import run_agents
 from app.storage.repository import CaseRepository
@@ -210,10 +210,31 @@ class CaseService:
             return await self._decide(case)
 
     async def _decide(self, case: Case) -> Case:
+        if payment_confirmation.pending(case) and not decision.hard_flags(case):
+            return await self._confirm_payment(case)
         case.decision = decision.decide(case)
         case.status = "decided"
         await self.repo.save(case)
         await self._emit(case.case_id, DecisionMade(decision=case.decision))
+        return case
+
+    async def _confirm_payment(self, case: Case) -> Case:
+        """Keep the case open and ask about payment evidence even when the check is suspicious."""
+        proposed = payment_confirmation.questions(case)
+        if proposed:
+            now = datetime.now(UTC)
+            proposed = [action.model_copy(update={"asked_at": now}) for action in proposed]
+            case.actions.extend(proposed)
+            await self.repo.save(case)
+            await self._emit(case.case_id, ActionsProposed(actions=proposed))
+            await self._emit(
+                case.case_id,
+                OrchestratorMessage(
+                    text="A payment concern needs your confirmation before we reach a decision. "
+                    "Answer the questions below; a no or unsure answer will keep it open "
+                    "for clarification."
+                ),
+            )
         return case
 
     async def _run_analysis(self, case_id: str, *, queued: bool = False) -> Case:
@@ -263,6 +284,9 @@ class CaseService:
 
         if decision.hard_flags(case):
             return await self._decide(case)
+
+        if payment_confirmation.pending(case):
+            return await self._confirm_payment(case)
 
         existing = {a.id for a in case.actions}
         proposals = await propose_actions(case, result, self.ctx)

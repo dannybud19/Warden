@@ -1,0 +1,31 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Flat 2, 64 Example Mews, London W12 8QT is offered for sale; the listing does not state whether the owner also permits a tenancy.",
+        "title": "sale listing"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/sale_listing"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_85c6e685129a_x1",
+      "key": "sale_listing",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 64 Example Mews, London W12 8QT"
+      ],
+      "snippet": "Flat 2, 64 Example Mews, London W12 8QT is offered for sale; the listing does not state whether the owner also permits a tenancy.",
+      "title": "sale listing",
+      "url": "https://records.example/sale_listing"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

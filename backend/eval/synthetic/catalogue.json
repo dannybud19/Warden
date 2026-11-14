@@ -1,0 +1,1971 @@
+[
+  {
+    "key": "deceptive_short_let_concern",
+    "family": "deceptive_short_let",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Is {address} available from {start_date} as a normal tenancy?"
+      },
+      {
+        "sender": "agent",
+        "text": "I am {agent_name}. I booked it as a guest for two nights, but I can give you a tenancy in {owner_name}'s name."
+      },
+      {
+        "sender": "student",
+        "text": "Does the owner know you are letting it to me?"
+      },
+      {
+        "sender": "agent",
+        "text": "The owner has not agreed. Please do not mention the tenancy to them."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "unauthorised_subletting",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "The owner has not agreed.",
+        "explanation": "The agent explicitly lacks agreement; a short stay alone is not the concern."
+      },
+      {
+        "check_id": "landlord_identity",
+        "topic": "concealment",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Please do not mention the tenancy to them.",
+        "explanation": "The agent seeks to conceal the proposed tenancy from the named owner."
+      }
+    ],
+    "forbidden_assertions": [
+      "A short let by itself proves fraud.",
+      "The student has paid a deposit."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "owner_denial",
+        "query_terms": [
+          "{address}",
+          "{owner_name}"
+        ],
+        "outcome": "found",
+        "title": "owner denial",
+        "url": "https://records.example/owner_denial",
+        "snippet": "{owner_name} owns {address}; {agent_name} is a two-night guest and has no letting authority.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "owner_confirmation",
+      "text": "I contacted {owner_name} through an independently sourced contact. They confirmed {agent_name} is a guest and cannot let the property.",
+      "expected_change": "Strengthen the lack-of-authority concern; do not infer payment occurred."
+    },
+    "commitments": {
+      "payment_timing": "No payment timing stated.",
+      "roles": "Owner {owner_name}; purported agent {agent_name} is a guest.",
+      "viewing_status": "No student viewing stated.",
+      "authority": "Owner agreement explicitly absent."
+    }
+  },
+  {
+    "key": "deceptive_short_let_genuine",
+    "family": "deceptive_short_let",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I saw a short-let advert for {address}. Is this offer another holiday booking?"
+      },
+      {
+        "sender": "agent",
+        "text": "That was last year. {owner_name} now offers the ordinary periodic tenancy in your draft; I am {agent_name}, their authorised managing agent."
+      },
+      {
+        "sender": "student",
+        "text": "Why is GBP {rent} lower than the other rooms I saw?"
+      },
+      {
+        "sender": "agent",
+        "text": "The room is smaller and overlooks the railway. You can inspect it on {viewing_date}; no payment is required before the viewing."
+      }
+    ],
+    "contract_extra": "This offer is an ordinary periodic tenancy; earlier holiday bookings are not part of this agreement.",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "previous_short_let",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "That was last year.",
+        "explanation": "Prior holiday use does not establish an unauthorised current tenancy."
+      },
+      {
+        "check_id": "fair_price",
+        "topic": "explained_low_rent",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "The room is smaller and overlooks the railway.",
+        "explanation": "Compare the concrete price explanation with the room and local evidence."
+      },
+      {
+        "check_id": "landlord_identity",
+        "topic": "agent_owner_roles",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "their authorised managing agent",
+        "explanation": "Different names describe explicitly different roles."
+      }
+    ],
+    "forbidden_assertions": [
+      "A previous short let establishes fraud.",
+      "Low rent alone proves fraud.",
+      "Different owner and agent names establish identity mismatch.",
+      "A draft proves ownership."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "letting_mandate",
+        "query_terms": [
+          "{address}",
+          "{owner_name}",
+          "{agent_name}"
+        ],
+        "outcome": "found",
+        "title": "letting mandate",
+        "url": "https://records.example/letting_mandate",
+        "snippet": "Owner {owner_name} appointed {agent_name} of {company_name} to arrange viewings and the periodic tenancy at {address}.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "in_person_viewing",
+      "topic": "inspect_room",
+      "text": "I attended the in-person viewing on {viewing_date}. The room is small and faces the railway, as described.",
+      "expected_change": "Support completed viewing and the specific price explanation; leave payment and deposit verification separate."
+    },
+    "commitments": {
+      "payment_timing": "No payment before viewing.",
+      "roles": "Owner {owner_name}; authorised managing agent {agent_name}.",
+      "viewing_status": "Offered on {viewing_date}; not completed.",
+      "authority": "Independent mandate available."
+    }
+  },
+  {
+    "key": "deceptive_short_let_unresolved",
+    "family": "deceptive_short_let",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Your photos look like the short-stay listing at {address}. Who is letting it now?"
+      },
+      {
+        "sender": "agent",
+        "text": "I am {agent_name}, arranging it for {owner_name}. They are abroad this month."
+      },
+      {
+        "sender": "student",
+        "text": "Can you send the owner's authority and arrange a viewing?"
+      },
+      {
+        "sender": "agent",
+        "text": "I have requested the authority letter. I can suggest {viewing_date}, but it is not confirmed yet."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "authority_pending",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I have requested the authority letter.",
+        "explanation": "Authority is missing, not disproved."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "viewing_pending",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "it is not confirmed yet.",
+        "explanation": "A proposed viewing has not happened."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "owner_abroad",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "They are abroad this month.",
+        "explanation": "Travel alone does not establish deception."
+      }
+    ],
+    "forbidden_assertions": [
+      "A short-stay photo match proves unauthorised subletting.",
+      "An owner abroad proves fraud.",
+      "The viewing has happened."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "short_stay_history",
+        "query_terms": [
+          "{address}"
+        ],
+        "outcome": "found",
+        "title": "short stay history",
+        "url": "https://records.example/short_stay_history",
+        "snippet": "An archived short-stay advert shows {address}; current letting authority is not recorded.",
+        "company_status": null
+      },
+      {
+        "key": "authority_service",
+        "query_terms": [
+          "{owner_name}",
+          "authority"
+        ],
+        "outcome": "unavailable",
+        "title": "authority service",
+        "url": "https://records.example/authority_service",
+        "snippet": "The authority-document service is temporarily unavailable; no authority result was returned.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "authority_pending",
+      "text": "The owner has not replied and the authority letter is still missing. I have not paid anything.",
+      "expected_change": "Keep authority unresolved; silence is not proof of impersonation."
+    },
+    "commitments": {
+      "payment_timing": "No payment requested or made.",
+      "roles": "Claimed owner {owner_name}; claimed agent {agent_name}.",
+      "viewing_status": "Proposed but unconfirmed.",
+      "authority": "Letter requested; authority unverified."
+    }
+  },
+  {
+    "key": "fake_platform_link_concern",
+    "family": "fake_platform_link",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Can I reserve {address} after the viewing?"
+      },
+      {
+        "sender": "agent",
+        "text": "Use https://airbnb-reservation.example/pay to send the deposit now; this is the official Airbnb payment page."
+      },
+      {
+        "sender": "student",
+        "text": "I cannot find that reservation in my account. Can I open it through the app?"
+      },
+      {
+        "sender": "agent",
+        "text": "Do not use the app. Payment must happen before any viewing and only through that link."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "platform_impersonation",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "https://airbnb-reservation.example/pay",
+        "explanation": "The host imitates a platform whose authority is claimed."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "pay_before_viewing",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Payment must happen before any viewing",
+        "explanation": "Explicit payment-before-viewing condition."
+      }
+    ],
+    "forbidden_assertions": [
+      "The payment page was actually visited.",
+      "The student has already lost money."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "platform_booking_check",
+        "query_terms": [
+          "airbnb-reservation.example"
+        ],
+        "outcome": "found",
+        "title": "platform booking check",
+        "url": "https://records.example/platform_booking_check",
+        "snippet": "The supplied host airbnb-reservation.example is not an Airbnb-owned hostname; the claimed booking does not appear in the platform account.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "platform_verification",
+      "text": "I checked through the independently opened platform app; support cannot find the booking or recognise the supplied payment host.",
+      "expected_change": "Strengthen platform-impersonation concern without claiming payment was made."
+    },
+    "commitments": {
+      "payment_timing": "Deposit demanded before viewing.",
+      "roles": "Agent claims platform authority; owner unverified.",
+      "viewing_status": "No viewing completed.",
+      "authority": "No independently verified authority."
+    }
+  },
+  {
+    "key": "fake_platform_link_genuine",
+    "family": "fake_platform_link",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I received {payment_url}. Is it a platform reservation link?"
+      },
+      {
+        "sender": "agent",
+        "text": "It is {company_name}'s own tenant portal, not an Airbnb page. You can reach it from our independently listed agency contact."
+      },
+      {
+        "sender": "student",
+        "text": "We completed the in-person viewing on {viewing_date}. When is payment due?"
+      },
+      {
+        "sender": "agent",
+        "text": "Only after you review and sign the agreement. The rent is GBP {rent} and deposit GBP {deposit}."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "own_portal",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "It is {company_name}'s own tenant portal, not an Airbnb page.",
+        "explanation": "An agency portal is not automatically platform impersonation."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "payment_after_review",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "Only after you review and sign the agreement.",
+        "explanation": "No pre-viewing payment demand."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "completed_viewing",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "We completed the in-person viewing on {viewing_date}.",
+        "explanation": "A completed viewing is reported; it does not verify every payment detail."
+      }
+    ],
+    "forbidden_assertions": [
+      "Every non-platform payment page is fraudulent.",
+      "A portal URL alone verifies the payee.",
+      "A completed viewing clears every check."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "agency_portal",
+        "query_terms": [
+          "{company_name}",
+          "portal"
+        ],
+        "outcome": "found",
+        "title": "agency portal",
+        "url": "https://records.example/agency_portal",
+        "snippet": "{company_name} confirms its tenant portal at {payment_url}; no travel-platform affiliation is claimed.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "payee_match",
+      "text": "I called the agency through its independently listed contact. They confirmed {payment_url} and the account ending {account_suffix} belongs to {company_name}.",
+      "expected_change": "Support portal and payee match only; leave deposit protection separate."
+    },
+    "commitments": {
+      "payment_timing": "After completed viewing and agreement review/signing.",
+      "roles": "Owner {owner_name}; agent {agent_name} of {company_name}.",
+      "viewing_status": "Completed on {viewing_date}.",
+      "authority": "Agency portal confirmation available."
+    },
+    "viewing_completed": true
+  },
+  {
+    "key": "fake_platform_link_unresolved",
+    "family": "fake_platform_link",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Is {payment_url} where I should pay for {address}?"
+      },
+      {
+        "sender": "agent",
+        "text": "It is a new booking-service portal. I will send their company details."
+      },
+      {
+        "sender": "student",
+        "text": "Can I verify it before sharing details or paying?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes, wait for verification. We can arrange a viewing first."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "portal_unverified",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "It is a new booking-service portal.",
+        "explanation": "Operator and payee remain unverified."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "permission_to_wait",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "Yes, wait for verification.",
+        "explanation": "No immediate payment or verification bypass is demanded."
+      }
+    ],
+    "forbidden_assertions": [
+      "An unfamiliar portal is proven phishing.",
+      "The agent demands payment before viewing.",
+      "No search result proves the operator does not exist."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "portal_search",
+        "query_terms": [
+          "{payment_url}"
+        ],
+        "outcome": "not_found",
+        "title": "portal search",
+        "url": "https://records.example/portal_search",
+        "snippet": "No indexed result was returned for the supplied portal; this does not establish ownership or legitimacy.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "portal_unverified",
+      "text": "I could not independently identify the booking service, and I have not entered payment details.",
+      "expected_change": "Keep portal unverified; do not invent confirmed fraud or financial loss."
+    },
+    "commitments": {
+      "payment_timing": "Wait for verification; viewing can come first.",
+      "roles": "Booking-service operator unidentified.",
+      "viewing_status": "Offered; not booked or completed.",
+      "authority": "Operator verification outstanding."
+    }
+  },
+  {
+    "key": "unavailable_advert_concern",
+    "family": "unavailable_advert",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "The advert at {listing_url} has disappeared. Is {address} still available?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes. Send GBP {deposit} before I show you inside."
+      },
+      {
+        "sender": "student",
+        "text": "I called the agency whose watermark is on the photos. They say these pictures were copied from their old advert."
+      },
+      {
+        "sender": "agent",
+        "text": "Do not call that agency again. Pay me directly or you lose the room."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "pay_before_viewing",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Send GBP {deposit} before I show you inside.",
+        "explanation": "Explicit deposit demand before viewing."
+      },
+      {
+        "check_id": "right_to_let",
+        "topic": "copied_listing",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "They say these pictures were copied from their old advert.",
+        "explanation": "Reported provenance needs corroboration; disappearance alone is insufficient."
+      },
+      {
+        "check_id": "no_pressure",
+        "topic": "block_verification",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Do not call that agency again.",
+        "explanation": "Attempt to stop independent verification."
+      }
+    ],
+    "forbidden_assertions": [
+      "A removed advert alone proves fraud.",
+      "Every copied property photo establishes lack of ownership."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "original_agency_denial",
+        "query_terms": [
+          "{address}",
+          "photos"
+        ],
+        "outcome": "found",
+        "title": "original agency denial",
+        "url": "https://records.example/original_agency_denial",
+        "snippet": "The agency holding the original images confirms {agent_name} copied its expired advert and is not authorised to let {address}.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "original_agency",
+      "text": "The original agency supplied its dated advert and confirmed directly that {agent_name} has no authority from its owner client.",
+      "expected_change": "Strengthen unauthorised-listing concern; disappearance alone remains insufficient."
+    },
+    "commitments": {
+      "payment_timing": "Deposit demanded before entering property.",
+      "roles": "Purported agent {agent_name}; original agency denies authority.",
+      "viewing_status": "No viewing completed.",
+      "authority": "Independent denial available."
+    }
+  },
+  {
+    "key": "unavailable_advert_genuine",
+    "family": "unavailable_advert",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "The advert at {listing_url} is no longer visible. Is something wrong?"
+      },
+      {
+        "sender": "agent",
+        "text": "We paused enquiries because the viewing slots are full. Your viewing with {agent_name} is still booked for {viewing_date}."
+      },
+      {
+        "sender": "student",
+        "text": "Do I need to send money to keep the slot?"
+      },
+      {
+        "sender": "agent",
+        "text": "No. The owner {owner_name} is abroad, and I have their signed letting mandate. Please inspect the flat before deciding."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "paused_advert",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "We paused enquiries because the viewing slots are full.",
+        "explanation": "A removed advert has an ordinary explanation."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "abroad_with_local_agent",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "The owner {owner_name} is abroad, and I have their signed letting mandate.",
+        "explanation": "The absent owner has a local agent and verifiable mandate."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "no_viewing_fee",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "No.",
+        "explanation": "The agent declines payment to retain a viewing."
+      }
+    ],
+    "forbidden_assertions": [
+      "A removed advert proves fraud.",
+      "An owner abroad proves fraud.",
+      "Different owner and agent names prove identity mismatch."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "paused_advert_record",
+        "query_terms": [
+          "{listing_url}",
+          "{address}"
+        ],
+        "outcome": "found",
+        "title": "paused advert record",
+        "url": "https://records.example/paused_advert_record",
+        "snippet": "The publisher marks the advert paused by {company_name} after its viewing slots filled.",
+        "company_status": null
+      },
+      {
+        "key": "owner_mandate",
+        "query_terms": [
+          "{owner_name}",
+          "{agent_name}"
+        ],
+        "outcome": "found",
+        "title": "owner mandate",
+        "url": "https://records.example/owner_mandate",
+        "snippet": "{owner_name} confirms the signed letting mandate naming {agent_name} for {address}.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "in_person_viewing",
+      "topic": "completed_viewing",
+      "text": "I attended the booked in-person viewing on {viewing_date}; {agent_name} showed the advertised rooms and I paid no viewing fee.",
+      "expected_change": "Support completed viewing only; leave ownership, payment and deposit checks separate."
+    },
+    "commitments": {
+      "payment_timing": "No payment to retain viewing; inspect before deciding.",
+      "roles": "Owner {owner_name}; local agent {agent_name}.",
+      "viewing_status": "Booked on {viewing_date}.",
+      "authority": "Owner mandate independently corroborated."
+    }
+  },
+  {
+    "key": "unavailable_advert_unresolved",
+    "family": "unavailable_advert",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "The advert at {listing_url} returns an unavailable page. Why?"
+      },
+      {
+        "sender": "agent",
+        "text": "I think the platform removed it during an account review. I have asked them."
+      },
+      {
+        "sender": "student",
+        "text": "Can you confirm the property and arrange a viewing meanwhile?"
+      },
+      {
+        "sender": "agent",
+        "text": "I can send the draft for {address}, but I do not have a confirmed viewing slot yet. No money is due now."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "advert_unavailable",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I think the platform removed it during an account review.",
+        "explanation": "Tentative explanation, not established removal reason."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "viewing_unconfirmed",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I do not have a confirmed viewing slot yet.",
+        "explanation": "Access remains unverified."
+      }
+    ],
+    "forbidden_assertions": [
+      "An unavailable page proves a fake property.",
+      "Account review establishes criminal conduct.",
+      "A draft proves a completed viewing."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "advert_status",
+        "query_terms": [
+          "{listing_url}"
+        ],
+        "outcome": "unavailable",
+        "title": "advert status",
+        "url": "https://records.example/advert_status",
+        "snippet": "The listing-status endpoint timed out; no reason for the unavailable page could be retrieved.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "advert_status",
+      "text": "The platform still has not supplied a removal reason. I have not paid and the viewing remains unconfirmed.",
+      "expected_change": "Keep provenance and viewing unresolved; failure is not proof of fraud."
+    },
+    "commitments": {
+      "payment_timing": "No money due now.",
+      "roles": "Claimed agent {agent_name}; owner {owner_name} unverified.",
+      "viewing_status": "Unconfirmed.",
+      "authority": "Not corroborated."
+    }
+  },
+  {
+    "key": "fake_agency_concern",
+    "family": "fake_agency",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Who manages {address}, and what is your company number?"
+      },
+      {
+        "sender": "agent",
+        "text": "I am {agent_name} at {company_name}, company number {company_number}. We are actively registered."
+      },
+      {
+        "sender": "student",
+        "text": "The register says that company is dissolved. Are you using another entity?"
+      },
+      {
+        "sender": "agent",
+        "text": "Use that dissolved company anyway. Do not contact its former officers; send the documents to me."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "landlord_identity",
+        "topic": "register_status",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "We are actively registered.",
+        "explanation": "Active-registration claim conflicts with dissolved register record."
+      },
+      {
+        "check_id": "landlord_identity",
+        "topic": "dissolved_company",
+        "stance": "concern",
+        "source": "external",
+        "quote": "Status: dissolved.",
+        "explanation": "The supplied number resolves to a dissolved entity; this is not a failed lookup."
+      }
+    ],
+    "forbidden_assertions": [
+      "A service outage proves a company does not exist.",
+      "Different officer and letting-agent names alone prove fraud."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "company_register",
+        "query_terms": [
+          "{company_number}",
+          "{company_name}"
+        ],
+        "outcome": "found",
+        "title": "company register",
+        "url": "https://records.example/company_register",
+        "snippet": "{company_name}, company number {company_number}. Status: dissolved.",
+        "company_status": "dissolved"
+      }
+    ],
+    "follow_up": {
+      "check_id": "landlord_identity",
+      "topic": "register_confirmation",
+      "text": "I independently checked the supplied company number again; the official record still says dissolved, and no replacement legal entity was provided.",
+      "expected_change": "Retain dissolved-company concern; do not infer deposit payment."
+    },
+    "commitments": {
+      "payment_timing": "No payment timing stated.",
+      "roles": "Agent {agent_name} represents dissolved {company_name}.",
+      "viewing_status": "No viewing stated.",
+      "authority": "Presented entity dissolved."
+    }
+  },
+  {
+    "key": "fake_agency_genuine",
+    "family": "fake_agency",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "The contract names {owner_name}, but I have only spoken with {agent_name}. Why?"
+      },
+      {
+        "sender": "agent",
+        "text": "{owner_name} is the owner; I work for {company_name}, company number {company_number}, as their letting agent."
+      },
+      {
+        "sender": "student",
+        "text": "You asked me to confirm the viewing by {deadline}. Must I pay by then?"
+      },
+      {
+        "sender": "agent",
+        "text": "No payment. We need your reply to allocate staffed slots on {viewing_date}; if you need more time we can offer another day."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "landlord_identity",
+        "topic": "different_roles",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "{owner_name} is the owner; I work for {company_name}",
+        "explanation": "Different names describe owner and employed agent."
+      },
+      {
+        "check_id": "no_pressure",
+        "topic": "viewing_deadline",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "if you need more time we can offer another day.",
+        "explanation": "A staffing deadline with an alternative is not coercive payment pressure."
+      },
+      {
+        "check_id": "landlord_identity",
+        "topic": "active_company",
+        "stance": "clarify",
+        "source": "external",
+        "quote": "Status: active.",
+        "explanation": "Registration supports the entity only, not its property authority."
+      }
+    ],
+    "forbidden_assertions": [
+      "Different owner, officer and agent names automatically prove impersonation.",
+      "A viewing-scheduling deadline proves coercion.",
+      "An active company proves property ownership."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "company_register",
+        "query_terms": [
+          "{company_number}",
+          "{company_name}"
+        ],
+        "outcome": "found",
+        "title": "company register",
+        "url": "https://records.example/company_register",
+        "snippet": "{company_name}, company number {company_number}. Status: active. Incorporation date: 2014-06-10.",
+        "company_status": "active"
+      },
+      {
+        "key": "agency_mandate",
+        "query_terms": [
+          "{address}",
+          "{owner_name}"
+        ],
+        "outcome": "found",
+        "title": "agency mandate",
+        "url": "https://records.example/agency_mandate",
+        "snippet": "Owner {owner_name} appointed {company_name}, with {agent_name} as the viewing contact for {address}.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "landlord_identity",
+      "topic": "mandate_check",
+      "text": "I used the independently listed agency contact; they confirmed {agent_name} is their employee and sent the owner's mandate for {address}.",
+      "expected_change": "Support agent-role and mandate match; registration alone does not clear all checks."
+    },
+    "commitments": {
+      "payment_timing": "No payment for scheduling.",
+      "roles": "Owner {owner_name}; employed agent {agent_name}; company {company_name}.",
+      "viewing_status": "Slot offered on {viewing_date}.",
+      "authority": "Independent agency mandate available."
+    }
+  },
+  {
+    "key": "fake_agency_unresolved",
+    "family": "fake_agency",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Can you give me {company_name}'s company number?"
+      },
+      {
+        "sender": "agent",
+        "text": "It is {company_number}. I am {agent_name}, the viewing coordinator."
+      },
+      {
+        "sender": "student",
+        "text": "The register is not loading. Is there another way to verify your agency?"
+      },
+      {
+        "sender": "agent",
+        "text": "Please try again later or contact the office through its independently listed details. No payment is needed now."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "landlord_identity",
+        "topic": "register_unavailable",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "The register is not loading.",
+        "explanation": "Failed access does not establish entity status."
+      },
+      {
+        "check_id": "landlord_identity",
+        "topic": "coordinator_role",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "the viewing coordinator",
+        "explanation": "The coordinator need not be a company officer."
+      }
+    ],
+    "forbidden_assertions": [
+      "A register outage proves the company is absent.",
+      "A missing officer match proves an employee is fake.",
+      "Invitation to verify proves legitimacy."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "company_register",
+        "query_terms": [
+          "{company_number}",
+          "{company_name}"
+        ],
+        "outcome": "unavailable",
+        "title": "company register",
+        "url": "https://records.example/company_register",
+        "snippet": "The register returned a temporary service error. Company existence and status could not be checked.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "landlord_identity",
+      "topic": "register_retry",
+      "text": "The register still returns a service error and I have not reached the office yet.",
+      "expected_change": "Keep identity unresolved; never transform unavailable into not found."
+    },
+    "commitments": {
+      "payment_timing": "No payment needed now.",
+      "roles": "Claimed coordinator {agent_name} for {company_name}.",
+      "viewing_status": "No completion stated.",
+      "authority": "Company status and mandate unknown."
+    }
+  },
+  {
+    "key": "prepaid_payment_concern",
+    "family": "prepaid_payment",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "How do I pay the GBP {deposit} deposit for {address}?"
+      },
+      {
+        "sender": "agent",
+        "text": "Buy prepaid gift cards and send me clear photos of their redemption codes."
+      },
+      {
+        "sender": "student",
+        "text": "Can I use the agency account after a viewing instead?"
+      },
+      {
+        "sender": "agent",
+        "text": "No viewing until I redeem the codes. Do not tell the shop they are for a rental deposit."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "gift_card_codes",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Buy prepaid gift cards and send me clear photos of their redemption codes.",
+        "explanation": "Transferable redemption secrets requested instead of ordinary rental payment."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "pay_before_viewing",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "No viewing until I redeem the codes.",
+        "explanation": "Payment redemption required before access."
+      },
+      {
+        "check_id": "no_pressure",
+        "topic": "conceal_payment_purpose",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Do not tell the shop they are for a rental deposit.",
+        "explanation": "Concealment instruction compounds concern."
+      }
+    ],
+    "forbidden_assertions": [
+      "The student bought the cards.",
+      "All prepaid debit cards are gift-card scams."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "refused_codes",
+      "text": "I refused to buy gift cards. The agent still insists on redemption codes before any viewing.",
+      "expected_change": "Maintain requested-method concern; do not invent a completed loss."
+    },
+    "commitments": {
+      "payment_timing": "Gift-card redemption before viewing.",
+      "roles": "Agent requests codes; payee unknown.",
+      "viewing_status": "Refused until redemption.",
+      "authority": "No corroborated authority."
+    }
+  },
+  {
+    "key": "prepaid_payment_genuine",
+    "family": "prepaid_payment",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I use a prepaid debit card for budgeting. Does that affect paying for {address}?"
+      },
+      {
+        "sender": "agent",
+        "text": "Your budgeting card is your choice. We never request gift cards, voucher codes or card photos."
+      },
+      {
+        "sender": "student",
+        "text": "I viewed the property in person on {viewing_date}. Can I pay from my ordinary bank account instead?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes, after the signed agreement, to the verified {company_name} client account ending {account_suffix}."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "student_budgeting_card",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "I use a prepaid debit card for budgeting.",
+        "explanation": "The student budgeting method is not an agent gift-card request."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "negated_gift_cards",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "We never request gift cards, voucher codes or card photos.",
+        "explanation": "Do not invert an explicit denial."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "completed_viewing",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I viewed the property in person on {viewing_date}.",
+        "explanation": "Completed viewing is reported."
+      }
+    ],
+    "forbidden_assertions": [
+      "Mentioning prepaid or gift cards always indicates a scam.",
+      "The agent requested voucher codes.",
+      "Payment before viewing was demanded."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "agency_client_account",
+        "query_terms": [
+          "{company_name}",
+          "{account_suffix}"
+        ],
+        "outcome": "found",
+        "title": "agency client account",
+        "url": "https://records.example/agency_client_account",
+        "snippet": "{company_name} independently confirms its client account ends {account_suffix}; it does not accept rental deposits by gift-card code.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "account_confirmation",
+      "text": "I called the independently listed agency office. They confirmed the client-account name and suffix {account_suffix}, and no gift-card payment was requested.",
+      "expected_change": "Support payment-instruction match only; do not clear deposit protection from payment method."
+    },
+    "commitments": {
+      "payment_timing": "Bank payment after completed viewing and signed agreement.",
+      "roles": "Student owns budgeting card; agency owns client account.",
+      "viewing_status": "Completed on {viewing_date}.",
+      "authority": "Account independently confirmed; mandate remains separately checkable."
+    },
+    "viewing_completed": true
+  },
+  {
+    "key": "prepaid_payment_unresolved",
+    "family": "prepaid_payment",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Your note says the deposit can be paid using a prepaid card. What do you mean?"
+      },
+      {
+        "sender": "agent",
+        "text": "Our payment processor accepts some prepaid debit cards, but I need to check the details."
+      },
+      {
+        "sender": "student",
+        "text": "Are you asking me to buy vouchers or send any codes?"
+      },
+      {
+        "sender": "agent",
+        "text": "No. Wait until I confirm the processor and payment instructions. There is no payment due today."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "processor_pending",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I need to check the details.",
+        "explanation": "Processor and instructions missing."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "prepaid_ambiguity",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "No. Wait until I confirm the processor and payment instructions.",
+        "explanation": "Debit-card acceptance is not a demand for redemption codes."
+      }
+    ],
+    "forbidden_assertions": [
+      "Prepaid debit acceptance proves a gift-card scam.",
+      "The agent demanded a code.",
+      "Unknown processor means verified payment safety."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "payment_processor",
+        "query_terms": [
+          "{company_name}",
+          "payment processor"
+        ],
+        "outcome": "not_found",
+        "title": "payment processor",
+        "url": "https://records.example/payment_processor",
+        "snippet": "No independently indexed payment-processor details were returned for this agency.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "processor_pending",
+      "text": "The processor details have not arrived. I have not bought vouchers, sent codes or paid.",
+      "expected_change": "Keep instructions unresolved; do not assert voucher demand or completed payment."
+    },
+    "commitments": {
+      "payment_timing": "No payment due today; wait for instructions.",
+      "roles": "Processor unspecified; no voucher recipient.",
+      "viewing_status": "No viewing status stated.",
+      "authority": "Processor unverified."
+    }
+  },
+  {
+    "key": "property_for_sale_concern",
+    "family": "property_for_sale",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I found {address} listed for sale. Can it also be let?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes. Ask the selling agent for a viewing, but pretend you are a buyer and do not mention renting."
+      },
+      {
+        "sender": "student",
+        "text": "Does the owner know you are offering a tenancy?"
+      },
+      {
+        "sender": "agent",
+        "text": "No, the owner is only selling. I will give you a tenancy under their name anyway."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "pose_as_buyer",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "pretend you are a buyer and do not mention renting",
+        "explanation": "Concealment instruction is distinct from sale listing itself."
+      },
+      {
+        "check_id": "right_to_let",
+        "topic": "owner_not_letting",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "the owner is only selling",
+        "explanation": "Agent admits tenancy lacks owner authorisation."
+      }
+    ],
+    "forbidden_assertions": [
+      "A simultaneous sale listing alone proves fraud.",
+      "A buyer viewing verifies letting authority."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "selling_agent_record",
+        "query_terms": [
+          "{address}",
+          "sale"
+        ],
+        "outcome": "found",
+        "title": "selling agent record",
+        "url": "https://records.example/selling_agent_record",
+        "snippet": "The selling agent confirms {owner_name} is selling {address} and has not authorised {agent_name} to advertise a tenancy.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "selling_agent_denial",
+      "text": "I contacted the selling agent through its independently listed office. They confirmed the owner has not authorised a rental and asked me not to attend as a pretend buyer.",
+      "expected_change": "Strengthen unauthorised-letting and concealment concerns; sale listing alone remains insufficient."
+    },
+    "commitments": {
+      "payment_timing": "No payment timing stated.",
+      "roles": "Owner {owner_name} selling; purported letting agent {agent_name}.",
+      "viewing_status": "Proposed deceptive buyer appointment.",
+      "authority": "Owner rental consent explicitly absent."
+    }
+  },
+  {
+    "key": "property_for_sale_genuine",
+    "family": "property_for_sale",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "{address} is also listed for sale. Does that mean this tenancy is not genuine?"
+      },
+      {
+        "sender": "agent",
+        "text": "{owner_name} is marketing both options. {company_name} has authority for both; the owner will stop sale marketing if this tenancy is agreed."
+      },
+      {
+        "sender": "student",
+        "text": "Can I view it as a prospective tenant rather than a buyer?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes. {agent_name} will show you on {viewing_date} as a tenant. No payment is required before that."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "dual_marketing",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "{owner_name} is marketing both options.",
+        "explanation": "A sale listing can coexist with an authorised proposed tenancy."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "tenant_viewing",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "as a tenant",
+        "explanation": "No instruction to impersonate a buyer."
+      },
+      {
+        "check_id": "right_to_let",
+        "topic": "authority_confirmation",
+        "stance": "clarify",
+        "source": "external",
+        "quote": "The owner authorises {company_name} to market {address} for sale or rent.",
+        "explanation": "Supports the specific dual-marketing authority."
+      }
+    ],
+    "forbidden_assertions": [
+      "Any sale listing proves an unauthorised tenancy.",
+      "The student is instructed to pretend to be a buyer.",
+      "Sale marketing has already stopped."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "dual_marketing_authority",
+        "query_terms": [
+          "{address}",
+          "{company_name}"
+        ],
+        "outcome": "found",
+        "title": "dual marketing authority",
+        "url": "https://records.example/dual_marketing_authority",
+        "snippet": "The owner authorises {company_name} to market {address} for sale or rent. A tenant viewing with {agent_name} is booked for {viewing_date}.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "owner_confirmation",
+      "text": "I independently confirmed with {owner_name} that {company_name} may let the property, and sale marketing will stop if we agree the tenancy.",
+      "expected_change": "Support letting mandate only; do not assume tenancy signed or sale withdrawn."
+    },
+    "commitments": {
+      "payment_timing": "No payment before tenant viewing.",
+      "roles": "Owner {owner_name}; agent {agent_name} at {company_name} handles both routes.",
+      "viewing_status": "Booked as tenant on {viewing_date}.",
+      "authority": "Dual-marketing authority corroborated."
+    }
+  },
+  {
+    "key": "property_for_sale_unresolved",
+    "family": "property_for_sale",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "There is a sale listing for {address}. Have the owners agreed to rent it?"
+      },
+      {
+        "sender": "agent",
+        "text": "I have asked {owner_name}; I am waiting for written confirmation."
+      },
+      {
+        "sender": "student",
+        "text": "Can we check with the selling agent before I commit?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes, please do. Hold off signing or paying until the authority is clear."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "right_to_let",
+        "topic": "sale_authority_pending",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I am waiting for written confirmation.",
+        "explanation": "Letting authority outstanding."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "wait_for_authority",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "Hold off signing or paying until the authority is clear.",
+        "explanation": "No payment demanded despite uncertainty."
+      }
+    ],
+    "forbidden_assertions": [
+      "A sale listing alone proves fraud.",
+      "Waiting for authority proves no authority exists.",
+      "An advert verifies right to let."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "sale_listing",
+        "query_terms": [
+          "{address}"
+        ],
+        "outcome": "found",
+        "title": "sale listing",
+        "url": "https://records.example/sale_listing",
+        "snippet": "{address} is offered for sale; the listing does not state whether the owner also permits a tenancy.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "right_to_let",
+      "topic": "owner_reply_pending",
+      "text": "The selling agent has referred my question to the owner; no answer about letting consent has arrived.",
+      "expected_change": "Keep authority unresolved; do not infer approval or denial from silence."
+    },
+    "commitments": {
+      "payment_timing": "Wait before signing or paying.",
+      "roles": "Owner {owner_name}; agent {agent_name} seeking written consent.",
+      "viewing_status": "Not arranged.",
+      "authority": "Letting consent unknown."
+    }
+  },
+  {
+    "key": "overpayment_concern",
+    "family": "overpayment",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I have not paid for {address}. Why did you send me this payment screenshot?"
+      },
+      {
+        "sender": "agent",
+        "text": "My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived."
+      },
+      {
+        "sender": "student",
+        "text": "My bank shows no cleared incoming funds. Can your bank recall the payment?"
+      },
+      {
+        "sender": "agent",
+        "text": "Do not ask your bank. Send the GBP 700 from your savings to the account ending {account_suffix} before {deadline}."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "unverified_refund",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "the screenshot proves it arrived",
+        "explanation": "Screenshot substituted for confirmed receipt."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "refund_to_third_party",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Send the GBP 700 from your savings",
+        "explanation": "New outbound payment requested despite no cleared incoming funds."
+      },
+      {
+        "check_id": "no_pressure",
+        "topic": "block_bank_check",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Do not ask your bank.",
+        "explanation": "Independent verification discouraged."
+      }
+    ],
+    "forbidden_assertions": [
+      "The screenshot proves funds settled.",
+      "The student transferred GBP 700.",
+      "A normal documented refund always proves fraud."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "bank_confirmation",
+      "text": "My bank confirmed no incoming GBP 2000 payment exists. I sent no refund and asked the sender to resolve it through their own bank.",
+      "expected_change": "Strengthen unsupported-payment/refund concern without claiming a loss."
+    },
+    "commitments": {
+      "payment_timing": "Immediate GBP 700 outbound transfer before incoming funds exist.",
+      "roles": "Agent claims accountant sent funds; refund to another account.",
+      "viewing_status": "No viewing stated.",
+      "authority": "Screenshot only; no verified receipt."
+    }
+  },
+  {
+    "key": "overpayment_genuine",
+    "family": "overpayment",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I accidentally paid GBP 200 too much after our viewing and signed agreement. Can you return it?"
+      },
+      {
+        "sender": "agent",
+        "text": "Yes. Our ledger shows your cleared payment and a GBP 200 surplus over the agreed amount."
+      },
+      {
+        "sender": "student",
+        "text": "Do I need to send anything else to release it?"
+      },
+      {
+        "sender": "agent",
+        "text": "No. We will return GBP 200 to the same originating account ending {account_suffix}; there is no release fee."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "ordinary_refund",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "return GBP 200 to the same originating account",
+        "explanation": "Acknowledged surplus returned to source; no request for student forwarding."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "no_release_fee",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "there is no release fee.",
+        "explanation": "Do not invert explicit negation."
+      }
+    ],
+    "forbidden_assertions": [
+      "Every overpayment or refund proves fraud.",
+      "Student asked to forward funds to third party.",
+      "Agency demanded a release fee."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "agency_refund_ledger",
+        "query_terms": [
+          "{company_name}",
+          "refund"
+        ],
+        "outcome": "found",
+        "title": "agency refund ledger",
+        "url": "https://records.example/agency_refund_ledger",
+        "snippet": "{company_name} records a cleared GBP 200 surplus from the student and a refund instruction to the same originating account ending {account_suffix}.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "refund_received",
+      "text": "My bank now shows the GBP 200 refund from {company_name} into the same account ending {account_suffix}; I paid no release fee.",
+      "expected_change": "Support this refund completion only; leave unrelated checks separate."
+    },
+    "commitments": {
+      "payment_timing": "Original payment after viewing and signing; surplus returned.",
+      "roles": "Student accidentally overpaid; agency refunds same payer.",
+      "viewing_status": "Completed before payment.",
+      "authority": "Ledger corroborates surplus."
+    }
+  },
+  {
+    "key": "overpayment_unresolved",
+    "family": "overpayment",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "I may have paid GBP 200 too much, but one payment is still pending."
+      },
+      {
+        "sender": "agent",
+        "text": "I can see a pending entry too. Let us wait for the bank to confirm the settled amount."
+      },
+      {
+        "sender": "student",
+        "text": "Should I transfer or refund anything now?"
+      },
+      {
+        "sender": "agent",
+        "text": "No. We will reconcile the ledger first and return any actual surplus to its originating account."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "settlement_pending",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "one payment is still pending.",
+        "explanation": "Amount and settlement not confirmed."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "no_forwarding_request",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "We will reconcile the ledger first",
+        "explanation": "Defers action rather than demanding forwarding."
+      }
+    ],
+    "forbidden_assertions": [
+      "A pending payment is settled money.",
+      "Agent requested a third-party refund.",
+      "Possible overpayment proves fraud."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "payment_reconciliation",
+        "query_terms": [
+          "{company_name}",
+          "ledger"
+        ],
+        "outcome": "unavailable",
+        "title": "payment reconciliation",
+        "url": "https://records.example/payment_reconciliation",
+        "snippet": "The settlement report is temporarily unavailable; no settled surplus or refund amount has been confirmed.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "settlement_pending",
+      "text": "The bank still marks the extra entry pending. Neither side has sent any refund.",
+      "expected_change": "Keep surplus and settlement unresolved; do not assert loss or completed refund."
+    },
+    "commitments": {
+      "payment_timing": "No new transfers until reconciliation.",
+      "roles": "Potential student overpayment; surplus returns to originating payer.",
+      "viewing_status": "No viewing status stated.",
+      "authority": "Settled amount unconfirmed."
+    }
+  },
+  {
+    "key": "transfer_pressure_concern",
+    "family": "transfer_pressure",
+    "variant": "concern",
+    "truth": "scam",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "Can I view {address} before sending the GBP {deposit} deposit?"
+      },
+      {
+        "sender": "agent",
+        "text": "Transfer it now to the personal account ending {account_suffix}. I will not arrange a viewing until you pay."
+      },
+      {
+        "sender": "student",
+        "text": "I need time to verify your authority and the account."
+      },
+      {
+        "sender": "agent",
+        "text": "You have until {deadline}. Skip those checks or the room goes to someone else; do not contact {owner_name}."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "pay_before_viewing",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "I will not arrange a viewing until you pay.",
+        "explanation": "Explicit pre-viewing condition; bank transfer alone is insufficient."
+      },
+      {
+        "check_id": "no_pressure",
+        "topic": "verification_deadline",
+        "stance": "concern",
+        "source": "chat",
+        "quote": "Skip those checks or the room goes to someone else",
+        "explanation": "Scarcity obstructs verification."
+      },
+      {
+        "check_id": "right_to_let",
+        "topic": "block_owner_contact",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "do not contact {owner_name}.",
+        "explanation": "Owner-contact restriction warrants mandate verification."
+      }
+    ],
+    "forbidden_assertions": [
+      "Every bank transfer is fraud.",
+      "A personal account alone proves the property fake.",
+      "Student already paid."
+    ],
+    "allowed_outcomes": [
+      "likely_scam",
+      "pending",
+      "not_verified"
+    ],
+    "external": [],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "viewing_refused",
+      "text": "I did not transfer anything. The agent again refused an in-person viewing unless the deposit is paid first.",
+      "expected_change": "Maintain explicit payment-before-viewing concern without making deadline alone decisive."
+    },
+    "commitments": {
+      "payment_timing": "Immediate personal-account transfer before viewing.",
+      "roles": "Agent {agent_name}; account owner unverified.",
+      "viewing_status": "Refused until paid.",
+      "authority": "Verification discouraged."
+    }
+  },
+  {
+    "key": "transfer_pressure_genuine",
+    "family": "transfer_pressure",
+    "variant": "genuine",
+    "truth": "genuine",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "We completed the viewing on {viewing_date} and signed. Must I transfer the rent by {deadline}?"
+      },
+      {
+        "sender": "agent",
+        "text": "That is the agreed date for the tenancy starting {start_date}. If the bank needs extra checks, tell us and we can discuss timing."
+      },
+      {
+        "sender": "student",
+        "text": "Can I confirm the account independently before paying?"
+      },
+      {
+        "sender": "agent",
+        "text": "Of course. Call {company_name} using its independently listed office contact and confirm account ending {account_suffix}."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "no_pressure",
+        "topic": "agreed_due_date",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "If the bank needs extra checks, tell us and we can discuss timing.",
+        "explanation": "Agreed due date with verification time is not coercion."
+      },
+      {
+        "check_id": "payment_safety",
+        "topic": "verification_encouraged",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "confirm the account independently before paying",
+        "explanation": "Independent verification is requested and accepted."
+      },
+      {
+        "check_id": "in_person_viewing",
+        "topic": "completed_viewing",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "We completed the viewing on {viewing_date} and signed.",
+        "explanation": "Payment follows reported viewing and signing."
+      }
+    ],
+    "forbidden_assertions": [
+      "A bank transfer alone proves fraud.",
+      "Every deadline establishes coercive pressure.",
+      "Payment before viewing demanded.",
+      "A deadline automatically verifies payment safety."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "confirmed_client_account",
+        "query_terms": [
+          "{company_name}",
+          "{account_suffix}"
+        ],
+        "outcome": "found",
+        "title": "confirmed client account",
+        "url": "https://records.example/confirmed_client_account",
+        "snippet": "The independently listed {company_name} office confirms the rent client account ends {account_suffix} and allows time for bank verification.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "independent_account_check",
+      "text": "The independently listed office confirmed the account name and suffix {account_suffix}; they agreed to wait while my bank completes its checks.",
+      "expected_change": "Support payee match and absence of obstructive pressure; leave other checks separate."
+    },
+    "commitments": {
+      "payment_timing": "Agreed date after viewing and signing; verification time permitted.",
+      "roles": "Owner {owner_name}; agent {agent_name}; company client account.",
+      "viewing_status": "Completed on {viewing_date}.",
+      "authority": "Agency account corroborated."
+    },
+    "viewing_completed": true
+  },
+  {
+    "key": "transfer_pressure_unresolved",
+    "family": "transfer_pressure",
+    "variant": "unresolved",
+    "truth": "unknown",
+    "messages": [
+      {
+        "sender": "student",
+        "text": "You mentioned a bank transfer for {address}. Is it due before I view?"
+      },
+      {
+        "sender": "agent",
+        "text": "The invoice is being prepared. I need to confirm the due date and which account we will use."
+      },
+      {
+        "sender": "student",
+        "text": "Please clarify those details before I make any commitment."
+      },
+      {
+        "sender": "agent",
+        "text": "Agreed. Do not send money while those details are missing; the viewing is still to be arranged."
+      }
+    ],
+    "contract_extra": "",
+    "expectations": [
+      {
+        "check_id": "payment_safety",
+        "topic": "timing_unknown",
+        "stance": "clarify",
+        "source": "chat",
+        "quote": "I need to confirm the due date and which account we will use.",
+        "explanation": "Timing and payee missing; no explicit pre-viewing demand."
+      },
+      {
+        "check_id": "no_pressure",
+        "topic": "no_immediate_demand",
+        "stance": "must_not_assert",
+        "source": "chat",
+        "quote": "Do not send money while those details are missing",
+        "explanation": "Agent tells student to wait."
+      }
+    ],
+    "forbidden_assertions": [
+      "Bank transfer alone proves fraud.",
+      "Unknown timing means payment before viewing demanded.",
+      "Payee verified.",
+      "Viewing completed."
+    ],
+    "allowed_outcomes": [
+      "pending",
+      "not_verified"
+    ],
+    "external": [
+      {
+        "key": "account_details",
+        "query_terms": [
+          "{company_name}",
+          "invoice"
+        ],
+        "outcome": "unavailable",
+        "title": "account details",
+        "url": "https://records.example/account_details",
+        "snippet": "The invoice service is unavailable; no payee account or due date has been returned.",
+        "company_status": null
+      }
+    ],
+    "follow_up": {
+      "check_id": "payment_safety",
+      "topic": "timing_still_unknown",
+      "text": "The invoice has not arrived, the viewing is not booked and I have not paid.",
+      "expected_change": "Keep payee and timing unresolved; do not manufacture pressure or completed viewing."
+    },
+    "commitments": {
+      "payment_timing": "Due date and account unknown; wait before paying.",
+      "roles": "Agent {agent_name}; proposed payee unspecified.",
+      "viewing_status": "Not arranged.",
+      "authority": "Payee and mandate uncorroborated."
+    }
+  }
+]

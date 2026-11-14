@@ -1,0 +1,871 @@
+{
+  "case_id": "c_efd8108a82ec",
+  "family": "compound",
+  "variant": "compound",
+  "truth": "genuine",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "complete",
+  "runner_error": null,
+  "latency_ms": 12061,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 87.0,
+  "suspicious_checks": [],
+  "cleared_checks": [
+    "in_person_viewing",
+    "no_pressure"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "ok",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/company/31143720/officers?items_per_page=100 failed: 503 after 3 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.postcodes.io/postcodes/W128QT failed: 503 after 3 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://www.london.gov.uk/programmes-strategies/housing-and-land/renting-home/private-renting/check-landlord-or-agent/rogue-landlord-and-agent-checker?name=Northbank+Example+Lettings+Ltd&page=0 failed: 503 after 1 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: rogue checker direct fetch failed: 503 after 1 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_efd8108a82ec",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/31143720",
+        "classification": "fixture_found",
+        "status": 200,
+        "method": "GET",
+        "reason": null,
+        "fixture_ids": [
+          "c_efd8108a82ec_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_efd8108a82ec_x1",
+            "key": "active_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": "https://api.company-information.service.gov.uk/company/31143720",
+        "response_body": {
+          "company_name": "Northbank Example Lettings Ltd",
+          "company_number": "31143720",
+          "company_status": "active"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/31143720/officers?items_per_page=100",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/31143720/officers?items_per_page=100",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 4,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/31143720/officers?items_per_page=100",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 5,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 6,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 7,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 8,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" letting agent scam OR fraud OR deposit London",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_efd8108a82ec_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_efd8108a82ec_x1",
+            "key": "active_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 9,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" reviews Google Trustpilot allAgents",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_efd8108a82ec_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_efd8108a82ec_x1",
+            "key": "active_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 10,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" Property Redress Scheme OR \"The Property Ombudsman\" member",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_efd8108a82ec_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_efd8108a82ec_x1",
+            "key": "active_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 11,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" client money protection Propertymark OR safeagent",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_efd8108a82ec_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_efd8108a82ec_x1",
+            "key": "active_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 12,
+        "transport": "http",
+        "request": "https://www.london.gov.uk/programmes-strategies/housing-and-land/renting-home/private-renting/check-landlord-or-agent/rogue-landlord-and-agent-checker?name=Northbank+Example+Lettings+Ltd&page=0",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 13,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" site:london.gov.uk rogue landlords checker",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_efd8108a82ec_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_efd8108a82ec_x1",
+            "key": "active_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: active. This record does not establish property ownership or bank-account control.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_efd8108a82ec",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3720",
+      "platform": "rental listing",
+      "address": "Flat 2, 20 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": "31143720",
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_efd8108a82ec_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Rowan Pike: The owner is Mira Vale; I am Rowan Pike, the managing agent for Northbank Example Lettings Ltd. The owner is abroad for work. The signed appointment authorises our company to arrange viewings and manage this tenancy.\nAlex Reed: I viewed Flat 2, 20 Example Mews, London W12 8QT in person with you on 13 November 2026 at 16:00. I need to move in by 1 December 2026 because my university course starts then. Can we finish the paperwork quickly?\nRowan Pike: Yes. Your deadline is understandable. Please read everything and ask questions. No money is due until after your viewing, signed agreement and confirmation of our company client-account details.\nAlex Reed: The rent of GBP 1300 is lower than the larger rooms I saw. Is there a reason?\nRowan Pike: This is the smaller room, with a shared bathroom and no parking. Those features explain the lower rent; there is no special payment deadline. Our company number is 31143720.\n",
+        "note": null
+      },
+      {
+        "id": "c_efd8108a82ec_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 20 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\nOwner's signed appointment: Mira Vale appoints Northbank Example Lettings Ltd, represented by Rowan Pike, to arrange viewings and manage the tenancy at Flat 2, 20 Example Mews, London W12 8QT. Payments are due only after viewing, signing and confirmation of company client-account details.\n",
+        "note": null
+      },
+      {
+        "id": "c_efd8108a82ec_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 20 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3720\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_efd8108a82ec_m1",
+        "evidence_id": "c_efd8108a82ec_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:55:00Z",
+        "channel": "whatsapp",
+        "text": "The owner is Mira Vale; I am Rowan Pike, the managing agent for Northbank Example Lettings Ltd. The owner is abroad for work. The signed appointment authorises our company to arrange viewings and manage this tenancy."
+      },
+      {
+        "id": "c_efd8108a82ec_m2",
+        "evidence_id": "c_efd8108a82ec_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I viewed Flat 2, 20 Example Mews, London W12 8QT in person with you on 13 November 2026 at 16:00. I need to move in by 1 December 2026 because my university course starts then. Can we finish the paperwork quickly?"
+      },
+      {
+        "id": "c_efd8108a82ec_m3",
+        "evidence_id": "c_efd8108a82ec_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "Yes. Your deadline is understandable. Please read everything and ask questions. No money is due until after your viewing, signed agreement and confirmation of our company client-account details."
+      },
+      {
+        "id": "c_efd8108a82ec_m4",
+        "evidence_id": "c_efd8108a82ec_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "The rent of GBP 1300 is lower than the larger rooms I saw. Is there a reason?"
+      },
+      {
+        "id": "c_efd8108a82ec_m5",
+        "evidence_id": "c_efd8108a82ec_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "This is the smaller room, with a shared bathroom and no parking. Those features explain the lower rent; there is no special payment deadline. Our company number is 31143720."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "cleared",
+        "clear_confidence": 0.7,
+        "finding_ids": [
+          "message_checker:viewing_completed"
+        ],
+        "reason": "An in-person viewing has taken place"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "cleared",
+        "clear_confidence": 0.6,
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "reason": "The agent gives you time to decide"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Rowan Pike for Northbank Example Lettings Ltd's Companies House number and check it matches 31143720. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:06.606258Z"
+      },
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Rowan Pike exactly how and when you would pay the £1,500 deposit and first month's rent for Flat 2, 20 Example Mews. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:06.606258Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask for proof that Mira Vale owns Flat 2, 20 Example Mews or has given permission to let it, for example the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:06.606258Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "cc104cea4e77d49f",
+        "findings": [
+          {
+            "id": "companies_house:not-run-register",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: officers (Companies House: 503 after 3 attempts). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: officers (Companies House: 503 after 3 attempts)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "companies_house:not-run-reputation",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: London Rogue Landlord and Agent Checker (direct fetch: 503 after 1 attempts; searched through Linkup only, which can miss entries). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: London Rogue Landlord and Agent Checker (direct fetch: 503 after 1 attempts; searched through Linkup only, which can miss entries)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "companies_house:not-run-property",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: postcode lookup (postcodes.io: 503 after 3 attempts). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: postcode lookup (postcodes.io: 503 after 3 attempts)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "company_number",
+            "value": "31143720",
+            "source": "companies_house",
+            "agent": "companies_house"
+          }
+        ],
+        "questions": [],
+        "error": null,
+        "duration_ms": 984
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "ccf9501143a9a6b7",
+        "findings": [
+          {
+            "id": "message_checker:viewing_completed",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "An in-person viewing has taken place",
+            "detail": "The messages show the property has already been seen in person.",
+            "category": "property",
+            "severity": "info",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "I viewed Flat 2, 20 Example Mews, London W12 8QT in person with you on 13 November 2026 at 16:00."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 20 Example Mews, London W12 8QT",
+            "source": "c_efd8108a82ec_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_efd8108a82ec_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_efd8108a82ec_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "2026-12-01",
+            "source": "c_efd8108a82ec_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Has Rowan Pike or Northbank Example Lettings Ltd given you any written proof of authority from Mira Vale, such as the signed appointment, that you have checked?"
+        ],
+        "error": null,
+        "duration_ms": 1944
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "87d8cec80017864d",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The amount-cap pass holds on the quoted figures: GBP 1300 per calendar month gives annual rent of GBP 15,600 (1300 x 12), and five weeks is 15,600 / 52 x 5 = GBP 1,500. The GBP 1,500 deposit is exactly at the cap, not above it. Nothing in the contract contradicts that amount or suggests the rent and deposit cover different tenancies or shares, so there is no basis to dismiss. The pass stays limited by unresolved scope facts. Jurisdiction and tenancy type are unknown, and the contract gives a London address but does not say it is an ordinary private tenancy rather than an excluded arrangement. This only concerns the amount. It says nothing about deposit protection, authenticity, or the representative's authority. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_efd8108a82ec_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 20 Example Mews, London W12 8QT",
+            "source": "c_efd8108a82ec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_efd8108a82ec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_efd8108a82ec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_efd8108a82ec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_efd8108a82ec_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 6293
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "55bb5440f3c286f0",
+        "findings": [
+          {
+            "id": "emotion_classifier:student_desperation",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "You are feeling short of time or options",
+            "detail": "You are short on time, which is real, but it does not change whether this flat and its paperwork are genuine.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "I need to move in by 1 December 2026 because my university course starts then. Can we finish the paperwork quickly?"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:no_pressure_stated",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "The agent gives you time to decide",
+            "detail": "The agent explicitly takes time pressure off, and no pressure language was found.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "Please read everything and ask questions."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "No money is due until after your viewing, signed agreement and confirmation of our company client-account details."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "there is no special payment deadline"
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The owner of the property is named as Mira Vale. • The sender says he is Rowan Pike, managing agent for Northbank Example Lettings Ltd. • The owner is abroad for work. • A signed appointment is said to authorise the company to arrange viewings and manage the tenancy. • The student viewed Flat 2, 20 Example Mews, London W12 8QT in person with the agent on 13 November 2026 at 16:00. • The student needs to move in by 1 December 2026 because their university course starts then. • No money is due until after the viewing, a signed agreement and confirmation of the company's client-account details. • The rent is GBP 1300, which the student says is lower than the larger rooms they saw. • The room is the smaller room, with a shared bathroom and no parking. • There is no special payment deadline.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "The owner is Mira Vale"
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "I am Rowan Pike, the managing agent for Northbank Example Lettings Ltd"
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "The owner is abroad for work."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "The signed appointment authorises our company to arrange viewings and manage this tenancy."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "I viewed Flat 2, 20 Example Mews, London W12 8QT in person with you on 13 November 2026 at 16:00."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "I need to move in by 1 December 2026 because my university course starts then."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "No money is due until after your viewing, signed agreement and confirmation of our company client-account details."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "The rent of GBP 1300 is lower than the larger rooms I saw."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "This is the smaller room, with a shared bathroom and no parking."
+              },
+              {
+                "evidence_id": "c_efd8108a82ec_e1",
+                "quote": "there is no special payment deadline"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 10181
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:55:04.731053Z",
+        "score": 87.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 3.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 4.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false
+}

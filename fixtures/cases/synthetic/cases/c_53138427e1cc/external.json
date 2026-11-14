@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The owner authorises Northbank Example Lettings Ltd to market Flat 2, 64 Example Mews, London W12 8QT for sale or rent. A tenant viewing with Rowan Pike is booked for 15 November 2026 at 16:00.",
+        "title": "dual marketing authority"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/dual_marketing_authority"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_53138427e1cc_x1",
+      "key": "dual_marketing_authority",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 64 Example Mews, London W12 8QT",
+        "Northbank Example Lettings Ltd"
+      ],
+      "snippet": "The owner authorises Northbank Example Lettings Ltd to market Flat 2, 64 Example Mews, London W12 8QT for sale or rent. A tenant viewing with Rowan Pike is booked for 15 November 2026 at 16:00.",
+      "title": "dual marketing authority",
+      "url": "https://records.example/dual_marketing_authority"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

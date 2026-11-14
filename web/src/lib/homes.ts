@@ -180,6 +180,18 @@ export function rememberCase(caseId: string): void {
   listeners.forEach((l) => l());
 }
 
+/** Removes a home from this browser's list (the case itself stays on the server). */
+export function forgetCase(caseId: string): void {
+  try {
+    const ids = JSON.parse(read()) as string[];
+    localStorage.setItem(KEY, JSON.stringify(ids.filter((id) => id !== caseId)));
+    localStorage.removeItem(`warden.chat.${caseId}`);
+  } catch {
+    /* storage unavailable */
+  }
+  listeners.forEach((l) => l());
+}
+
 function subscribe(cb: () => void): () => void {
   listeners.add(cb);
   window.addEventListener("storage", cb);

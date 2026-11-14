@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Northbank Example Lettings Ltd records a cleared GBP 200 surplus from the student and a refund instruction to the same originating account ending 7888.",
+        "title": "agency refund ledger"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/agency_refund_ledger"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_fa56f2bbf2cd_x1",
+      "key": "agency_refund_ledger",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Northbank Example Lettings Ltd",
+        "refund"
+      ],
+      "snippet": "Northbank Example Lettings Ltd records a cleared GBP 200 surplus from the student and a refund instruction to the same originating account ending 7888.",
+      "title": "agency refund ledger",
+      "url": "https://records.example/agency_refund_ledger"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

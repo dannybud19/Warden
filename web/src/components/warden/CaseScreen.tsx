@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { useCase } from "@/lib/useCase";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { isDecided, openActions } from "@/lib/selectors";
-import { rememberCase } from "@/lib/homes";
+import { rememberCase, shortAddress } from "@/lib/homes";
 import { useLocalJSON } from "@/lib/localStore";
 import { DEMO_CASE_ID } from "@/lib/demo";
 import { agentRows, answerSuggestion, mood, redFlags, type Suggestion } from "@/lib/present";
@@ -14,6 +14,7 @@ import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { Mascot, stagger } from "./primitives";
 import { RiskHeader, SettleChecks, StillKeen, VerdictCard, WhyFlags } from "./RiskView";
 import { AgentsRail } from "./AgentsRail";
+import type { CallContext } from "./CaseCall";
 
 function studentName(): string {
   try {
@@ -90,6 +91,22 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const closed = isDecided(c);
   const action = view.open[0];
 
+  const firstName = (() => {
+    try {
+      return (localStorage.getItem(STUDENT_NAME_KEY) ?? "").split(/\s+/)[0];
+    } catch {
+      return "";
+    }
+  })();
+  const callContext: CallContext = {
+    student_name: firstName || "there",
+    home: shortAddress(c.listing?.address) === "Untitled home" ? "this home" : shortAddress(c.listing?.address),
+    verdict: `${view.mood.title}. ${view.mood.sub}`,
+    red_flags: view.flags.length ? view.flags.slice(0, 5).map((f) => f.title).join("; ") : "none found so far",
+    checks: `${(c.checks ?? []).filter((k) => k.state !== "unverified").length} of 8 checks done`,
+    open_question: action?.text ?? "none right now",
+  };
+
   function ask(q: Suggestion) {
     if (!c) return;
     const at = new Date().toISOString();
@@ -110,7 +127,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             {state.error && (
               <p role="alert" className="rounded-[16px] bg-[#fbe6e1] px-4 py-3 text-[13px] text-[#a8402b]">{state.error}</p>
             )}
-            <VerdictCard c={c} mood={view.mood} caseId={caseId} flags={view.flags.length} />
+            <VerdictCard c={c} mood={view.mood} flags={view.flags.length} />
             <WhyFlags c={c} flags={view.flags} />
             <StillKeen top={view.flags[0]} />
             <SettleChecks c={c} disabled={closed || state.busy} onUpload={onUpload} />
@@ -130,6 +147,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               onAsk={ask}
               onSend={(text) => void sendReply({ text })}
               onUpload={onUpload}
+              callContext={callContext}
+              onCallLine={(role, text) => setLocal((l) => [...l, { role, text, at: new Date().toISOString() }])}
               onClearChat={() => {
                 setLocal([]);
                 setSaved([]);

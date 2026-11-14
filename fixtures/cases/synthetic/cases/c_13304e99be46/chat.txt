@@ -1,0 +1,4 @@
+Alex Reed: I may have paid GBP 200 too much, but one payment is still pending.
+Rowan Pike: I can see a pending entry too. Let us wait for the bank to confirm the settled amount.
+Alex Reed: Should I transfer or refund anything now?
+Rowan Pike: No. We will reconcile the ledger first and return any actual surplus to its originating account.

@@ -14,7 +14,7 @@ def merge_facts(rule_facts: list[Fact], llm_facts: list[Fact]) -> list[Fact]:
 
 class MessageCheckerAgent(BaseAgent):
     name = "message_checker"
-    version = "0.2.0"
+    version = "0.3.0"
     requires = frozenset({Need.MESSAGES})
 
     async def run(self, case: Case, ctx: AgentContext) -> AgentReport:
