@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.aggregators.consultant.consultant import propose_actions
+from app.aggregators.listing_reader.reader import apply_details, read_listing, summary_message
 from app.aggregators.scoring.scoring import Weights, score
 from app.contracts import (
     Action,
@@ -91,7 +92,17 @@ class CaseService:
         listing: Listing | None = None,
         landlord: Landlord | None = None,
     ) -> Case:
-        """New case: all 8 checks UNVERIFIED and a first score of 100."""
+        """New case: all 8 checks UNVERIFIED and a first score of 100.
+
+        A listing link is read first (`aggregators/listing_reader`): what the page states fills the
+        listing and landlord fields the student left empty. It never raises, and in stub mode it
+        makes no request.
+        """
+        note = None
+        if listing and listing.url:
+            details = await read_listing(listing.url, self.ctx)
+            listing, landlord = apply_details(listing, landlord, details)
+            note = summary_message(details)
         case = Case(
             case_id=new_id("case"),
             created_at=datetime.now(UTC),
@@ -104,6 +115,8 @@ class CaseService:
         case.score_history.append(first)
         await self.repo.create(case)
         await self._emit(case.case_id, ScoreUpdated(score=first))
+        if note:
+            await self._emit(case.case_id, OrchestratorMessage(text=note))
         return case
 
     async def add_evidence(self, case_id: str, upload: Upload) -> Case:
