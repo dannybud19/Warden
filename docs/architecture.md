@@ -161,7 +161,10 @@ Warden/
       severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
    5. `scoring.score()` appends a ScoreResult.
-   6. If any confirmed `hard_flag` finding: `decide()` and stop.
+   6. Payment hard flags first require a targeted confirmation of their quoted evidence. Yes confirms
+      that concern; no/unsure/skip keeps the case open and asks for clarification without clearing the
+      payment check. Other hard flags still decide immediately. Confirmations are bound to a finding
+      and its evidence, so changing the quoted demand requires a new answer.
    7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
       Else store and emit the actions and an `orchestrator_message`.
 4. `reply(case_id, text, evidence_ids)`: `conversation.parse()` maps the student's free text onto open
@@ -191,11 +194,18 @@ Verdict rules (`decision.py`):
 | proceed_with_care | Those three CLEARED, some other check not CLEARED |
 | no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
 
-Hard flags (a finding with `hard_flag=true` closes the case as `likely_scam`): payment before a viewing
+Hard flags (a finding with `hard_flag=true` can close the case as `likely_scam`): payment before a viewing
 or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
 liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
 the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
 hard flag.
+
+Payment hard flags require an explicit student yes to their targeted confirmation question before
+closure. The orchestrator prioritises these questions even for SUSPICIOUS payment checks; this is an
+exception to the consultant's usual UNVERIFIED-only selection. Free chat targets an open payment
+confirmation first. These questions parse only an exact yes (optional terminal punctuation) as
+confirmation; no, unsure or longer ambiguous answers remain neutral and trigger clarification.
+Identity/contract hard flags still close immediately, including when a payment question is pending.
 
 API (`api/`):
 

@@ -30,6 +30,7 @@ from app.contracts import (
 )
 from app.core.agent import AgentContext
 from app.core.llm import FakeLLM
+from app.orchestrator import checks, conversation, payment_confirmation
 from eval import run as evaluation
 from eval.contract_metering import PRICES, usage_cost
 from eval.synthetic.engine import build_dataset
@@ -206,6 +207,11 @@ async def test_case_service_distinguishes_open_pending_from_hard_flag_verdict(mo
     pending = await evaluation.evaluate_case(open_case, entry, bundle, settings, llm)
 
     decided_case, decided_entry, decided_bundle = _runtime_case(hard_flag=True)
+    decided_case.checks = checks.update(decided_case, decided_case.reports["test_agent"].findings)
+    decided_case.actions = payment_confirmation.questions(decided_case)
+    decided_case.actions = conversation.parse(
+        decided_case, "yes", [], action_id=decided_case.actions[0].id
+    )
     decided = await evaluation.evaluate_case(
         decided_case, decided_entry, decided_bundle, settings, FakeLLM()
     )
