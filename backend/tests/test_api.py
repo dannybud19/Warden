@@ -1,5 +1,6 @@
 """API smoke tests (TestClient, no network)."""
 
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from app.contracts import Case
 from app.core.settings import Settings
 from app.intake import service as intake_service
 from tests.conftest import EmptyAgent
+from tests.test_service_background import GateAgent
 
 CHAT = (
     "[12/11/2026, 18:02:11] Sam: Is the flat available?\n"
@@ -28,13 +30,23 @@ def client(
         yield c
 
 
-def _open(client: TestClient) -> str:
+def _settle(client: TestClient) -> None:
+    """Wait for the background analysis (it runs on the client's event loop) to finish."""
+    assert client.portal is not None
+    client.portal.call(client.app.state.service.wait_idle)  # type: ignore[attr-defined]
+
+
+def _open(client: TestClient, *, company: bool = False) -> str:
+    """Open a case. With a company name the agency check starts at once (in the background)."""
+    landlord = {"name": "Mark Evans"}
+    if company:
+        landlord["company_name"] = "Prime City Lettings Ltd"
     response = client.post(
         "/cases",
         json={
             "student": {"budget_pcm": 1100},
             "listing": {"address": "Flat 3, 12 Elm Road, London W12 8QT", "rent_pcm": 850},
-            "landlord": {"name": "Mark Evans", "company_name": "Prime City Lettings Ltd"},
+            "landlord": landlord,
         },
     )
     assert response.status_code == 200
@@ -60,14 +72,17 @@ def test_pasted_text_reply_and_decision_flow(client: TestClient) -> None:
         data={"kind": "chat_export", "text": CHAT, "student_name": "Sam", "note": "chat"},
     )
     assert response.status_code == 200
-    body = response.json()
+    assert len(response.json()["messages"]) == 2  # saved before the analysis runs
+    _settle(client)
+    body = client.get(f"/cases/{case_id}").json()
     assert len(body["messages"]) == 2 and body["messages"][1]["sender"] == "agent"
     assert len(body["actions"]) == 3 and body["status"] == "open"
 
     for _ in range(4):
         response = client.post(f"/cases/{case_id}/messages", json={"text": "yes"})
         assert response.status_code == 200
-    assert response.json()["status"] == "decided"
+        _settle(client)
+    assert client.get(f"/cases/{case_id}").json()["status"] == "decided"
 
     decision = client.get(f"/cases/{case_id}/decision")
     assert decision.status_code == 200 and decision.json()["verdict"] == "not_verified"
@@ -75,11 +90,12 @@ def test_pasted_text_reply_and_decision_flow(client: TestClient) -> None:
 
 def test_decided_case_returns_409(client: TestClient) -> None:
     case_id = _open(client)  # default stubs: the hard flags close the case on first upload
-    response = client.post(
+    client.post(
         f"/cases/{case_id}/evidence",
         data={"kind": "chat_export", "text": CHAT, "student_name": "Sam"},
     )
-    assert response.json()["decision"]["verdict"] == "likely_scam"
+    _settle(client)
+    assert client.get(f"/cases/{case_id}").json()["decision"]["verdict"] == "likely_scam"
     again = client.post(f"/cases/{case_id}/evidence", data={"kind": "email", "text": "hello"})
     assert again.status_code == 409
     assert client.post(f"/cases/{case_id}/messages", json={"text": "yes"}).status_code == 409
@@ -101,6 +117,7 @@ def test_file_upload_and_validation(client: TestClient) -> None:
     evidence = ok.json()["evidence"][0]
     assert evidence["filename"] == "mail.txt"
     assert evidence.get("file_url") is None  # text was extracted, so the raw file is not kept
+    _settle(client)
 
 
 def test_websocket_stream(client: TestClient) -> None:
@@ -118,6 +135,27 @@ def test_websocket_stream(client: TestClient) -> None:
         assert "agent_started" in seen and "agent_finished" in seen
 
 
+def test_websocket_replays_agents_that_are_already_running(client: TestClient) -> None:
+    """The agency check starts when the home is added, before the page opens its stream."""
+    gate = GateAgent()
+    client.app.state.service.agents = [gate]  # type: ignore[attr-defined]
+    case_id = _open(client, company=True)
+    service = client.app.state.service  # type: ignore[attr-defined]
+    while service.running_agents(case_id) != ["gate"]:
+        time.sleep(0.005)
+
+    with client.websocket_connect(f"/cases/{case_id}/stream") as ws:
+        assert ws.receive_json()["type"] == "score_updated"
+        replayed = ws.receive_json()
+        assert replayed["type"] == "agent_started" and replayed["agent"] == "gate"
+        gate.go = True
+        types = []
+        while "agent_finished" not in types:
+            types.append(ws.receive_json()["type"])
+    _settle(client)
+    assert client.get(f"/cases/{case_id}").json()["reports"]["gate"]["status"] == "ok"
+
+
 def test_websocket_unknown_case_is_rejected(client: TestClient) -> None:
     with pytest.raises(WebSocketDisconnect), client.websocket_connect("/cases/case_nope/stream"):
         pass
@@ -126,7 +164,9 @@ def test_websocket_unknown_case_is_rejected(client: TestClient) -> None:
 def test_reply_targets_a_specific_action_and_rejects_unknown_ids(client: TestClient) -> None:
     client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
     case_id = _open(client)
-    opened = client.post(f"/cases/{case_id}/evidence", data={"kind": "chat_export", "text": CHAT})
+    client.post(f"/cases/{case_id}/evidence", data={"kind": "chat_export", "text": CHAT})
+    _settle(client)
+    opened = client.get(f"/cases/{case_id}")
     before = {a["id"]: a for a in opened.json()["actions"]}
 
     bad = client.post(f"/cases/{case_id}/messages", json={"text": "yes", "action_id": "act_nope"})
@@ -138,6 +178,8 @@ def test_reply_targets_a_specific_action_and_rejects_unknown_ids(client: TestCli
         json={"text": "yes", "action_id": "act_company_number"},
     )
     assert second.status_code == 200
+    _settle(client)
+    second = client.get(f"/cases/{case_id}")
     after = {a["id"]: a for a in second.json()["actions"]}
     assert after["act_company_number"]["status"] == "done"
     for other in ("act_viewing", "act_payment_method"):

@@ -13,6 +13,7 @@ Keep the last 8; delete older lines.
 
 | When | Change | What it means for you |
 | --- | --- | --- |
+| Sat 20:10 | **Companies House wired into the live app; analysis runs in the background** (Danny) | `open_case` with a landlord company name or number starts the agency check at once; `add_evidence` and `reply` save and return the Case immediately and analyse in a background task (one analysis per case, short state lock, so nothing is blocked or overwritten). Agent progress and results arrive **only over the stream** after the HTTP call returns; a client that connects late is sent `agent_started` for agents still running. A failed analysis becomes an `orchestrator_message`. Tests: use `wait_idle()` / the `settled` helpers in `backend/tests/conftest.py`. Web: Add home has optional Company number and Agent's name (and sends `listing.postcode` when the address has one); findings that cite web pages show a clickable "Source" link (`sourceUrls` in `selectors.ts`). To run it live: `AGENT_MODE_COMPANIES_HOUSE=real` in `.env` (stubs hard-flag every home that has an agency) |
 | Sat 19:01 | **Standalone contract checker ready** (WS G, Bill) | Accepts text-based PDF/text plus explicit context and returns quoted issues, legal links and targeted questions. The existing `AgentReport` adapter exports concerns and contract facts; rule-level passes do not clear whole shared checks. Upload integration and revision history remain follow-ups. See [WS G](docs/workstreams.md#ws-g-contract-checker-bill) and the [checker README](backend/app/agents/contract_checker/README.md) |
 | Sat 18:30 | **New agent: Cross-checker** (WS J, Danny), in `backend/app/aggregators/crosschecker/` (being built) | A generalist agent that reads every agent's report side by side, flags where they disagree (contract says £60/month utilities, messages say bills included) and writes a recap. The orchestrator relays the recap to the student. Its report replaces `case.reports["crosscheck"]`. Your agent changes nothing: just keep findings and facts accurate and quoted |
 | Sat 18:30 | **Companies House is now a background check** (WS B, Danny) | Register, reputation (scam reports, negative reviews, redress, London Rogue Landlord Checker), contact details, postcode. Hard flags only from the register: a company number that doesn't exist, or a dissolved or liquidated company. A name with no match is suspicious, not a hard flag. Facts: `company_number` (zero-padded) and `email_domain` only, never `address` or `landlord_name` |
@@ -20,7 +21,6 @@ Keep the last 8; delete older lines.
 | Sat 18:00 | **Consultant role clarified** | The consultant only picks the next 1 to 3 questions or actions. The orchestrator is the only thing that talks to the student |
 | Sat 16:00 | **Replies target one action** | `POST /cases/{id}/messages` takes `action_id` and `status` (`done`, `skipped`, `impossible`). Unknown or closed `action_id` gives 422 |
 | Sat 16:00 | **Strict generated TS types** | All fields required, no index signatures. The single evidence type is `Evidence1` |
-| Sat 16:00 | **Phase 0 done** | Everything runs end to end on stubs; agents' real logic is each workstream's job |
 
 ## 1. The product in 30 seconds
 
@@ -55,6 +55,7 @@ Sun 15 Nov 11:45 (hard close 12:00).
 | `docs/decisions.md` | Every product and process decision so far, on one page | When you wonder "why is it like this?" |
 | `docs/system-design.md` | Short architecture summary and agent list | Quick context |
 | `docs/hackathon-brief.md` | Deadlines, submission requirements, prize strategy, original brief | Planning, demo, write-up |
+| `handoffs` branch (`git show origin/handoffs:README.md`) | Notes between teammates' coding agents | Start of every session |
 | `docs/design.md` | Look, brand, tokens and Audrey's frontend plan (being written) | Any work in `web/` |
 | `web/AGENTS.md` | Next.js 16's own rules: read its bundled docs before writing web code | Any work in `web/` |
 | `backend/app/agents/*/README.md`, `backend/app/aggregators/*/README.md` | What each agent flags and how to run it alone | Working on that agent |
@@ -158,7 +159,8 @@ Phase 0 (the foundation) is done: everything runs end to end on stubs and `make 
 logic is the work of the workstreams. Things that surprise people:
 
 - **Default stubs end the case on the first upload.** The stub reports contain hard flags, so uploading the
-  sample WhatsApp chat decides `likely_scam` straight away. To see the question and reply loop, run
+  sample WhatsApp chat decides `likely_scam` straight away (or, if the home was added with an agency
+  name or number, as soon as it is added). To see the question and reply loop, run
   `DEFAULT_AGENT_MODE=real make dev` (agents not built yet return empty reports).
 - **Agent modes:** `AGENT_MODE_<NAME>=real` in `.env` switches one agent; `.env` values are read.
 - **Crosscheck findings** are stored as a pseudo report under `case.reports["crosscheck"]`. Once WS J
@@ -178,7 +180,7 @@ logic is the work of the workstreams. Things that surprise people:
 
 ## 6. How to start a session
 
-1. `git pull`, then make your worktree (Setup in `AGENTS.md`).
+1. `git pull`, check the handoff notes ("Handoffs between agents" in `AGENTS.md`), then make your worktree (Setup in `AGENTS.md`).
 2. Read this file, then your brief in `docs/workstreams.md` section 4, then `docs/architecture.md`.
 3. Read the code you depend on: `backend/app/contracts/`, `backend/app/core/agent.py`, your agent folder
    and its stub fixture.

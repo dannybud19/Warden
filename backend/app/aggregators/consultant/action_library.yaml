@@ -1,0 +1,123 @@
+# Candidate questions and actions for the student, per check, in the order they are offered.
+#
+#   id    stable action id (never reuse or rename one that has shipped)
+#   kind  question = ask and report back; action = do something and report back
+#   lead  what to do. The LLM may reword this part to fit the case
+#   ask   the closing yes/no question. Never reworded
+#   why   one line on why it matters (given to the LLM, not shown as is)
+#
+# IMPORTANT: word every `ask` so that "yes" is the reassuring answer and "no" the worrying one.
+# The orchestrator's keyword fallback reads "yes" as clearing the check and "no" as flagging it.
+
+landlord_identity:
+  - id: act_company_number
+    kind: question
+    lead: Ask the agent for their Companies House number.
+    ask: Did they give you one?
+    why: A registered company can be looked up; scammers usually avoid giving a number.
+  - id: act_office_or_id
+    kind: question
+    lead: Ask for the agency's office address, or for a private landlord, photo ID in the same name.
+    ask: Did they provide it?
+    why: A real agency has premises and a real landlord can show who they are.
+  - id: act_redress_scheme
+    kind: question
+    lead: >-
+      Ask which redress scheme the agency belongs to (The Property Ombudsman or the Property
+      Redress Scheme).
+    ask: Did they name one?
+    why: Letting agents in England must belong to one of the two approved redress schemes.
+
+payment_safety:
+  - id: act_payment_method
+    kind: question
+    lead: Ask exactly how and when you would pay.
+    ask: >-
+      Is it a card payment or bank transfer to the agency's or landlord's own named account, and
+      only after a viewing?
+    why: Money before a viewing, or to an untraceable or unrelated account, is the main way deposits are lost.
+  - id: act_payee_name
+    kind: question
+    lead: Ask for the name on the account you would pay into.
+    ask: Does it match the agency's or landlord's name?
+    why: A payee name that differs from the landlord or agency means the money goes to someone else.
+  - id: act_pay_after_contract
+    kind: action
+    lead: Tell the agent you will only pay after a viewing and a signed tenancy agreement.
+    ask: Did they accept that?
+    why: A genuine landlord has no reason to refuse; a scammer needs the money first.
+
+right_to_let:
+  - id: act_proof_of_ownership
+    kind: question
+    lead: >-
+      Ask for proof that they own the property or have the owner's permission to let it, for
+      example the Land Registry title.
+    ask: Did they provide it?
+    why: Scammers advertise properties they have no right to let.
+  - id: act_listing_elsewhere
+    kind: action
+    lead: Search the address and the advert's photos online (try a reverse image search).
+    ask: Is everything you find consistent with this advert (same landlord, not also for sale)?
+    why: Copied photos, or the same place listed for sale or by someone else, point to a fake advert.
+
+in_person_viewing:
+  - id: act_viewing
+    kind: action
+    lead: Ask to view the property in person, or to send someone you trust, before paying anything.
+    ask: Did the agent agree?
+    why: Refusing a viewing is the clearest single warning sign.
+  - id: act_viewing_done
+    kind: action
+    lead: Go to the viewing, or send someone you trust.
+    ask: Have you, or someone you trust, now been inside the property?
+    why: Only seeing the inside shows the place exists and that the agent has access to it.
+
+contract_consistency:
+  - id: act_contract_received
+    kind: action
+    lead: Ask for the tenancy agreement before paying, and upload it here.
+    ask: Did they send one?
+    why: The contract lets us compare the landlord, address, rent and fees with the advert.
+  - id: act_contract_matches
+    kind: action
+    lead: Compare the contract with the advert.
+    ask: Do the landlord's name, the address and the rent all match?
+    why: Details that change between the advert and the contract are a common sign of fraud.
+
+deposit_protection:
+  - id: act_deposit_scheme
+    kind: question
+    lead: >-
+      Ask which government-approved scheme will protect your deposit (DPS, TDS or mydeposits).
+    ask: Did they name one?
+    why: Landlords must protect a tenancy deposit in an approved scheme within 30 days.
+  - id: act_deposit_amount
+    kind: question
+    lead: Ask how much the tenancy deposit is.
+    ask: Is it five weeks' rent or less?
+    why: For most tenancies the law caps the deposit at five weeks' rent.
+
+no_pressure:
+  - id: act_ask_for_time
+    kind: action
+    lead: Tell the agent you need two days to check things before deciding.
+    ask: Did they accept that?
+    why: A genuine agent will wait; pressure to decide at once is used to stop people checking.
+  - id: act_no_deadline
+    kind: question
+    lead: Think about how the agent has spoken to you so far.
+    ask: Are you free to decide in your own time, with no deadline from the agent?
+    why: Deadlines and "others are interested" are pressure tactics, not facts you can check.
+
+fair_price:
+  - id: act_compare_listings
+    kind: action
+    lead: Look at three similar places in the same postcode on Rightmove or SpareRoom.
+    ask: Is this rent in line with them?
+    why: A rent far below similar places nearby is a common lure.
+  - id: act_whats_included
+    kind: question
+    lead: Ask what the rent includes (bills, council tax, furniture).
+    ask: Is the answer clear and in line with the advert?
+    why: Vague or shifting answers about what you get for the money are a warning sign.

@@ -4,7 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, WebSocket
 
-from app.contracts import ScoreUpdated
+from app.contracts import AgentStarted, ScoreUpdated
 from app.orchestrator.events import EventBus
 from app.orchestrator.service import CaseNotFoundError, CaseService
 
@@ -27,6 +27,11 @@ async def stream(websocket: WebSocket, case_id: str) -> None:
     try:
         if case.score_history:
             await websocket.send_text(ScoreUpdated(score=case.score_history[-1]).model_dump_json())
+        # NOTE: an analysis may have started before this client connected (the check now starts when
+        # the home is added). Replay the agents still running so the UI shows them as working.
+        # The queue is subscribed first, so an agent that finishes meanwhile is not missed.
+        for agent in service.running_agents(case_id):
+            await websocket.send_text(AgentStarted(agent=agent).model_dump_json())
 
         async def forward() -> None:
             while True:
