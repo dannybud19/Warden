@@ -20,14 +20,19 @@
   if (customElements.get('warden-mascot')) return;
 
   const W = 1000, H = 920, VH = 1100, TS = 1024, STEP = 8;
-  const STATES = ['default', 'green', 'amber', 'red', 'stop'];
-  const TEXTURES = [...STATES, 'stop-sign', 'amber-flag', 'red-excl'];
+  const STATES = ['default', 'wave', 'green', 'amber', 'red', 'stop'];
+  const TEXOF = { wave: 'default' };
+  const TEXTURES = ['default', 'green', 'amber', 'red', 'stop', 'stop-sign', 'amber-flag', 'red-excl'];
 
   // ---- rig data, in each source image's own pixel coordinates ----
   const RIGS = {
     default: { fx: 445, fy: 886, s: 1,
       eyes: [[397, 522], [500, 522]], eyeR: [30, 50], eyeOn: [1, 1],
       cap: [272, 630, 452] },
+    wave: { fx: 445, fy: 886, s: 1,
+      eyes: [[397, 522], [500, 522]], eyeR: [30, 50], eyeOn: [1, 1],
+      cap: [272, 630, 452],
+      armB: { S: [650, 588], H: [692, 735], rects: [[645, 556, 735, 770]], full: 0 } },
     green: { fx: 445, fy: 886, s: 1,
       cap: [272, 630, 452],
       armA: { S: [258, 600], E: [210, 573], H: [175, 535], rects: [[60, 300, 250, 700]] },
@@ -79,7 +84,7 @@
   uniform float uClothT, uClothAmp, uClothDrag;
   uniform float uBOn, uBFull; uniform vec2 uBS, uBH; uniform float uB; uniform vec4 uBR1, uBR2;
   uniform float uPOn; uniform vec2 uPC; uniform vec4 uPR; uniform float uPScale, uPRot;
-  uniform vec2 uE1, uE2, uER, uEOn; uniform float uBlink;
+  uniform vec2 uE1, uE2, uER, uEOn; uniform float uBlink; uniform vec2 uLook;
   uniform vec3 uCapR; uniform vec2 uCap;
   uniform float uJelly;
   uniform float uRigOn, uRigA, uRigS; uniform vec2 uRigT, uRigP;
@@ -101,8 +106,8 @@
     vec2 a = aPos, p = aPos;
     vUV = aPos / vec2(1024.0); vShade = 0.0; vRest = aPos;
 
-    if (uEOn.x > 0.5) { float w = eyeW(a, uE1); p.y = uE1.y + (p.y - uE1.y) * (1.0 - 0.92 * uBlink * w); }
-    if (uEOn.y > 0.5) { float w = eyeW(a, uE2); p.y = uE2.y + (p.y - uE2.y) * (1.0 - 0.92 * uBlink * w); }
+    if (uEOn.x > 0.5) { float w = eyeW(a, uE1); p.y = uE1.y + (p.y - uE1.y) * (1.0 - 0.92 * uBlink * w); p += uLook * w; }
+    if (uEOn.y > 0.5) { float w = eyeW(a, uE2); p.y = uE2.y + (p.y - uE2.y) * (1.0 - 0.92 * uBlink * w); p += uLook * w; }
 
     float regA = uAOn * max(rw(uAR1, a), rw(uAR2, a));
     float regB = uBOn * max(rw(uBR1, a), rw(uBR2, a));
@@ -219,6 +224,21 @@
       this.$.stage.addEventListener('click', () => this.poke());
     }
 
+    get look() { return this._look || 0; }
+    set look(v) { this._look = Math.max(-1, Math.min(1, +v || 0)); }
+    get lookY() { return this._lookY || 0; }
+    set lookY(v) { this._lookY = Math.max(-1, Math.min(1, +v || 0)); }
+    react(kind) {
+      if (this.busy() || this.sim.dotsOn) return;
+      const s = this.sim, now = performance.now();
+      if (kind === 'nod') { s.vS -= .55; }
+      else if (kind === 'hop' || kind === 'happy') {
+        s.crouch = { until: now + 90, v0: Math.sqrt(2 * 2700 * (kind === 'happy' ? 26 : 14)), depth: -.07 };
+        s.big = false; s.tilt = 0;
+        if (kind === 'happy') setTimeout(() => this.burst('#5fd6b5', .52, 7, .7), 420);
+      }
+      else if (kind === 'wiggle') { s.vR += 90; setTimeout(() => { this.sim.vR -= 150; }, 140); }
+    }
     get state() { return this.getAttribute('state') || 'default'; }
     set state(v) { this.setAttribute('state', v); }
 
@@ -310,6 +330,7 @@
         setTimeout(() => { s.pTarget = 1; s.vP += 6; s.vS += 1.6; }, 220);
         return;
       }
+      if ((TEXOF[cur] || cur) === (TEXOF[target] || target)) { this.swapTo(target, true); return; }
       s.crouch = { until: performance.now() + 150, v0: Math.sqrt(2 * 2700 * 82), depth: -.15 };
       s.pending = target; s.big = true; s.tilt = ['green', 'red'].includes(target) ? -5 : 5;
     }
@@ -395,6 +416,7 @@
         else if (st === 'stop') rT = .5 * Math.sin(sec * Math.PI * 2 / 4);
         else rT = .7 * Math.sin(sec * Math.PI * 2 / 4.6);
       }
+      rT += (this._lookS || 0) * 2.2;
       if (s.air && s.big) rT += s.tilt;
       s.vR += (260 * (rT - s.R) - 13 * s.vR) * dt; s.R += s.vR * dt;
 
@@ -445,6 +467,10 @@
         o.pScale = 1 + .045 * Math.sin(t * Math.PI * 2 / .7);
         o.pRot = .035 * Math.sin(t * Math.PI * 2 / 1.1);
         o.amp = 4.5; o.speed = 9;
+      }
+      if (st === 'wave' && !R) {
+        const ct = t % 3.2, env = smooth(0, .35, ct) * (1 - smooth(1.9, 2.4, ct));
+        o.b = -env * (.42 + .2 * Math.sin(t * Math.PI * 2 / .52));
       }
       if (st === 'amber' && !R) { o.amp = 3; o.speed = 6; o.b = .03 * Math.sin(t * Math.PI * 2 / 1.9); }
       o.signT = 0; o.signA = 0;
@@ -526,13 +552,16 @@
       const U = this.U;
       gl.uniform2f(U.uCap, 0, clamp(s.capY, -12, 12));
       gl.uniform1f(U.uJelly, clamp(s.jx, -10, 10));
+      this._lookS = (this._lookS || 0) + ((this._look || 0) - (this._lookS || 0)) * Math.min(1, el * 6);
       gl.uniform1f(U.uBlink, blink);
+      this._lookYS = (this._lookYS || 0) + ((this._lookY || 0) - (this._lookYS || 0)) * Math.min(1, el * 6);
+      gl.uniform2f(U.uLook, this._lookS * 9, this._lookYS * 6);
       gl.uniform1f(U.uClothT, this.clothPhase);
       gl.uniform1f(U.uClothAmp, this.reduce ? 0 : this.clothAmp);
       gl.uniform1f(U.uClothDrag, this.reduce ? 0 : drag);
 
       const draw = (name, alpha, live) => {
-        const tex = this.tex[name]; if (!tex || alpha <= .001) return;
+        const tex = this.tex[TEXOF[name] || name]; if (!tex || alpha <= .001) return;
         const r = this.rigs[name], z = live ? o : { a1: 0, a2: 0, b: 0, pScale: 1, pRot: 0 };
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.uniform1f(U.uAlpha, alpha);

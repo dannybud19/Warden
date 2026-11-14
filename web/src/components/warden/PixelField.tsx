@@ -40,14 +40,22 @@ export function PixelField({
   color = TEAL,
   maxAlpha = 0.46,
   quiet,
+  scatter = false,
 }: {
   className?: string;
   cell?: number;
   color?: RGB;
   maxAlpha?: number;
   quiet?: QuietZone;
+  /** Sparse, twinkling pixels with fixed-size clouds: for full-screen backgrounds. */
+  scatter?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // read every frame, so a new zone (page change) eases in without restarting the animation
+  const quietRef = useRef(quiet);
+  useEffect(() => {
+    quietRef.current = quiet;
+  }, [quiet]);
 
   useEffect(() => {
     const canvas = ref.current;
@@ -84,17 +92,17 @@ export function PixelField({
       const blobs = BLOBS.map((b) => ({
         x: (b.x + Math.sin(t * b.sx + b.p) * b.ax) * w,
         y: (b.y + Math.cos(t * b.sy + b.p * 1.3) * b.ay) * h,
-        r2: (b.r * h) ** 2,
+        r2: (b.r * (scatter ? Math.min(h, 380) : h)) ** 2,
         a: b.a * (0.8 + 0.2 * Math.sin(t * 0.4 + b.p)),
       }));
       for (const f of fills) f.rects.length = 0;
-      const q = quiet?.(w, h);
+      const q = quietRef.current?.(w, h);
       const soft = 48;
 
       for (let j = 0; j < rows; j++) {
         const cy = j * cell + cell / 2;
         // fade out towards the bottom so the band melts into the page
-        const vfade = Math.min(1, Math.max(0, (1 - cy / h) / 0.8)) ** 1.2;
+        const vfade = scatter ? 1 : Math.min(1, Math.max(0, (1 - cy / h) / 0.8)) ** 1.2;
         for (let i = 0; i < cols; i++) {
           const cx = i * cell + cell / 2;
           const nx = cx / w;
@@ -111,7 +119,14 @@ export function PixelField({
               * smoothstep(q[1] - soft, q[1] + soft, cy) * smoothstep(q[3] + soft, q[3] - soft, cy);
             v *= 1 - 0.85 * inside;
           }
-          const level = Math.min(LEVELS, Math.floor(v * LEVELS + BAYER[(i & 3) + (j & 3) * 4]));
+          let thr = BAYER[(i & 3) + (j & 3) * 4];
+          if (scatter) {
+            // per-cell white noise + a slow twinkle: no visible grid pattern
+            const n = Math.abs(Math.sin(i * 127.1 + j * 311.7) * 43758.5453) % 1;
+            thr = 0.35 + 0.65 * n;
+            v = v * 0.75 + 0.18 * Math.sin(t * 0.9 + n * 6.283) - 0.06;
+          }
+          const level = Math.min(LEVELS, Math.floor(v * LEVELS + thr));
           if (level <= 0) continue;
           const size = Math.max(1, Math.round((level / LEVELS) * (cell - 2)));
           const off = (cell - size) / 2;
@@ -161,7 +176,7 @@ export function PixelField({
       io.disconnect();
       document.removeEventListener("visibilitychange", wake);
     };
-  }, [cell, color, maxAlpha, quiet]);
+  }, [cell, color, maxAlpha, scatter]);
 
   return <canvas ref={ref} aria-hidden className={`pointer-events-none block ${className}`} />;
 }

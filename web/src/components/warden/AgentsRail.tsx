@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Action, ChatEntry, EvidenceKind } from "@/lib/types";
 import { CHIP, agentSummary, whyAsk, type AgentRow, type Mood, type Suggestion } from "@/lib/present";
+import { useLocalJSON } from "@/lib/localStore";
 import { AnimatedWarden } from "./AnimatedWarden";
 import { Dot, Mascot, PillButton } from "./primitives";
 
@@ -30,46 +31,89 @@ export function kindOf(file: File): EvidenceKind {
   return "document";
 }
 
-const STARS = [
-  { src: "/warden/star-lg.svg", size: 26, left: 77, top: 95, delay: 0 },
-  { src: "/warden/star-md.svg", size: 18, left: 317, top: 127, delay: 0.8 },
-  { src: "/warden/star-sm.svg", size: 12, left: 91, top: 149, delay: 1.6 },
+
+// Quick answers. The wording matters: the backend reads "yes" as clearing the check and "no" as a flag.
+const QUICK_ANSWERS = [
+  { label: "Yes, they did", text: "Yes, they did." },
+  { label: "No, they wouldn't", text: "No, they wouldn't." },
 ];
 
-function NeedsYou({ action, busy, onSkip }: { action: Action; busy: boolean; onSkip: () => void }) {
-  const [copied, setCopied] = useState(false);
+/** The one thing Warden needs. Copy it, send it to the agent, then tell Warden what they said. */
+function NeedsYou({
+  action, busy, onSkip, onAnswer, onPaste,
+}: { action: Action; busy: boolean; onSkip: () => void; onAnswer: (text: string) => void; onPaste: () => void }) {
+  // Remember "sent" per question, so the card stays in its waiting state after a reload.
+  const [sentIds, setSentIds] = useLocalJSON<string[]>("warden.sentQuestions", []);
+  const sent = sentIds.includes(action.id);
+  const [flash, setFlash] = useState(false);
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(action.text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
     } catch {
-      /* clipboard blocked */
+      /* clipboard blocked: still move on, they can copy it by hand */
     }
+    setFlash(true);
+    setTimeout(() => setFlash(false), 1600);
+    if (!sent) setSentIds([...sentIds, action.id]);
   }
+
   return (
-    <div className="rounded-[20px] border border-aqua bg-white p-[15px] drop-shadow-[0px_8px_11px_rgba(27,111,117,0.07)]">
-      <span className="inline-flex items-center gap-[7px] rounded-full bg-[#fcebe7] py-[3px] pl-2 pr-[9px] text-[11px] font-medium text-[#9a3a27]">
-        <Dot src="/warden/dot-red.svg" pulse /> Needs you
-      </span>
-      <p className="mt-2.5 text-[15.5px] font-medium leading-[1.3]">{action.text}</p>
-      <p className="mt-1.5 text-[12px] leading-[1.45] text-muted [@media(max-height:760px)]:hidden">{whyAsk(action)}</p>
-      <div className="mt-3 flex gap-2">
-        <PillButton onClick={copy} className="py-2! text-[12.5px]!">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span key={copied ? "c" : "q"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
-              {copied ? "Copied" : "Copy question"}
-            </motion.span>
-          </AnimatePresence>
-        </PillButton>
-        <PillButton variant="secondary" disabled={busy} onClick={onSkip} className="py-2! text-[12.5px]!">Skip</PillButton>
-      </div>
-    </div>
+    <motion.div layout className="rounded-[20px] border border-aqua bg-white p-[15px] drop-shadow-[0px_8px_11px_rgba(27,111,117,0.07)]">
+      <AnimatePresence mode="wait" initial={false}>
+        {sent ? (
+          <motion.span
+            key="w"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-[7px] rounded-full bg-mint py-[3px] pl-2 pr-[9px] text-[11px] font-medium text-[#0f6d74]"
+          >
+            <Dot src="/warden/dot-teal.svg" pulse /> {flash ? "Copied. Send it to them" : "Waiting for their reply"}
+          </motion.span>
+        ) : (
+          <motion.span
+            key="n"
+            className="inline-flex items-center gap-[7px] rounded-full bg-[#fcebe7] py-[3px] pl-2 pr-[9px] text-[11px] font-medium text-[#9a3a27]"
+          >
+            <Dot src="/warden/dot-red.svg" pulse /> Needs you
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <p className={`mt-2.5 font-medium leading-[1.3] transition-all ${sent ? "text-[14px] text-ink/70" : "text-[15.5px]"}`}>{action.text}</p>
+
+      <AnimatePresence mode="wait" initial={false}>
+        {sent ? (
+          <motion.div key="answer" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+            <p className="mt-2.5 text-[12.5px] font-medium">What did they say?</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {QUICK_ANSWERS.map((q) => (
+                <PillButton key={q.label} variant="secondary" disabled={busy} onClick={() => onAnswer(q.text)} className="py-2! text-[12.5px]!">
+                  {q.label}
+                </PillButton>
+              ))}
+              <PillButton variant="soft" disabled={busy} onClick={onPaste} className="py-2! text-[12.5px]!">Paste their reply</PillButton>
+            </div>
+            <div className="mt-2 flex gap-3 text-[12px] text-ink/50">
+              <button type="button" onClick={copy} className="cursor-pointer hover:text-teal">Copy again</button>
+              <button type="button" disabled={busy} onClick={onSkip} className="cursor-pointer hover:text-ink">Skip</button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div key="ask" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+            <p className="mt-1.5 text-[12px] leading-[1.45] text-muted [@media(max-height:760px)]:hidden">{whyAsk(action)}</p>
+            <div className="mt-3 flex gap-2">
+              <PillButton onClick={copy} className="py-2! text-[12.5px]!">Copy question</PillButton>
+              <PillButton variant="secondary" disabled={busy} onClick={onSkip} className="py-2! text-[12.5px]!">Skip</PillButton>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
 export function AgentsRail({
-  mood, action, rows, chat, busy, canReply, closed, onSkip, onAsk, onSend, onUpload,
+  mood, action, rows, chat, busy, canReply, closed, onSkip, onAnswer, onAsk, onSend, onUpload, onClearChat,
 }: {
   mood: Mood;
   action: Action | undefined;
@@ -79,9 +123,11 @@ export function AgentsRail({
   canReply: boolean;
   closed: boolean;
   onSkip: () => void;
+  onAnswer: (text: string) => void;
   onAsk: (q: Suggestion) => void;
   onSend: (text: string) => void;
   onUpload: (kind: EvidenceKind, file: File) => void;
+  onClearChat?: () => void;
 }) {
   const [text, setText] = useState("");
   const file = useRef<HTMLInputElement>(null);
@@ -89,6 +135,11 @@ export function AgentsRail({
   const waiting = rows.filter((r) => r.chip === "waiting").length;
   // Once a conversation starts, give it the room: the mascot stage folds away and the team row compacts.
   const chatting = chat.length > 0;
+  // History: by default only the latest exchange shows; earlier messages fold away behind a toggle.
+  const [showHistory, setShowHistory] = useState(false);
+  const LATEST = 2;
+  const hidden = showHistory ? 0 : Math.max(0, chat.length - LATEST);
+  const visible = chat.slice(hidden);
 
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "smooth" });
@@ -124,17 +175,6 @@ export function AgentsRail({
         <div className="absolute left-1/2 top-[-6px] size-[200px] -translate-x-1/2">
           <Image src="/warden/rail-halo.svg" alt="" width={320} height={320} unoptimized className="absolute inset-[-30%] max-w-none" />
         </div>
-        {STARS.map((s) => (
-          <motion.div
-            key={s.src}
-            className="absolute"
-            style={{ left: s.left - 15, top: s.top - 46, width: s.size, height: s.size }}
-            animate={{ opacity: [0.4, 1, 0.4], scale: [0.85, 1.1, 0.85] }}
-            transition={{ duration: 2.4, repeat: Infinity, delay: s.delay, ease: "easeInOut" }}
-          >
-            <Image src={s.src} alt="" width={s.size} height={s.size} unoptimized />
-          </motion.div>
-        ))}
         <div className="pointer-events-auto absolute left-1/2 top-[-10px] origin-top -translate-x-1/2 [@media(max-height:880px)]:top-[-4px] [@media(max-height:880px)]:scale-[0.64]">
           <AnimatedWarden state={mood.state} width={250} />
         </div>
@@ -151,7 +191,13 @@ export function AgentsRail({
               exit={{ opacity: 0, x: 40 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
             >
-              <NeedsYou action={action} busy={busy} onSkip={onSkip} />
+              <NeedsYou
+                action={action}
+                busy={busy}
+                onSkip={onSkip}
+                onAnswer={onAnswer}
+                onPaste={() => document.getElementById("rail-input")?.focus()}
+              />
             </motion.div>
           ) : (
             <motion.div
@@ -225,20 +271,48 @@ export function AgentsRail({
 
       <div className="mx-2 mt-3 h-px bg-white/80" />
 
-      <div className="rail-grow flex min-h-0 flex-1 flex-col justify-end">
+      <div className="rail-grow flex min-h-0 flex-1 flex-col justify-end [container-type:size]">
       {chat.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-6 text-center"
+          className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center [@container(max-height:52px)]:hidden"
         >
-          <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+          <motion.div
+            className="mb-2 [@container(max-height:150px)]:hidden"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
             <Mascot width={40} height={48} />
           </motion.div>
-          <p className="mt-2 text-[14px] font-medium text-ink/80">Ask me anything about this home</p>
-          <p className="mt-1 text-[12.5px] leading-[1.45] text-ink/55">Or forward the agent&apos;s reply and I&apos;ll check it.</p>
+          <p className="text-[14px] font-medium text-ink/80">Ask me anything about this home</p>
+          <p className="mt-1 text-[12.5px] leading-[1.45] text-ink/55 [@container(max-height:96px)]:hidden">
+            Or forward the agent&apos;s reply and I&apos;ll check it.
+          </p>
         </motion.div>
+      )}
+      {chat.length > 0 && (
+        <div className="mt-3 flex items-center justify-between px-2 text-[12px]">
+          {chat.length > LATEST ? (
+            <button
+              type="button"
+              onClick={() => setShowHistory((v) => !v)}
+              aria-expanded={showHistory}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 font-medium text-teal hover:bg-white"
+            >
+              <motion.span animate={{ rotate: showHistory ? 180 : 0 }} className="inline-block leading-none">⌃</motion.span>
+              {showHistory ? "Hide earlier messages" : `Show earlier messages (${chat.length - LATEST})`}
+            </button>
+          ) : (
+            <span className="text-ink/50">Conversation</span>
+          )}
+          {onClearChat && (
+            <button type="button" onClick={() => { setShowHistory(false); onClearChat(); }} className="cursor-pointer text-ink/50 hover:text-ink">
+              Clear
+            </button>
+          )}
+        </div>
       )}
       <AnimatePresence initial={false}>
         {chat.length > 0 && (
@@ -246,12 +320,12 @@ export function AgentsRail({
             ref={log}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="mt-3 flex min-h-[140px] flex-col gap-2 overflow-y-auto px-1 pt-3 [mask-image:linear-gradient(to_bottom,transparent,black_28px)]"
+            className="mt-1 flex min-h-[140px] flex-col gap-2 overflow-y-auto px-1 pt-3 [mask-image:linear-gradient(to_bottom,transparent,black_28px)]"
             aria-live="polite"
           >
-            {chat.map((m, i) => (
+            {visible.map((m, i) => (
               <motion.div
-                key={`${m.at}-${i}`}
+                key={`${m.at}-${hidden + i}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={

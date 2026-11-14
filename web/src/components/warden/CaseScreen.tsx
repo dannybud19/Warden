@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -8,12 +7,11 @@ import { useCase } from "@/lib/useCase";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { isDecided, openActions } from "@/lib/selectors";
 import { rememberCase } from "@/lib/homes";
+import { useLocalJSON } from "@/lib/localStore";
 import { DEMO_CASE_ID } from "@/lib/demo";
 import { agentRows, answerSuggestion, mood, redFlags, type Suggestion } from "@/lib/present";
 import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { Mascot, stagger } from "./primitives";
-import { SiteNav } from "./SiteNav";
-import { PixelField, type QuietZone } from "./PixelField";
 import { RiskHeader, SettleChecks, StillKeen, VerdictCard, WhyFlags } from "./RiskView";
 import { AgentsRail } from "./AgentsRail";
 
@@ -25,31 +23,13 @@ function studentName(): string {
   }
 }
 
-/** Keep the pixels light behind the dashboard, strong in the band above it and on the edges. */
-const CONTENT_ZONE: QuietZone = (w) => {
-  const half = Math.min(w, 1312) / 2;
-  return [w / 2 - half, 110, w / 2 + half, 400];
-};
-
-function Backdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-[240px] bg-[linear-gradient(to_bottom,#8fd3d8,#c6ebed_60%,#f5f8f9)]">
-        <PixelField className="absolute inset-0 size-full" maxAlpha={0.38} quiet={CONTENT_ZONE} />
-      </div>
-      <div className="relative mx-auto h-full max-w-[1440px]">
-        <div className="absolute left-[-170px] top-[510px] size-[640px]">
-          <Image src="/warden/glow-bottom-left.svg" alt="" width={640} height={640} unoptimized className="block size-full" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /** Figma "V4 · One home": left is the dashboard (facts + your decision), right is the agents. */
 export function CaseScreen({ caseId }: { caseId: string }) {
   const { state, upload, sendReply } = useCase(caseId);
   const [local, setLocal] = useState<ChatEntry[]>([]);
+  // messages from before the last Clear stay hidden even though the live stream still holds them
+  const [cleared, setCleared] = useState(0);
   const c = state.caseData;
 
   useEffect(() => {
@@ -68,17 +48,28 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     return { rows, open: openActions(c), mood: mood(c, working), flags: redFlags(c) };
   }, [c, state.agentStatus, state.busy]);
 
-  const chat = useMemo(
-    () => [...state.chat, ...local].sort((a, b) => a.at.localeCompare(b.at)),
-    [state.chat, local],
-  );
+  // The conversation is saved per home in this browser, so history survives a reload.
+  const [saved, setSaved] = useLocalJSON<ChatEntry[]>(`warden.chat.${caseId}`, []);
+  const chat = useMemo(() => {
+    const seen = new Set<string>();
+    return [...saved, ...state.chat, ...local]
+      .filter((m) => Date.parse(m.at) > cleared)
+      .filter((m) => {
+        const k = `${m.role}|${m.at}|${m.text}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .sort((a, b) => a.at.localeCompare(b.at));
+  }, [saved, state.chat, local, cleared]);
+  useEffect(() => {
+    if (chat.length > saved.length) setSaved(chat.slice(-60));
+  }, [chat, saved.length, setSaved]);
 
   if (!c || !view) {
     return (
-      <div className="relative min-h-dvh">
-        <Backdrop />
-        <div className="relative mx-auto max-w-[1440px] px-16 pt-4">
-          <SiteNav />
+      <div>
+        <div>
           <div className="flex flex-col items-center pt-32 text-center">
             <Mascot width={110} height={132} float />
             <p className="mt-6 text-[22px] font-light tracking-[-0.03em]">
@@ -110,10 +101,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-x-clip">
-      <Backdrop />
-      <div className="relative mx-auto max-w-[1440px] px-16 pb-10 pt-4">
-        <SiteNav />
+    <div>
+      <div>
 
         <div className="mt-6 grid grid-cols-[minmax(0,888fr)_minmax(0,408fr)] items-start gap-5">
           <motion.main variants={stagger} initial="hidden" animate="show" className="flex min-w-0 flex-col gap-6">
@@ -137,9 +126,15 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               canReply={!closed && view.open.length > 0}
               closed={closed}
               onSkip={() => action && void sendReply({ text: "Skip for now", actionId: action.id, status: "skipped" })}
+              onAnswer={(text) => action && void sendReply({ text, actionId: action.id, status: "done" })}
               onAsk={ask}
               onSend={(text) => void sendReply({ text })}
               onUpload={onUpload}
+              onClearChat={() => {
+                setLocal([]);
+                setSaved([]);
+                setCleared(Date.now());
+              }}
             />
           </div>
         </div>

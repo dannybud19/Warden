@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as api from "./api";
-import * as demo from "./demo";
 import type { Action, Case } from "./types";
 import { agentRows, whyAsk, type Tone } from "./present";
 import { openActions } from "./selectors";
 import { AGENTS_FOR } from "./dashboard";
 import { VERDICT_LABELS } from "./labels";
 import {
-  SAMPLE_HOMES, caseToHome, parseIds, sortByNeed, useRememberedCaseIdsRaw, type Home,
+  caseToHome, parseIds, sortByNeed, useRememberedCaseIdsRaw, type Home,
 } from "./homes";
 
 // Agent activity across every home: powers the Inbox.
@@ -68,45 +67,6 @@ export function activityFromCase(c: Case, home: Home): Activity[] {
   return out;
 }
 
-// ---- Sample activity for the design's sample homes (shown until the student opens a case) ----
-
-type Seed = [agent: string, status: ActivityStatus, line: string, tone: Tone, at: string];
-
-const SAMPLE_SEEDS: Record<string, Seed[]> = {
-  "sample-canal-wharf": [
-    ["warden", "needs_you", "Ask who owns the flat and how Bowline Homes is connected?", "red", "2026-11-14T12:40:00Z"],
-    ["companies_house", "done", "Bowline Homes is registered and 4 years old", "green", "2026-11-14T11:02:00Z"],
-    ["message_checker", "done", "Agent won't say who the landlord is", "amber", "2026-11-14T12:31:00Z"],
-    ["emotion_classifier", "done", "Nothing pushy in the chats", "green", "2026-11-14T12:31:00Z"],
-    ["contract_checker", "waiting", "Upload the contract to run this", "grey", "2026-11-14T11:00:00Z"],
-  ],
-  "sample-albion-square": [
-    ["companies_house", "done", "Hartwell & Rowe has been active since 2009", "green", "2026-11-13T16:20:00Z"],
-    ["contract_checker", "done", "Deposit goes into the DPS scheme", "green", "2026-11-13T17:05:00Z"],
-    ["emotion_classifier", "done", "No pressure tactics found", "green", "2026-11-13T17:01:00Z"],
-    ["message_checker", "done", "Viewing booked in person for Saturday", "green", "2026-11-13T17:01:00Z"],
-  ],
-  "sample-rye-lane": [
-    ["message_checker", "done", "They asked for the deposit in cash", "amber", "2026-11-13T19:45:00Z"],
-    ["companies_house", "done", "Rye Rooms Co is registered", "green", "2026-11-13T19:10:00Z"],
-    ["video_analysis", "waiting", "Upload a viewing video to run this", "grey", "2026-11-13T19:10:00Z"],
-  ],
-  "sample-holloway-road": [
-    ["companies_house", "checking", "Checking now…", "grey", "2026-11-14T13:58:00Z"],
-    ["message_checker", "checking", "Checking now…", "grey", "2026-11-14T13:58:00Z"],
-  ],
-};
-
-function sampleActivity(): Activity[] {
-  const out: Activity[] = activityFromCase(demo.getCase(), SAMPLE_HOMES[0]);
-  for (const home of SAMPLE_HOMES.slice(1)) {
-    for (const [agent, status, line, tone, at] of SAMPLE_SEEDS[home.id] ?? []) {
-      out.push({ id: `${home.id}:${agent}:${status}`, caseId: home.id, agent, status, line, tone, at, home });
-    }
-  }
-  return out;
-}
-
 // ---- Hook: every home this browser knows about, and their agents' activity ----
 
 export function useWardenData() {
@@ -129,10 +89,10 @@ export function useWardenData() {
   const refresh = useCallback(() => setTick((t) => t + 1), []);
 
   return useMemo(() => {
-    const samples = { homes: SAMPLE_HOMES, items: sampleActivity(), loading: false, sample: true, refresh };
-    if (!key) return samples;
+    const empty = { homes: [] as Home[], items: [] as Activity[], loading: false, sample: false, refresh };
+    if (!key) return empty;
     if (!load || load.key !== key) return { homes: [] as Home[], items: [] as Activity[], loading: true, sample: false, refresh };
-    if (!load.cases.length) return samples;
+    if (!load.cases.length) return empty;
     const homes = load.cases.map(caseToHome);
     const items = load.cases.flatMap((c, i) => activityFromCase(c, homes[i]));
     return { homes: sortByNeed(homes), items, loading: false, sample: false, refresh };
