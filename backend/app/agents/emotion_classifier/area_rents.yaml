@@ -1,0 +1,25 @@
+# APPROXIMATE typical monthly rents (£) by London postcode district, hand-built for the demo.
+# These are rough figures, not taken from a dataset. Show them as "approximate" in the UI and
+# replace them with real data (e.g. ONS private rents, SpareRoom rental index) before relying on them.
+#   room:    a double room in a shared flat or house, bills often included
+#   one_bed: a self-contained studio or one-bed flat
+W2:   {room: 1200, one_bed: 2500}
+W6:   {room: 1050, one_bed: 2100}
+W12:  {room: 950,  one_bed: 1900}
+W14:  {room: 1050, one_bed: 2100}
+SW6:  {room: 1100, one_bed: 2200}
+SW7:  {room: 1350, one_bed: 2900}
+SW10: {room: 1250, one_bed: 2700}
+SW11: {room: 1050, one_bed: 2100}
+NW1:  {room: 1150, one_bed: 2300}
+WC1:  {room: 1250, one_bed: 2500}
+N1:   {room: 1100, one_bed: 2200}
+N4:   {room: 900,  one_bed: 1800}
+N7:   {room: 950,  one_bed: 1900}
+E1:   {room: 1050, one_bed: 2100}
+E2:   {room: 1050, one_bed: 2100}
+E14:  {room: 1000, one_bed: 2000}
+E15:  {room: 900,  one_bed: 1800}
+SE1:  {room: 1150, one_bed: 2200}
+SE5:  {room: 900,  one_bed: 1700}
+SE15: {room: 900,  one_bed: 1700}
