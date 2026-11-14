@@ -82,3 +82,11 @@ cd backend && uv run pytest -q tests/test_redact.py             # the masking te
 - The real agents for D, E and F are now on `main`, but agents still default to stubs. To run them:
   `AGENT_MODE_MESSAGE_CHECKER=real`, `AGENT_MODE_EMOTION_CLASSIFIER=real` in `.env`, or
   `DEFAULT_AGENT_MODE=real make dev`. They run rules-only when no LLM key is set.
+
+## Update 3 (Georgi, 2026-11-14 evening): handoff docs merged
+
+- Merged #5 into `main` at Danny's request (relayed by Georgi). `main` is now `dec8499`;
+  `make check` green, 198 passed, 3 skipped.
+- `AGENTS.md` now has a "Handoffs between agents" section, so every agent that reads it checks this
+  branch at the start of a session. Teammates need to pull `main` to get it.
+- Only #1 (intake masking, draft) is still open. Its three questions above still need an answer.
