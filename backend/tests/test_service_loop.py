@@ -96,12 +96,15 @@ async def test_reply_with_action_id_updates_only_that_action(
     make_service: MakeService, fake_agency_case: Case
 ) -> None:
     service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
+    before = {a.id: a.model_dump() for a in case.actions}
+    # The second card, so the free-chat fallback (oldest open = act_viewing) would be caught.
     case = await service.reply(case.case_id, "yes, registered", action_id="act_company_number")
     by_id = {a.id: a for a in case.actions}
     assert by_id["act_company_number"].status == ActionStatus.DONE
     assert by_id["act_company_number"].outcome == "clears"
-    assert by_id["act_viewing"].status == ActionStatus.OPEN
-    assert by_id["act_payment_method"].status == ActionStatus.OPEN
+    assert by_id["act_company_number"].answer == "yes, registered"
+    for other in ("act_viewing", "act_payment_method"):
+        assert by_id[other].model_dump() == before[other]  # untouched in every field
 
 
 async def test_skipped_sets_status_with_neutral_outcome(
@@ -131,12 +134,17 @@ async def test_unknown_or_closed_action_id_is_rejected_without_changes(
     make_service: MakeService, fake_agency_case: Case
 ) -> None:
     service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
+    snapshot = (await service.get_case(case.case_id)).model_dump()
     with pytest.raises(InvalidActionError):
         await service.reply(case.case_id, "yes", action_id="act_nope")
+    assert (await service.get_case(case.case_id)).model_dump() == snapshot
+
     case = await service.reply(case.case_id, "yes", action_id="act_viewing")
+    snapshot = (await service.get_case(case.case_id)).model_dump()
     with pytest.raises(InvalidActionError):
-        await service.reply(case.case_id, "yes", action_id="act_viewing")  # already done
+        await service.reply(case.case_id, "no", action_id="act_viewing")  # already done
     stored = await service.get_case(case.case_id)
+    assert stored.model_dump() == snapshot
     by_id = {a.id: a.status for a in stored.actions}
     assert by_id["act_viewing"] == ActionStatus.DONE
     assert by_id["act_company_number"] == ActionStatus.OPEN
