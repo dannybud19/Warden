@@ -25,7 +25,7 @@ function finding(
 function report(agent: string, status: AgentReport["status"], findings: Finding[]): AgentReport {
   return {
     agent, version: "demo", status, input_hash: "demo", findings, facts: [], questions: [],
-    error: null, duration_ms: 0,
+    summary: null, error: null, duration_ms: 0,
   } as AgentReport;
 }
 
@@ -121,6 +121,7 @@ const INITIAL: Case = {
     { at: AT, score: 81, contributions: {} },
   ],
   decision: null,
+  chat: [],
 } as Case;
 
 let current: Case = INITIAL;
