@@ -175,6 +175,14 @@ async def test_rdap_500_three_times_is_failed_check_not_finding(make_ctx) -> Non
     assert result.failed_checks[0].startswith("email domain age (RDAP: 500")
 
 
+async def test_rdap_unreadable_body_is_a_failed_check_not_a_clean_result(make_ctx) -> None:
+    router = _rdap_router("oldagency.co.uk", (200, "<html>Service unavailable</html>"))
+    ctx = await make_ctx(router)
+    result = await _run(ctx, _agent_case("info@oldagency.co.uk"))
+    assert result.findings == []
+    assert result.failed_checks == ["email domain age (RDAP: unreadable response)"]
+
+
 async def test_rdap_not_called_for_webmail(make_ctx) -> None:
     router = Router()
     ctx = await make_ctx(router)

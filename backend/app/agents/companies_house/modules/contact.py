@@ -159,7 +159,7 @@ async def _check_domain_age(
     try:
         payload = result.value.json()
     except (json.JSONDecodeError, ValueError):
-        return None, None
+        return None, "email domain age (RDAP: unreadable response)"
     registered = parse_registration_date(payload)
     if registered is None:
         return None, None

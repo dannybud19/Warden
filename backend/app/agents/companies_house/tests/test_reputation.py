@@ -586,7 +586,8 @@ async def test_linkup_fallback_ignores_expired_and_unrelated_results(
         router=Router({("GET", ROGUE_PATH): (403, "")}),
         search=FakeSearch({"site:london.gov.uk": [expired, elsewhere]}),
     )
-    assert result.findings == [] and result.failed_checks == []
+    assert result.findings == []
+    assert len(result.failed_checks) == 1  # the checker itself was not read (Linkup only)
 
 
 async def test_linkup_fallback_name_only_match_is_medium(make_ctx, genuine_flat_case) -> None:
@@ -680,6 +681,85 @@ async def test_second_page_fetched_when_first_page_is_full_with_no_match(
     assert finding.id == "companies_house:rogue-checker" and "page=1" in finding.detail
 
 
+FALLBACK_NOTE = "searched through Linkup only"
+
+
+async def test_linkup_fallback_with_no_match_says_the_checker_itself_was_not_read(
+    make_ctx, genuine_flat_case
+) -> None:
+    result = await run_rep(
+        make_ctx,
+        genuine_flat_case,
+        make_company(),
+        router=Router({("GET", ROGUE_PATH): (403, "")}),
+        search=FakeSearch(),
+    )
+    assert result.findings == []
+    [note] = result.failed_checks
+    assert FALLBACK_NOTE in note and "403" in note
+
+
+async def test_linkup_fallback_drops_the_same_name_with_a_different_company_number(
+    make_ctx, genuine_flat_case
+) -> None:
+    hit = SearchResult(
+        title="Checker",
+        url="https://www.london.gov.uk/rogue-checker",
+        snippet="Prime City Lettings Limited (55555555)\nEnforcement action type: Banning order",
+    )
+    result = await run_rep(
+        make_ctx,
+        genuine_flat_case,
+        make_company(),  # 10452757
+        router=Router({("GET", ROGUE_PATH): (403, "")}),
+        search=FakeSearch({"site:london.gov.uk": [hit]}),
+    )
+    assert result.findings == []
+
+
+async def test_linkup_fallback_takes_labels_from_our_entry_not_a_neighbouring_one(
+    make_ctx, genuine_flat_case
+) -> None:
+    hit = SearchResult(
+        title="Checker",
+        url="https://www.london.gov.uk/rogue-checker",
+        snippet=(
+            "Prime City Lettings Limited (10452757)\n"
+            "Enforcement action type: Banning order\nEnforcement authority: Camden\n"
+            "Enforcement date: Monday 2 February 2026\n"
+            "Other Agent Limited (20000001)\n"
+            "Enforcement action type: Civil penalty\nEnforcement authority: Brent\n"
+        ),
+    )
+    result = await run_rep(
+        make_ctx,
+        genuine_flat_case,
+        make_company(),
+        router=Router({("GET", ROGUE_PATH): (403, "")}),
+        search=FakeSearch({"site:london.gov.uk": [hit]}),
+    )
+    [finding] = result.findings
+    assert "Banning order" in finding.detail and "Camden" in finding.detail
+    assert "Civil penalty" not in finding.detail and "Brent" not in finding.detail
+
+
+async def test_scheme_page_that_reads_like_a_sanction_does_not_clear(
+    make_ctx, genuine_flat_case
+) -> None:
+    sanction = SearchResult(
+        title="Expelled members | TPOS",
+        url="https://www.tpos.co.uk/expelled",
+        snippet="Prime City Lettings Ltd was expelled from the scheme in 2025.",
+    )
+    result = await run_rep(
+        make_ctx,
+        genuine_flat_case,
+        make_company(),
+        search=FakeSearch({"Property Redress Scheme": [sanction]}),
+    )
+    assert [f.id for f in result.findings] == []
+
+
 async def test_never_more_than_two_rogue_pages(make_ctx, genuine_flat_case) -> None:
     router = Router(
         {
@@ -689,7 +769,10 @@ async def test_never_more_than_two_rogue_pages(make_ctx, genuine_flat_case) -> N
         }
     )
     result = await run_rep(make_ctx, genuine_flat_case, make_company(), router=router)
-    assert len(router.requests) == 2 and result.findings == [] and result.failed_checks == []
+    assert len(router.requests) == 2 and result.findings == []
+    # Two full pages with no match means more entries may exist: say so, never imply "clean".
+    [note] = result.failed_checks
+    assert "only the first 20 entries" in note
 
 
 async def test_second_page_not_fetched_when_page_zero_matches(make_ctx, genuine_flat_case) -> None:

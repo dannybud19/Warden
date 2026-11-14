@@ -29,6 +29,9 @@ ROGUE_TIMEOUT_S: Final = 15.0
 LINKUP_STANDARD_TIMEOUT_S: Final = 15.0
 LINKUP_DEEP_TIMEOUT_S: Final = 35.0
 AGENT_TIMEOUT_S: Final = 120.0
+# Web modules must finish this long after the agent starts, so the orchestrator's 120 s timeout
+# never discards register findings: a module that overruns becomes a "could not run" note.
+MODULE_DEADLINE_S: Final = 105.0
 MAX_LINKUP_QUERIES: Final = 8
 
 # --- register rules -------------------------------------------------------------------------

@@ -281,6 +281,7 @@ class _RogueFetch:
     ok: bool
     records: list[tuple[RogueRecord, str, str]]
     error: str | None = None
+    truncated: bool = False  # every page we may fetch was full and none matched: more may exist
 
 
 async def _fetch_rogue_direct(
@@ -314,6 +315,8 @@ async def _fetch_rogue_direct(
         matched = any(_is_live(r, today) and rogue_match(r, company) for r in records)
         if matched or len(records) < ROGUE_PAGE_SIZE:
             break
+        if page == ROGUE_MAX_REQUESTS - 1:
+            return _RogueFetch(True, collected, truncated=True)
     return _RogueFetch(True, collected)
 
 
@@ -327,6 +330,11 @@ _ROGUE_LABELS = (
     "Rental property address",
     "Offence",
 )
+_NEGATIVE_MEMBERSHIP_RE = re.compile(
+    r"\b(expel|expelled|removed|suspend|suspended|sanction|sanctioned|banned|struck off|"
+    r"terminated|no longer a member|ceased|disciplin)\w*",
+    re.IGNORECASE,
+)
 _PAREN_NUMBER_RE = re.compile(r"\(\s*([A-Za-z0-9]{6,8})\s*\)")
 
 
@@ -334,6 +342,31 @@ def _labelled(content: str, label: str) -> str | None:
     stops = "|".join(re.escape(x) for x in _ROGUE_LABELS)
     found = re.search(rf"{re.escape(label)}\s*:\s*(.*?)\s*(?=(?:{stops})\s*:|\n|$)", content)
     return found.group(1).strip() or None if found else None
+
+
+def _entry_window(content: str, start: int) -> str:
+    """The part of `content` from `start` up to where the NEXT entry's labels begin.
+
+    A snippet may hold several entries; labels must come from the matched one only.
+    """
+    first = content.find(_ROGUE_LABELS[0], start)
+    if first == -1:
+        return content[start:]
+    second = content.find(_ROGUE_LABELS[0], first + 1)
+    if second == -1:
+        return content[start:]
+    newline = content.rfind("\n", first, second)
+    return content[start : newline if newline != -1 else second]
+
+
+def _number_after(content: str, end: int) -> str | None:
+    """A company number in parentheses straight after position `end` (an entry's own number)."""
+    found = re.match(
+        rf"\s*(?:(?:{_NAME_SUFFIX_WORDS})\b\.?\s*)*\(\s*([A-Za-z0-9]{{6,8}})\s*\)",
+        content[end:],
+        re.IGNORECASE,
+    )
+    return normalise_number(found.group(1)) if found else None
 
 
 def _name_span(content: str, name: str) -> str | None:
@@ -360,22 +393,33 @@ def _records_from_snippet(result: SearchResult, company: ResolvedCompany) -> lis
         ),
         None,
     )
-    needle = number_hit.group(0) if number_hit else _name_span(content, company.registered_name)
+    start = -1
+    if number_hit:
+        needle: str | None = number_hit.group(0)
+        start = number_hit.start()
+    else:
+        needle = _name_span(content, company.registered_name)
+        if needle:
+            start = content.lower().find(needle.lower())
+            own_number = _number_after(content, start + len(needle))
+            if own_number and own_number != company.number:
+                return []  # same name, different company number: a different company
     if not needle:
         return []
-    action = _labelled(content, "Enforcement action type")
-    date_text = _labelled(content, "Enforcement date")
+    window = _entry_window(content, start)
+    action = _labelled(window, "Enforcement action type")
+    date_text = _labelled(window, "Enforcement date")
     quote = clip_around(content, needle) or needle
     return [
         RogueRecord(
             name=company.registered_name,
             number=company.number if number_hit else None,
             action_type=action,
-            authority=_labelled(content, "Enforcement authority"),
+            authority=_labelled(window, "Enforcement authority"),
             action_date=parse_rogue_date(date_text),
-            expires=parse_rogue_date(_labelled(content, "Record expires")),
-            address=_labelled(content, "Rental property address"),
-            offence=_labelled(content, "Offence"),
+            expires=parse_rogue_date(_labelled(window, "Record expires")),
+            address=_labelled(window, "Rental property address"),
+            offence=_labelled(window, "Offence"),
             quote=quote,
         )
     ]
@@ -410,15 +454,15 @@ def _membership_finding(
         if needle is None and company.number and company.number in result.snippet:
             needle = company.number
         quote = clip_around(result.snippet, needle) if needle else None
-        if not quote:
-            continue
+        if not quote or _NEGATIVE_MEMBERSHIP_RE.search(result.snippet):
+            continue  # not named, or the page reads like a sanction rather than a membership
         scheme = next((label for d, label in schemes.items() if host_matches(host, {d})), host)
         if slug == "redress-member":
             title = f"{company.registered_name} appears on the {scheme} site"
             detail = "Letting agents must belong to a redress scheme; this source lists them."
         else:
             title = f"{company.registered_name} appears on a client money protection list"
-            detail = f"The source lists them as a member of {scheme}."
+            detail = f"This {scheme} page names the company, so check it lists them as a member."
         return make_finding(
             slug,
             title=title,
@@ -573,6 +617,12 @@ async def _run(
                 for hit in fallback.value or []
                 for record in _records_from_snippet(hit, company)
             ]
+            if not _findings_from_records(records, company, today):
+                # The checker itself was never read, so say so: absence via Linkup is weak.
+                result.failed_checks.append(
+                    f"{ROGUE_CHECK_NAME} (direct fetch: {rogue.error}; searched through Linkup "
+                    "only, which can miss entries)"
+                )
         elif fallback.error == "query budget":
             result.failed_checks.append(f"{ROGUE_CHECK_NAME} (query budget)")
             records = []
@@ -581,4 +631,10 @@ async def _run(
                 f"{ROGUE_CHECK_NAME} (direct fetch: {rogue.error}; Linkup: {fallback.error})"
             )
             records = []
-    result.findings.extend(_findings_from_records(records, company, today))
+    rogue_findings = _findings_from_records(records, company, today)
+    result.findings.extend(rogue_findings)
+    if rogue.ok and rogue.truncated and not rogue_findings:
+        result.failed_checks.append(
+            f"{ROGUE_CHECK_NAME} (only the first {ROGUE_MAX_REQUESTS * ROGUE_PAGE_SIZE} entries "
+            "for this name were checked)"
+        )

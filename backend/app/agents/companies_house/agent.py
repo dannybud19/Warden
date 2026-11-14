@@ -8,7 +8,7 @@ from collections.abc import Awaitable
 from datetime import date
 from typing import Any, ClassVar
 
-from app.agents.companies_house.constants import AGENT_NAME, AGENT_TIMEOUT_S
+from app.agents.companies_house.constants import AGENT_NAME, AGENT_TIMEOUT_S, MODULE_DEADLINE_S
 from app.agents.companies_house.evidence import not_run_finding
 from app.agents.companies_house.models import ModuleResult, QueryBudget
 from app.agents.companies_house.modules import contact, property, register, reputation
@@ -55,10 +55,17 @@ class CompaniesHouseAgent(BaseAgent):
     requires = frozenset({Need.LANDLORD})
     timeout_s: ClassVar[float] = AGENT_TIMEOUT_S
 
-    def __init__(self, *, today: date | None = None, sleep: Sleep = asyncio.sleep) -> None:
-        # NOTE: today and sleep are injectable so tests are deterministic and never really sleep.
+    def __init__(
+        self,
+        *,
+        today: date | None = None,
+        sleep: Sleep = asyncio.sleep,
+        deadline_s: float = MODULE_DEADLINE_S,
+    ) -> None:
+        # NOTE: today, sleep and the deadline are injectable so tests are deterministic and fast.
         self._today = today
         self._sleep = sleep
+        self._deadline_s = deadline_s
 
     def input_slice(self, case: Case) -> dict[str, Any]:
         """Landlord, answers and student plus the listing postcode and landlord contacts."""
@@ -80,6 +87,7 @@ class CompaniesHouseAgent(BaseAgent):
                 case, status=AgentStatus.ERROR, error="COMPANIES_HOUSE_API_KEY is not set"
             )
 
+        started = asyncio.get_running_loop().time()
         reg = await register.run(ctx, case, today=self._today, sleep=self._sleep)
         if reg.fatal:
             return self.report(
@@ -99,7 +107,11 @@ class CompaniesHouseAgent(BaseAgent):
             ctx, case, company, budget, today=self._today, sleep=self._sleep
         )
         tasks["property"] = property.run(ctx, case, sleep=self._sleep)
-        outcomes = await asyncio.gather(*tasks.values(), return_exceptions=True)
+        remaining = max(1.0, self._deadline_s - (asyncio.get_running_loop().time() - started))
+        outcomes = await asyncio.gather(
+            *(asyncio.wait_for(task, remaining) for task in tasks.values()),
+            return_exceptions=True,
+        )
 
         results: list[ModuleResult] = [reg]
         for module_name, outcome in zip(tasks, outcomes, strict=True):
@@ -108,12 +120,12 @@ class CompaniesHouseAgent(BaseAgent):
                 continue
             if isinstance(outcome, BaseException) and not isinstance(outcome, Exception):
                 raise outcome
-            ctx.log.error("companies_house: %s module crashed: %r", module_name, outcome)
+            reason = "timed out" if isinstance(outcome, TimeoutError) else "unexpected error"
+            ctx.log.error(
+                "companies_house: %s module failed (%s): %r", module_name, reason, outcome
+            )
             results.append(
-                ModuleResult(
-                    name=module_name,
-                    failed_checks=[f"{module_name} checks (unexpected error)"],
-                )
+                ModuleResult(name=module_name, failed_checks=[f"{module_name} checks ({reason})"])
             )
 
         findings: list[Finding] = []

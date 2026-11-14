@@ -168,7 +168,7 @@ async def run(
             refs += student_refs(case, needles)
             finding = make_finding(
                 "postcode-invalid",
-                title="The listing's postcode doesn't exist",
+                title="The listing's postcode wasn't found",
                 detail=f"{_NOT_FOUND_LEAD} Postcode checked: {postcode}.",
                 severity=Severity.MEDIUM,
                 confidence=CONF["postcode-invalid"],

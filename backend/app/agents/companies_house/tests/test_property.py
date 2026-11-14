@@ -83,7 +83,7 @@ async def test_unknown_postcode_gives_medium_postcode_invalid_with_approved_word
     assert f.confidence == CONF["postcode-invalid"] == 0.8
     assert f.category == Category.PROPERTY
     assert f.check_id == CheckId.LANDLORD_IDENTITY
-    assert f.title == "The listing's postcode doesn't exist"
+    assert f.title == "The listing's postcode wasn't found"
     assert f.detail.startswith(
         "This postcode wasn't found in the national postcode list. "
         "Very new addresses can be missing, so double-check it."
@@ -225,3 +225,12 @@ async def test_every_finding_upholds_the_evidence_invariants(
     assert f.supports == "suspicious"
     assert (f.severity, f.confidence) == expected
     assert result.facts == []
+
+
+async def test_outward_only_postcode_is_never_looked_up_so_it_cannot_look_fake(
+    make_ctx: MakeCtx, genuine_flat_case: Case
+) -> None:
+    case = _case(genuine_flat_case, postcode="W12", address="Flat 5, Mercer Street, London")
+    result, router = await _run(make_ctx, case, (404, {"status": 404}))
+    assert router.requests == []
+    assert result.findings == [] and result.failed_checks == []

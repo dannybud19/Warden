@@ -29,10 +29,14 @@ async def test_missing_ch_key_is_error_with_zero_calls(
     assert router.requests == []
 
 
-async def test_skeleton_run_is_ok_and_empty(genuine_flat_case: Case, make_ctx) -> None:
+async def test_company_the_register_does_not_know_still_gives_an_ok_report(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    # An empty Router 404s everything: the number is "not found", which is a finding, not an error.
     report = await CompaniesHouseAgent(sleep=no_sleep).run(genuine_flat_case, await make_ctx())
     assert report.status == AgentStatus.OK
     assert report.agent == "companies_house"
+    assert [f.id for f in report.findings if f.hard_flag] == ["companies_house:not-found"]
 
 
 def test_timeout_is_120() -> None:
@@ -318,3 +322,23 @@ async def test_finding_ids_are_stable_across_reruns(genuine_flat_case: Case, mak
     assert [f.id for f in first.findings] == [f.id for f in second.findings]
     assert len({f.id for f in first.findings}) == len(first.findings)
     assert first.input_hash == second.input_hash
+
+
+async def test_a_module_that_overruns_the_deadline_becomes_a_note_and_register_survives(
+    genuine_flat_case: Case, make_ctx, monkeypatch
+) -> None:
+    import asyncio
+
+    async def never_finishes(*args: Any, **kwargs: Any) -> Any:
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(property_module, "run", never_finishes)
+    router = Router(genuine_routes())
+    ctx = await make_ctx(router, search=redress_search())
+    agent = CompaniesHouseAgent(today=TODAY, sleep=no_sleep, deadline_s=0.05)
+    report = await agent.run(genuine_flat_case, ctx)
+    assert_invariants(report)
+    assert report.status == AgentStatus.OK
+    found = by_id(report)
+    assert "companies_house:registered-active" in found
+    assert "timed out" in found["companies_house:not-run-property"].detail

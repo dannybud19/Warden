@@ -13,6 +13,7 @@ from app.contracts import Case, Listing
 
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 POSTCODE_RE = re.compile(r"\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b", re.IGNORECASE)
+FULL_POSTCODE_RE = re.compile(r"^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$", re.IGNORECASE)
 _PHONE_CANDIDATE_RE = re.compile(r"(?<![\w+])(?:\+44|0)[\d\s()-]{8,14}\d(?!\d)")
 MAX_EMAILS = 2
 MAX_PHONES = 1
@@ -156,8 +157,10 @@ def extract_postcode(listing: Listing | None) -> str | None:
     """The listing's postcode (normalised), else one found in its address, else None."""
     if listing is None:
         return None
-    if listing.postcode and listing.postcode.strip():
+    if listing.postcode and FULL_POSTCODE_RE.match(listing.postcode.strip()):
         return normalise_postcode(listing.postcode)
+    # An outward-only code ("W12") or free text is not a postcode we can look up: never let it
+    # reach postcodes.io, which would 404 and look like a fake address.
     if listing.address:
         match = POSTCODE_RE.search(listing.address)
         if match:

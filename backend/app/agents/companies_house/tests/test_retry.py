@@ -117,7 +117,7 @@ async def test_per_try_timeout_counts_as_timeout() -> None:
     import asyncio
 
     async def slow() -> httpx.Response:
-        await asyncio.sleep(1)
+        await asyncio.Event().wait()  # never finishes; only the per-try timeout ends it
         return httpx.Response(200)
 
     result = await with_retries(slow, per_try_timeout=0.01, attempts=2, sleep=Sleeps())

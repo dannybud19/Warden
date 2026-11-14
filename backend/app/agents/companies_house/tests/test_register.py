@@ -2,6 +2,7 @@
 
 import base64
 from copy import deepcopy
+from datetime import date
 from typing import Any
 
 import pytest
@@ -975,12 +976,20 @@ async def test_landlord_with_neither_name_nor_number_makes_no_requests(
     assert result.findings == [] and result.facts == [] and router.requests == []
 
 
-async def test_run_defaults_today_to_the_real_date_when_not_given(
-    genuine_flat_case: Case, make_ctx
+async def test_run_uses_the_current_date_when_today_is_not_given(
+    genuine_flat_case: Case, make_ctx, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    class FrozenDate(date):
+        @classmethod
+        def today(cls) -> "FrozenDate":
+            return cls(2014, 8, 1)  # one month after the company was created (2014-07-03)
+
+    monkeypatch.setattr(register, "date", FrozenDate)
     ctx = await make_ctx(genuine_routes())
     result = await register.run(ctx, genuine_flat_case, sleep=no_sleep)
-    assert "companies_house:registered-active" in ids(result.findings)
+    # At the frozen date the company is a month old: young, and too new to be cleared.
+    assert "companies_house:young-company" in ids(result.findings)
+    assert "companies_house:registered-active" not in ids(result.findings)
 
 
 # --- invariants over every finding the module can produce ------------------------------------

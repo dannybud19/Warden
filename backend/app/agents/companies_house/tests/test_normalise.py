@@ -100,6 +100,13 @@ def test_postcodes() -> None:
     assert extract_postcode(None) is None
 
 
+def test_partial_or_free_text_postcode_is_not_looked_up() -> None:
+    assert extract_postcode(Listing(postcode="W12")) is None
+    assert extract_postcode(Listing(postcode="London")) is None
+    # a bad postcode field falls back to a full postcode in the address
+    assert extract_postcode(Listing(postcode="W12", address="3 Road, London W12 8QT")) == "W12 8QT"
+
+
 def test_phone_normalisation() -> None:
     assert normalise_phone("07911 123456") == "07911123456"
     assert normalise_phone("+44 7911 123456") == "07911123456"
