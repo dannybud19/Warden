@@ -7,7 +7,7 @@ questions and suggests actions until nothing useful is left to check. Then it gi
 calls a place "safe".
 
 Built at the Imperial AI Hackathon (Autonomous Agents track), 14 to 15 Nov 2026.
-Team: Danny (backend and agents), Georgi (AI), Bill (AI), Audrey (design).
+Team: Danny, Georgi, Bill, Audrey.
 
 ## Run it
 
