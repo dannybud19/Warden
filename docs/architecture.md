@@ -31,7 +31,8 @@ is confirmed, it gives a final decision with the full evidence trail.
 5. **Storage behind an interface.** `CaseRepository` has an in-memory implementation (default for dev and
    tests) and a MongoDB Atlas implementation. Nobody waits on database setup.
 6. **The orchestrator core is deterministic.** It decides which agents run, tracks checks, computes the
-   score and decides when to close. LLMs are used inside agents, the consultant and the chat layer only.
+   score and decides when to close. LLMs are used inside agents, the Cross-checker, the consultant and the
+   chat layer only.
 7. **Frontend builds against mocks.** The web app can run fully on `fixtures/reports/*.json` with
    `NEXT_PUBLIC_USE_MOCK=1`, using TypeScript types generated from the Python contracts.
 
@@ -92,6 +93,7 @@ Warden/
       aggregators/
         scoring/                 scoring.py, weights.yaml, tests/
         consultant/              consultant.py, action_library.yaml, prompts/, tests/
+        crosschecker/            crosschecker.py, stub.py, prompts/, tests/ (WS J, being built)
       orchestrator/
         registry.py              the ONE list of agents; stub/real switch per agent
         events.py                in-process EventBus (per-case pub/sub for the WebSocket)
@@ -141,7 +143,11 @@ Warden/
       `input_hash` equals the last report's (no rerun). Otherwise schedule.
    2. Run scheduled agents with `asyncio.gather`, each under `asyncio.wait_for(timeout_s)`.
       Exceptions and timeouts become `ERROR` reports; the run continues.
-   3. `crosscheck.compare(facts)` adds CONSISTENCY findings (rule-based).
+   3. `crosscheck.compare(facts)` adds CONSISTENCY findings (rule-based). Then the Cross-checker
+      (`aggregators/crosschecker`, WS J) reads every OK report together, adds LLM consistency findings that
+      quote both sides and name both agents, and writes a recap. Its report is stored as
+      `case.reports["crosscheck"]`; a changed recap is emitted as an `orchestrator_message` before the
+      consultant's actions. It never sets `hard_flag` itself.
    4. `checks.update(case)`: a check becomes SUSPICIOUS if it has any `supports="suspicious"` finding with
       severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.

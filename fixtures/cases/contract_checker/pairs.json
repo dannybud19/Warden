@@ -1,0 +1,200 @@
+{
+  "description": "Fictional paired contracts; development checks, not held-out accuracy.",
+  "context": {
+    "assessment_date": "2026-11-14",
+    "jurisdiction": "england",
+    "tenancy_type": "ordinary_private",
+    "rent_basis": "whole_tenancy",
+    "agreement_date": "2026-11-14",
+    "tenancy_start_date": "2026-12-01",
+    "signed_by_both": true
+  },
+  "cases": [
+    {
+      "id": "deposit_within",
+      "pair": "deposit",
+      "file": "deposit_within.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "deposit_excess",
+      "pair": "deposit",
+      "file": "deposit_excess.txt",
+      "expected_concerns": [
+        "deposit_cap"
+      ]
+    },
+    {
+      "id": "holding_within",
+      "pair": "holding",
+      "file": "holding_within.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "holding_excess",
+      "pair": "holding",
+      "file": "holding_excess.txt",
+      "expected_concerns": [
+        "holding_deposit_cap"
+      ]
+    },
+    {
+      "id": "fees_none",
+      "pair": "fees",
+      "file": "fees_none.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "fees_required",
+      "pair": "fees",
+      "file": "fees_required.txt",
+      "expected_concerns": [
+        "prohibited_fee"
+      ]
+    },
+    {
+      "id": "advance_one_month",
+      "pair": "advance",
+      "file": "advance_one_month.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "advance_three_months",
+      "pair": "advance",
+      "file": "advance_three_months.txt",
+      "expected_concerns": [
+        "advance_rent"
+      ]
+    },
+    {
+      "id": "term_periodic",
+      "pair": "term",
+      "file": "term_periodic.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "term_fixed",
+      "pair": "term",
+      "file": "term_fixed.txt",
+      "expected_concerns": [
+        "tenancy_structure"
+      ]
+    },
+    {
+      "id": "notice_two_months",
+      "pair": "notice",
+      "file": "notice_two_months.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "notice_three_months",
+      "pair": "notice",
+      "file": "notice_three_months.txt",
+      "expected_concerns": [
+        "tenant_notice"
+      ]
+    },
+    {
+      "id": "schedule_supplied",
+      "pair": "schedule",
+      "file": "schedule_supplied.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "schedule_missing",
+      "pair": "schedule",
+      "file": "schedule_missing.txt",
+      "expected_concerns": [
+        "missing_schedule"
+      ]
+    },
+    {
+      "id": "repairs_landlord",
+      "pair": "repairs",
+      "file": "repairs_landlord.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "repairs_transferred",
+      "pair": "repairs",
+      "file": "repairs_transferred.txt",
+      "expected_concerns": [
+        "unusual_obligation"
+      ]
+    },
+    {
+      "id": "amendment_fee",
+      "pair": "amendment",
+      "file": "amendment_fee.txt",
+      "expected_concerns": [
+        "prohibited_fee"
+      ]
+    },
+    {
+      "id": "amendment_waiver",
+      "pair": "amendment",
+      "file": "amendment_waiver.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "reassurance_issue",
+      "pair": "reassurance",
+      "file": "reassurance_issue.txt",
+      "expected_concerns": [
+        "deposit_cap"
+      ]
+    },
+    {
+      "id": "reassurance_unhelpful",
+      "pair": "reassurance",
+      "file": "reassurance_unhelpful.txt",
+      "expected_concerns": [
+        "deposit_cap"
+      ]
+    },
+    {
+      "id": "injection_original",
+      "pair": "injection",
+      "file": "injection_original.txt",
+      "expected_concerns": [
+        "deposit_cap"
+      ]
+    },
+    {
+      "id": "injection_instruction",
+      "pair": "injection",
+      "file": "injection_instruction.txt",
+      "expected_concerns": [
+        "deposit_cap"
+      ]
+    },
+    {
+      "id": "units_monthly",
+      "pair": "units",
+      "file": "units_monthly.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "units_equivalent",
+      "pair": "units",
+      "file": "units_equivalent.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "internal_rent_agrees",
+      "pair": "internal_rent",
+      "file": "internal_rent_agrees.txt",
+      "expected_concerns": []
+    },
+    {
+      "id": "internal_rent_conflicts",
+      "pair": "internal_rent",
+      "file": "internal_rent_conflicts.txt",
+      "expected_concerns": [
+        "internal_conflict",
+        "deposit_cap",
+        "holding_deposit_cap"
+      ]
+    }
+  ]
+}
