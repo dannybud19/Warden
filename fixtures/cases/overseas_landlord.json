@@ -4,19 +4,25 @@
   "status": "open",
   "student": {
     "budget_pcm": 1600,
+    "move_in_date": null,
     "university": "King's College London",
     "notes": "First time renting in London"
   },
   "listing": {
+    "url": null,
     "platform": "Gumtree",
     "address": "Flat 2, 7 Harcourt Terrace, London SW10 9JP",
     "postcode": "SW10 9JP",
     "rent_pcm": 1450,
-    "deposit": 2900
+    "deposit": 2900,
+    "description": null
   },
   "landlord": {
     "name": "Peter Hallam",
-    "email": "p.hallam.lets@example.com"
+    "company_name": null,
+    "company_number": null,
+    "email": "p.hallam.lets@example.com",
+    "phone": null
   },
   "evidence": [
     {
@@ -24,7 +30,9 @@
       "kind": "chat_export",
       "uploaded_at": "2026-11-14T15:01:00Z",
       "filename": "WhatsApp Chat.txt",
-      "extracted_text": "[10/11/2026, 09:15:03] Jamie: Hello, I saw your advert for the flat on Harcourt Terrace. Is it still free?\n[10/11/2026, 09:40:21] Peter Hallam: Good morning Jamie. Yes, it is free. I am an engineer on an offshore project in Dubai so I cannot show it myself.\n[10/11/2026, 09:41:05] Peter Hallam: My agent will give you the keys once the first month and the deposit are paid.\n[10/11/2026, 09:44:18] Jamie: Could a friend of mine see it first?\n[10/11/2026, 10:02:47] Peter Hallam: That is not possible, the flat is being cleaned. Many people are interested so please decide quickly.\n[10/11/2026, 10:03:30] Peter Hallam: I only accept payment by Western Union or gift cards, it is the fastest for international transfers.\n"
+      "file_url": null,
+      "extracted_text": "[10/11/2026, 09:15:03] Jamie: Hello, I saw your advert for the flat on Harcourt Terrace. Is it still free?\n[10/11/2026, 09:40:21] Peter Hallam: Good morning Jamie. Yes, it is free. I am an engineer on an offshore project in Dubai so I cannot show it myself.\n[10/11/2026, 09:41:05] Peter Hallam: My agent will give you the keys once the first month and the deposit are paid.\n[10/11/2026, 09:44:18] Jamie: Could a friend of mine see it first?\n[10/11/2026, 10:02:47] Peter Hallam: That is not possible, the flat is being cleaned. Many people are interested so please decide quickly.\n[10/11/2026, 10:03:30] Peter Hallam: I only accept payment by Western Union or gift cards, it is the fastest for international transfers.\n",
+      "note": null
     }
   ],
   "messages": [
@@ -80,5 +88,6 @@
   "checks": [],
   "actions": [],
   "reports": {},
-  "score_history": []
+  "score_history": [],
+  "decision": null
 }

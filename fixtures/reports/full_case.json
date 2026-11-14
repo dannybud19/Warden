@@ -4,19 +4,25 @@
   "status": "decided",
   "student": {
     "budget_pcm": 1100,
+    "move_in_date": null,
     "university": "Imperial College London",
     "notes": "Need somewhere before term starts, running out of options"
   },
   "listing": {
+    "url": null,
     "platform": "SpareRoom",
     "address": "Flat 3, 12 Elm Road, London W12 8QT",
     "postcode": "W12 8QT",
     "rent_pcm": 850,
-    "deposit": 1700
+    "deposit": 1700,
+    "description": null
   },
   "landlord": {
     "name": "Mark Evans",
-    "company_name": "Prime City Lettings Ltd"
+    "company_name": "Prime City Lettings Ltd",
+    "company_number": null,
+    "email": null,
+    "phone": null
   },
   "evidence": [
     {
@@ -24,7 +30,9 @@
       "kind": "chat_export",
       "uploaded_at": "2026-11-14T15:01:00Z",
       "filename": "WhatsApp Chat.txt",
-      "extracted_text": "[12/11/2026, 18:02:11] Sam: Hi Mark, I'm interested in Flat 3, 12 Elm Road, London W12 8QT. Is it still available?\n[12/11/2026, 18:05:40] Mark Evans: Hello Sam, yes it is available from 1 December. £850 pcm, bills included.\n[12/11/2026, 18:06:02] Sam: Great. Could I come for a viewing this weekend?\n[12/11/2026, 18:09:15] Mark Evans: I'm working abroad at the moment so viewings aren't possible, but I can send a video.\n[12/11/2026, 18:09:50] Mark Evans: My colleague will hand over the keys once everything is paid.\n[12/11/2026, 18:12:30] Sam: I'd really like to see it first. Is that OK?\n[12/11/2026, 18:14:02] Mark Evans: Three other students want it. Send the deposit today to hold it.\n[12/11/2026, 18:14:30] Mark Evans: Bank transfer to Prime City Lettings Ltd, sort code 12-34-56, account 00001234.\n"
+      "file_url": null,
+      "extracted_text": "[12/11/2026, 18:02:11] Sam: Hi Mark, I'm interested in Flat 3, 12 Elm Road, London W12 8QT. Is it still available?\n[12/11/2026, 18:05:40] Mark Evans: Hello Sam, yes it is available from 1 December. £850 pcm, bills included.\n[12/11/2026, 18:06:02] Sam: Great. Could I come for a viewing this weekend?\n[12/11/2026, 18:09:15] Mark Evans: I'm working abroad at the moment so viewings aren't possible, but I can send a video.\n[12/11/2026, 18:09:50] Mark Evans: My colleague will hand over the keys once everything is paid.\n[12/11/2026, 18:12:30] Sam: I'd really like to see it first. Is that OK?\n[12/11/2026, 18:14:02] Mark Evans: Three other students want it. Send the deposit today to hold it.\n[12/11/2026, 18:14:30] Mark Evans: Bank transfer to Prime City Lettings Ltd, sort code 12-34-56, account 00001234.\n",
+      "note": null
     }
   ],
   "messages": [
@@ -114,7 +122,8 @@
       "id": "right_to_let",
       "state": "unverified",
       "clear_confidence": 0.0,
-      "finding_ids": []
+      "finding_ids": [],
+      "reason": null
     },
     {
       "id": "in_person_viewing",
@@ -129,7 +138,8 @@
       "id": "contract_consistency",
       "state": "unverified",
       "clear_confidence": 0.0,
-      "finding_ids": []
+      "finding_ids": [],
+      "reason": null
     },
     {
       "id": "deposit_protection",
@@ -151,7 +161,8 @@
       "id": "fair_price",
       "state": "unverified",
       "clear_confidence": 0.0,
-      "finding_ids": []
+      "finding_ids": [],
+      "reason": null
     }
   ],
   "actions": [
@@ -228,6 +239,7 @@
       ],
       "facts": [],
       "questions": [],
+      "error": null,
       "duration_ms": 0
     },
     "message_checker": {
@@ -257,6 +269,7 @@
       ],
       "facts": [],
       "questions": [],
+      "error": null,
       "duration_ms": 0
     },
     "emotion_classifier": {
@@ -286,6 +299,7 @@
       ],
       "facts": [],
       "questions": [],
+      "error": null,
       "duration_ms": 0
     },
     "crosscheck": {
@@ -296,6 +310,7 @@
       "findings": [],
       "facts": [],
       "questions": [],
+      "error": null,
       "duration_ms": 0
     }
   },

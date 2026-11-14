@@ -4,19 +4,25 @@
   "status": "open",
   "student": {
     "budget_pcm": 1300,
-    "university": "Imperial College London"
+    "move_in_date": null,
+    "university": "Imperial College London",
+    "notes": null
   },
   "listing": {
+    "url": null,
     "platform": "Rightmove",
     "address": "Flat 5, 21 Mercer Street, London SE1 7LP",
     "postcode": "SE1 7LP",
     "rent_pcm": 1200,
-    "deposit": 1384
+    "deposit": 1384,
+    "description": null
   },
   "landlord": {
     "name": "Hannah Clarke",
     "company_name": "Larkfield & Co Lettings Ltd",
-    "company_number": "09123456"
+    "company_number": "09123456",
+    "email": null,
+    "phone": null
   },
   "evidence": [
     {
@@ -24,14 +30,18 @@
       "kind": "chat_export",
       "uploaded_at": "2026-11-14T15:01:00Z",
       "filename": "WhatsApp Chat.txt",
-      "extracted_text": "[05/11/2026, 11:02:10] Alex: Hi, I'd like to book a viewing for Flat 5, 21 Mercer Street, London SE1 7LP please.\n[05/11/2026, 11:20:44] Larkfield Lettings: Hello Alex, we have slots on Saturday at 10:30 or 12:00. Our office is at 4 Bridge Road, you can ask for Hannah.\n[05/11/2026, 11:21:30] Alex: 10:30 works, thank you.\n[07/11/2026, 12:05:00] Larkfield Lettings: Thanks for coming today. If you'd like to go ahead, we take a holding deposit of one week's rent (£277) through our online portal.\n[07/11/2026, 12:06:12] Larkfield Lettings: The tenancy deposit of £1,384 is registered with the TDS and you will receive the certificate within 30 days.\n[07/11/2026, 12:10:45] Alex: Great, I'll think about it over the weekend and let you know.\n[07/11/2026, 12:11:20] Larkfield Lettings: No rush, the flat is on the market until the end of the month.\n"
+      "file_url": null,
+      "extracted_text": "[05/11/2026, 11:02:10] Alex: Hi, I'd like to book a viewing for Flat 5, 21 Mercer Street, London SE1 7LP please.\n[05/11/2026, 11:20:44] Larkfield Lettings: Hello Alex, we have slots on Saturday at 10:30 or 12:00. Our office is at 4 Bridge Road, you can ask for Hannah.\n[05/11/2026, 11:21:30] Alex: 10:30 works, thank you.\n[07/11/2026, 12:05:00] Larkfield Lettings: Thanks for coming today. If you'd like to go ahead, we take a holding deposit of one week's rent (£277) through our online portal.\n[07/11/2026, 12:06:12] Larkfield Lettings: The tenancy deposit of £1,384 is registered with the TDS and you will receive the certificate within 30 days.\n[07/11/2026, 12:10:45] Alex: Great, I'll think about it over the weekend and let you know.\n[07/11/2026, 12:11:20] Larkfield Lettings: No rush, the flat is on the market until the end of the month.\n",
+      "note": null
     },
     {
       "id": "ev_contract",
       "kind": "contract",
       "uploaded_at": "2026-11-14T15:05:00Z",
       "filename": "tenancy_agreement.pdf",
-      "extracted_text": "ASSURED SHORTHOLD TENANCY AGREEMENT\n\nLandlord: Larkfield & Co Lettings Ltd (Company No. 09123456), acting as agent\nTenant: Alex\nProperty: Flat 5, 21 Mercer Street, London SE1 7LP\nRent: £1,200 per calendar month\nDeposit: £1,384, protected with the Tenancy Deposit Scheme (TDS) within 30 days\nTerm: 12 months from 1 December 2026\n\nNo fees are payable other than rent, the deposit and permitted default fees under the\nTenant Fees Act 2019.\n"
+      "file_url": null,
+      "extracted_text": "ASSURED SHORTHOLD TENANCY AGREEMENT\n\nLandlord: Larkfield & Co Lettings Ltd (Company No. 09123456), acting as agent\nTenant: Alex\nProperty: Flat 5, 21 Mercer Street, London SE1 7LP\nRent: £1,200 per calendar month\nDeposit: £1,384, protected with the Tenancy Deposit Scheme (TDS) within 30 days\nTerm: 12 months from 1 December 2026\n\nNo fees are payable other than rent, the deposit and permitted default fees under the\nTenant Fees Act 2019.\n",
+      "note": null
     }
   ],
   "messages": [
@@ -95,5 +105,6 @@
   "checks": [],
   "actions": [],
   "reports": {},
-  "score_history": []
+  "score_history": [],
+  "decision": null
 }
