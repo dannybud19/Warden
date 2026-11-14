@@ -16,7 +16,9 @@ Labels:
 Rules:
 - about_this_company is true only if the snippet names this company (or its number) and nothing in it
   points to a different company.
-- quote must be copied character for character from the snippet, at most 200 characters, and must be the
-  part that justifies the label. If you cannot quote, set keep to false.
-- keep is true only for scam_report or negative_review with about_this_company true.
+- quote must be copied character for character from the snippet, at most 120 characters, and must be the
+  part that justifies the label. If you cannot quote, leave the snippet out.
+- Return ONLY the snippets you keep: label scam_report or negative_review with about_this_company true
+  and keep true. Leave out every irrelevant and different_company snippet entirely; if you keep none,
+  return {"items": []}. Keep the reply short.
 - Return JSON only: {"items": [{"index": 0, "keep": true, "label": "scam_report", "about_this_company": true, "quote": "..."}]}

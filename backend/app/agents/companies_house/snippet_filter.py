@@ -4,6 +4,7 @@ The LLM only classifies snippets; it never scores and never gives a verdict. Eve
 re-checked in code against the full snippet text (golden rule 6).
 """
 
+import asyncio
 import re
 from functools import cache
 from pathlib import Path
@@ -12,10 +13,12 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.agents.companies_house.constants import (
-    FALLBACK_KEYWORDS,
+    LLM_QUOTE_CHARS,
     MAX_QUOTE_CHARS,
     MAX_SNIPPETS_TO_FILTER,
     SNIPPET_PROMPT_CHARS,
+    SNIPPETS_PER_LLM_CALL,
+    STRONG_SCAM_WORDS,
 )
 from app.agents.companies_house.evidence import clip_around
 from app.agents.companies_house.models import FilterContext, KeptSnippet, Snippet
@@ -103,7 +106,7 @@ def _keep_from_verdicts(snippets: list[Snippet], batch: SnippetBatch) -> list[Ke
             continue
         snippet = snippets[verdict.index]
         quote = verdict.quote
-        if not quote.strip() or len(quote) > MAX_QUOTE_CHARS or quote not in snippet.content:
+        if not quote.strip() or len(quote) > LLM_QUOTE_CHARS or quote not in snippet.content:
             continue
         done.add(verdict.index)
         kept.append(KeptSnippet(snippet=snippet, label=verdict.label, quote=quote, via_llm=True))
@@ -130,50 +133,65 @@ def _names_subject(content: str, context: FilterContext) -> bool:
     return bool(number) and number.lower() in content.lower()
 
 
-def _sentence_with(content: str, keyword: str) -> str | None:
-    """The sentence of `content` holding `keyword`, verbatim and clipped to the quote limit."""
-    index = content.lower().find(keyword)
-    if index == -1:
-        return None
-    start = max(content.rfind(c, 0, index) for c in _SENTENCE_BREAKS) + 1
-    ends = [e for e in (content.find(c, index) for c in _SENTENCE_BREAKS) if e != -1]
-    end = min(ends) + 1 if ends else len(content)
-    sentence = content[start:end].strip()
-    if len(sentence) > MAX_QUOTE_CHARS:
-        return clip_around(sentence, keyword)
-    return sentence or None
+_STRONG_RE = re.compile(
+    r"\b(?:" + "|".join(re.escape(w) for w in STRONG_SCAM_WORDS) + r")\b", re.IGNORECASE
+)
+
+
+def _sentences(content: str) -> list[str]:
+    """Sentences of `content`, each a verbatim substring (split on . ! ? and newlines)."""
+    return [p.strip() for p in re.split(r"(?<=[.!?])\s+|\n+", content) if p.strip()]
 
 
 def keyword_fallback(snippets: list[Snippet], context: FilterContext) -> list[KeptSnippet]:
-    """Keep a snippet only if it names the subject AND holds a scam keyword (plan 6.2)."""
+    """Keep a snippet only when ONE sentence holds a strong scam word AND names the subject.
+
+    Fallback hits are labelled negative_review (never scam_report: only the LLM may say that).
+    """
     kept: list[KeptSnippet] = []
     for snippet in snippets:
-        if not _names_subject(snippet.content, context):
-            continue
-        lowered = snippet.content.lower()
-        keyword = next((k for k in FALLBACK_KEYWORDS if k in lowered), None)
-        if keyword is None:
-            continue
-        quote = _sentence_with(snippet.content, keyword)
-        if quote and quote in snippet.content:
-            kept.append(
-                KeptSnippet(snippet=snippet, label="scam_report", quote=quote, via_llm=False)
-            )
+        for sentence in _sentences(snippet.content):
+            found = _STRONG_RE.search(sentence)
+            if not found:
+                continue
+            quote = sentence
+            if len(quote) > MAX_QUOTE_CHARS:
+                quote = clip_around(sentence, found.group(0)) or ""
+            if quote and quote in snippet.content and _names_subject(quote, context):
+                kept.append(
+                    KeptSnippet(
+                        snippet=snippet, label="negative_review", quote=quote, via_llm=False
+                    )
+                )
+                break
     return kept
+
+
+async def _filter_batch(
+    ctx: AgentContext, batch_in: list[Snippet], context: FilterContext
+) -> list[KeptSnippet]:
+    """One LLM call for one batch; only this batch falls back to keywords if the call fails."""
+    try:
+        batch = await ctx.llm.complete_json(
+            build_system_prompt(context), build_user_message(batch_in), SnippetBatch
+        )
+    except Exception as exc:  # noqa: BLE001 - any LLM failure (incl. truncated JSON) -> keywords
+        ctx.log.warning("companies_house: snippet filter LLM failed (%r), using keywords", exc)
+        return keyword_fallback(batch_in, context)
+    return _keep_from_verdicts(batch_in, batch)
 
 
 async def filter_snippets(
     ctx: AgentContext, snippets: list[Snippet], context: FilterContext
 ) -> list[KeptSnippet]:
-    """Keep only scam reports and negative reviews that are about this subject."""
-    batch_in = snippets[:MAX_SNIPPETS_TO_FILTER]
-    if not batch_in:
-        return []
-    try:
-        batch = await ctx.llm.complete_json(
-            build_system_prompt(context), build_user_message(batch_in), SnippetBatch
-        )
-    except Exception as exc:  # noqa: BLE001 - any LLM failure falls back to keywords
-        ctx.log.warning("companies_house: snippet filter LLM failed (%r), using keywords", exc)
-        return keyword_fallback(batch_in, context)
-    return _keep_from_verdicts(batch_in, batch)
+    """Keep only scam reports and negative reviews about this subject.
+
+    Snippets go to the LLM in batches of 12 (a longer reply can overrun the token cap and arrive
+    as broken JSON); at most 20 in total.
+    """
+    capped = snippets[:MAX_SNIPPETS_TO_FILTER]
+    batches = [
+        capped[i : i + SNIPPETS_PER_LLM_CALL] for i in range(0, len(capped), SNIPPETS_PER_LLM_CALL)
+    ]
+    results = await asyncio.gather(*(_filter_batch(ctx, b, context) for b in batches))
+    return [item for batch in results for item in batch]

@@ -77,9 +77,11 @@ NAME_SUFFIXES: Final = frozenset({"limited", "ltd", "llp", "plc", "lp", "uk", "c
 PERSON_TITLES: Final = frozenset({"mr", "mrs", "ms", "miss", "dr"})
 
 # --- reputation -----------------------------------------------------------------------------
-MAX_SNIPPETS_TO_FILTER: Final = 20
+MAX_SNIPPETS_TO_FILTER: Final = 20  # in total per run
+SNIPPETS_PER_LLM_CALL: Final = 12  # a 20-item reply overran the 2048-token cap in a live run
 SNIPPET_PROMPT_CHARS: Final = 600
 MAX_QUOTE_CHARS: Final = 200
+LLM_QUOTE_CHARS: Final = 120  # quotes the snippet-filter LLM may return (keeps its reply short)
 MAX_FINDINGS_PER_KIND: Final = 3
 QUERY_SCAM: Final = '"{name}" letting agent scam OR fraud OR deposit London'
 QUERY_REVIEWS: Final = '"{name}" reviews Google Trustpilot allAgents'
@@ -89,16 +91,17 @@ QUERY_ROGUE_FALLBACK: Final = '"{name}" site:london.gov.uk rogue landlords check
 QUERY_PHONE: Final = '"{phone}" scam'
 REDRESS_DOMAINS: Final = frozenset({"theprs.co.uk", "tpos.co.uk"})
 CMP_DOMAINS: Final = frozenset({"propertymark.co.uk", "safeagent.co.uk", "ukala.org.uk"})
-FALLBACK_KEYWORDS: Final = (
+# Keyword fallback (LLM down): only unambiguous scam language counts. "deposit", "wire" and
+# "fake" on their own describe ordinary disputes and generic advice, so they do not qualify.
+STRONG_SCAM_WORDS: Final = (
     "scam",
+    "scammed",
     "fraud",
-    "fake",
-    "deposit",
-    "stole",
-    "never returned",
-    "no viewing",
-    "wire",
-    "bank transfer",
+    "fraudulent",
+    "fake listing",
+    "conned",
+    "never existed",
+    "took my money and disappeared",
 )
 ROGUE_NAME_MATCH_MIN: Final = 95
 
@@ -153,7 +156,7 @@ CONF: Final = {
     "virtual-office": 0.5,
     "webmail": 0.5,
     "scam-report": 0.75,
-    "scam-report-fallback": 0.5,  # below 0.6: with the LLM down it shows but cannot flip the check
+    "negative-review-fallback": 0.5,  # below 0.6: with the LLM down it shows, cannot flip the check
     "negative-review": 0.6,
     "rogue-checker": 0.9,
     "rogue-checker-name": 0.6,

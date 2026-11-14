@@ -284,25 +284,34 @@ async def test_at_most_three_findings_per_kind(make_ctx, genuine_flat_case) -> N
     }
 
 
-async def test_llm_down_uses_keyword_fallback_with_lower_confidence(
+async def test_llm_down_fallback_shows_a_medium_negative_review_below_the_flip_threshold(
     make_ctx, genuine_flat_case
 ) -> None:
     class RaisingLLM(FakeLLM):
         async def complete_json(self, system, user, schema, *, model=None):  # type: ignore[override]
-            raise RuntimeError("model unavailable")
+            raise RuntimeError("EOF while parsing a list")
 
-    search = FakeSearch({"scam OR fraud": results("linkup_scam.json")})
+    scam = SearchResult(
+        title="Forum",
+        url="https://forum.example.org/prime-city",
+        snippet="Prime City Lettings Ltd is a scam, they took my deposit and vanished.",
+    )
+    dispute = SearchResult(
+        title="Money saving forum",
+        url="https://forum.example.org/deposit",
+        snippet="Prime City Lettings Ltd: my deposit money had not been returned.",
+    )
+    search = FakeSearch({"scam OR fraud": [scam, dispute]})
     result = await run_rep(
         make_ctx, genuine_flat_case, make_company(), search=search, llm=RaisingLLM()
     )
-    findings = by_prefix(result, "scam-report-")
-    # 0.5 (App. D, Danny's decision): shown, but below the 0.6 flip threshold on its own.
-    assert findings and all(f.confidence == 0.5 and f.confidence < 0.6 for f in findings)
-    assert all(
-        quote_of(f) in results("linkup_scam.json")[0].snippet
-        or quote_of(f) in results("linkup_scam.json")[1].snippet
-        for f in findings
-    )
+    assert by_prefix(result, "scam-report-") == []  # only the LLM may call something a scam report
+    [finding] = by_prefix(result, "negative-review-")  # the ordinary deposit dispute is not kept
+    assert finding.title == "A public post mentions a problem with PRIME CITY LETTINGS LTD"
+    assert finding.severity == "medium"
+    # 0.5 (Danny's decision): shown, but below the 0.6 flip threshold on its own.
+    assert finding.confidence == 0.5 and finding.confidence < 0.6
+    assert quote_of(finding) == scam.snippet and "Source: " + scam.url in finding.detail
 
 
 async def test_one_failed_search_is_reported_not_treated_as_empty(

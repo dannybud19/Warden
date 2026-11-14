@@ -5,7 +5,12 @@ from typing import Any
 
 import pytest
 
-from app.agents.companies_house.constants import FALLBACK_KEYWORDS, MAX_SNIPPETS_TO_FILTER
+from app.agents.companies_house.constants import (
+    LLM_QUOTE_CHARS,
+    MAX_SNIPPETS_TO_FILTER,
+    SNIPPETS_PER_LLM_CALL,
+    STRONG_SCAM_WORDS,
+)
 from app.agents.companies_house.models import FilterContext, Snippet
 from app.agents.companies_house.snippet_filter import (
     SnippetBatch,
@@ -141,58 +146,144 @@ async def test_empty_input_makes_no_llm_call(make_ctx) -> None:
     assert llm.calls == []
 
 
-async def test_at_most_max_snippets_are_sent(make_ctx) -> None:
+async def test_at_most_twenty_snippets_are_sent_in_total(make_ctx) -> None:
     llm = llm_with()
     await run_filter(make_ctx, llm, [SCAM_TEXT] * (MAX_SNIPPETS_TO_FILTER + 5))
-    assert llm.calls[0]["user"].count("\n[") + 1 == MAX_SNIPPETS_TO_FILTER
+    sent = sum(c["user"].count("\n[") + 1 for c in llm.calls)
+    assert sent == MAX_SNIPPETS_TO_FILTER
 
 
-async def test_llm_error_falls_back_to_keywords(make_ctx) -> None:
-    kept = await run_filter(
-        make_ctx, RaisingLLM(), [SCAM_TEXT, NEUTRAL_TEXT, "Unrelated fraud story."]
-    )
-    # Only the snippet naming the company AND a keyword survives.
-    assert [k.snippet.index for k in kept] == [0]
+async def test_no_call_carries_more_than_twelve_snippets(make_ctx) -> None:
+    llm = llm_with()
+    await run_filter(make_ctx, llm, [SCAM_TEXT] * 12)
+    assert len(llm.calls) == 1 and llm.calls[0]["user"].count("\n[") + 1 == 12
+
+
+async def test_thirteen_snippets_make_two_calls_and_the_rest_go_in_the_second(make_ctx) -> None:
+    texts = [SCAM_TEXT] * 12 + ["Prime City Lettings Ltd: sadly the deposit was never returned."]
+    llm = llm_with(verdict(0, "scam_report", "deposit was never returned"))
+    kept = await run_filter(make_ctx, llm, texts)
+    assert len(llm.calls) == 2
+    assert llm.calls[0]["user"].count("\n[") + 1 == SNIPPETS_PER_LLM_CALL
+    assert llm.calls[1]["user"].count("\n[") + 1 == 1
+    assert "[0] Title 12 |" in llm.calls[1]["user"]  # indexes restart for each call
+    # The FakeLLM answers both calls the same way: index 0 of the first and of the second batch.
+    assert sorted(k.snippet.index for k in kept) == [0, 12]
+    assert all(k.via_llm for k in kept)
+
+
+async def test_a_failed_second_call_only_falls_back_for_its_own_batch(make_ctx) -> None:
+    class SecondFails(FakeLLM):
+        async def complete_json(self, system, user, schema, *, model=None):  # type: ignore[override]
+            self.calls.append({"system": system, "user": user, "model": model})
+            if len(self.calls) == 2:
+                raise RuntimeError("EOF while parsing a list")
+            return SnippetBatch.model_validate(
+                {"items": [verdict(0, "scam_report", "The deposit was never returned")]}
+            )
+
+    texts = [SCAM_TEXT] * 12 + ["Prime City Lettings Ltd is a scam, they took my money."]
+    kept = await run_filter(make_ctx, SecondFails(), texts)
+    by_index = {k.snippet.index: k for k in kept}
+    assert by_index[0].via_llm is True and by_index[0].label == "scam_report"
+    assert by_index[12].via_llm is False and by_index[12].label == "negative_review"
+
+
+async def test_llm_quote_over_120_chars_is_dropped(make_ctx) -> None:
+    long_quote = "The deposit was never returned" + "!" * 100
+    text = SCAM_TEXT.replace("The deposit was never returned", long_quote)
+    assert len(long_quote) > LLM_QUOTE_CHARS and long_quote in text
+    assert await run_filter(make_ctx, llm_with(verdict(0, "scam_report", long_quote)), [text]) == []
+
+
+MSE_TEXT = (
+    "Prime City Lettings Ltd said my deposit money had not been returned after 3 months. "
+    "I have been chasing them by email since January."
+)
+LAW_BLOG = (
+    "Rental scams are rising across London. Prime City Lettings Ltd is one of many agents "
+    "operating in the capital."
+)
+FOXTONS = FilterContext(
+    registered_name="FOXTONS LIMITED", company_number="01836619", supplied_name="Foxtons"
+)
+FOXTONS_SCAM = "Foxtons is a scam, they took my deposit and vanished."
+
+
+async def test_llm_error_falls_back_to_keywords_and_labels_hits_negative_review(make_ctx) -> None:
+    text = "Avoid Prime City Lettings Ltd, it is a scam and they ignore emails."
+    kept = await run_filter(make_ctx, RaisingLLM(), [text, NEUTRAL_TEXT, "Unrelated fraud story."])
+    assert [k.snippet.index for k in kept] == [
+        0
+    ]  # only the snippet naming the company + a scam word
     assert kept[0].via_llm is False
-    assert kept[0].label == "scam_report"
-    assert kept[0].quote in SCAM_TEXT
-    assert "deposit" in kept[0].quote.lower()
-    assert len(kept[0].quote) <= 200
+    assert kept[0].label == "negative_review"  # never scam_report: only the LLM may say that
+    assert kept[0].quote == "Avoid Prime City Lettings Ltd, it is a scam and they ignore emails."
 
 
-async def test_fallback_quote_is_the_sentence_with_the_keyword(make_ctx) -> None:
-    text = "Great location. Prime City Lettings Ltd took my money by bank transfer. Nice flat."
-    kept = await run_filter(make_ctx, RaisingLLM(), [text])
-    assert kept[0].quote == "Prime City Lettings Ltd took my money by bank transfer."
+async def test_fallback_does_not_flag_an_ordinary_deposit_dispute(make_ctx) -> None:
+    assert await run_filter(make_ctx, RaisingLLM(), [MSE_TEXT]) == []
+    assert await run_filter(make_ctx, RaisingLLM(), [SCAM_TEXT]) == []  # deposit never returned
 
 
-async def test_fallback_matches_on_company_number(make_ctx) -> None:
+async def test_fallback_does_not_flag_a_generic_law_blog_sentence(make_ctx) -> None:
+    # The company is named in the snippet, but not in the sentence that holds the scam word.
+    assert await run_filter(make_ctx, RaisingLLM(), [LAW_BLOG]) == []
+
+
+async def test_fallback_keeps_foxtons_is_a_scam_they_took_my_deposit_and_vanished(make_ctx) -> None:
+    kept = await run_filter(make_ctx, RaisingLLM(), [FOXTONS_SCAM], FOXTONS)
+    assert len(kept) == 1 and kept[0].quote == FOXTONS_SCAM
+    assert kept[0].label == "negative_review" and kept[0].via_llm is False
+
+
+@pytest.mark.parametrize("word", STRONG_SCAM_WORDS)
+async def test_every_strong_scam_word_qualifies_in_the_fallback(make_ctx, word: str) -> None:
+    text = f"Prime City Lettings Ltd: {word} says one reader."
+    assert len(await run_filter(make_ctx, RaisingLLM(), [text])) == 1
+
+
+@pytest.mark.parametrize("weak", ["deposit", "wire", "fake", "bank transfer", "never returned"])
+async def test_deposit_wire_and_fake_alone_do_not_qualify(make_ctx, weak: str) -> None:
+    text = f"Prime City Lettings Ltd and the {weak} for my flat."
+    assert await run_filter(make_ctx, RaisingLLM(), [text]) == []
+
+
+async def test_fallback_matches_on_company_number_in_the_same_sentence(make_ctx) -> None:
     text = "Company 10452757 was reported for a fake listing."
     kept = await run_filter(make_ctx, RaisingLLM(), [text])
     assert len(kept) == 1 and kept[0].quote == text
 
 
-async def test_fallback_needs_a_keyword(make_ctx) -> None:
-    assert await run_filter(make_ctx, RaisingLLM(), [NEUTRAL_TEXT]) == []
-    assert "scam" in FALLBACK_KEYWORDS
-
-
-async def test_fallback_clips_a_long_sentence_to_200_chars(make_ctx) -> None:
-    text = "Prime City Lettings Ltd " + "went on and on " * 30 + "and then the scam happened"
+async def test_fallback_clips_a_long_sentence_to_200_chars_keeping_the_company_name(
+    make_ctx,
+) -> None:
+    text = "Prime City Lettings Ltd is a scam " + "and it went on and on " * 30
     kept = await run_filter(make_ctx, RaisingLLM(), [text])
     assert len(kept) == 1
-    assert len(kept[0].quote) <= 200 and kept[0].quote in text
+    assert len(kept[0].quote) <= 200 and kept[0].quote in text and "Prime City" in kept[0].quote
+
+
+async def test_fallback_drops_a_clipped_quote_that_lost_the_company_name(make_ctx) -> None:
+    text = "Prime City Lettings Ltd " + "went on and on " * 30 + "and then the scam happened"
+    assert await run_filter(make_ctx, RaisingLLM(), [text]) == []
 
 
 async def test_invalid_json_falls_back_to_keywords(make_ctx) -> None:
     llm = FakeLLM(default="this is not json")
-    kept = await run_filter(make_ctx, llm, [SCAM_TEXT])
+    kept = await run_filter(make_ctx, llm, [FOXTONS_SCAM], FOXTONS)
     assert len(kept) == 1 and kept[0].via_llm is False
 
 
 async def test_json_of_the_wrong_shape_falls_back_to_keywords(make_ctx) -> None:
     llm = FakeLLM(default='{"results": []}')
-    kept = await run_filter(make_ctx, llm, [SCAM_TEXT])
+    kept = await run_filter(make_ctx, llm, [FOXTONS_SCAM], FOXTONS)
+    assert len(kept) == 1 and kept[0].via_llm is False
+
+
+async def test_truncated_json_falls_back_to_keywords(make_ctx) -> None:
+    llm = FakeLLM(default='{"items": [{"index": 0, "keep": true, "label": "scam_rep')
+    kept = await run_filter(make_ctx, llm, [FOXTONS_SCAM], FOXTONS)
     assert len(kept) == 1 and kept[0].via_llm is False
 
 
@@ -206,6 +297,13 @@ def test_company_prompt_fills_placeholders_and_keeps_json_braces() -> None:
     assert 'told the name "Prime City Lettings"' in prompt
     assert '{"items": [{"index": 0, "keep": true' in prompt
     assert "{registered_name}" not in prompt and "{supplied_name}" not in prompt
+
+
+def test_prompt_asks_for_only_kept_items_and_120_char_quotes() -> None:
+    prompt = build_system_prompt(CONTEXT)
+    assert "Return ONLY the snippets you keep" in prompt
+    assert "Leave out every irrelevant and different_company snippet" in prompt
+    assert "at most 120 characters" in prompt and "at most 200" not in prompt
 
 
 def test_user_message_truncates_content_to_600_chars() -> None:
@@ -245,12 +343,15 @@ async def test_phone_subject_uses_the_phone_prompt(make_ctx) -> None:
     assert "THIS phone number: 07911123456" in llm.calls[0]["system"]
 
 
-async def test_phone_fallback_needs_the_digits_and_a_keyword(make_ctx) -> None:
+async def test_phone_fallback_needs_the_digits_and_a_strong_word_in_the_same_sentence(
+    make_ctx,
+) -> None:
     texts = [
         PHONE_SCAM,
-        "Call 07911 123456 to book a viewing.",  # number, no keyword
-        "A scam call from 07700 900123 stole my deposit.",  # keyword, other number
+        "Call 07911 123456 to book a viewing.",  # number, no strong word
+        "A scam call from 07700 900123 stole my deposit.",  # strong word, other number
         "Reported from +44 7911 123456: fraud attempt.",  # international form
+        "Fraud is common. The number 07911 123456 is on a list.",  # words in different sentences
     ]
     kept = await run_filter(make_ctx, RaisingLLM(), texts, PHONE_CONTEXT)
     assert [k.snippet.index for k in kept] == [0, 3]

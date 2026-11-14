@@ -22,7 +22,7 @@ confidence 0.6 or more flips `landlord_identity`, and a clear's confidence lower
 | register | `ambiguous-match`, `young-company` (< 12 months), `officer-mismatch` (confidence 0.5, never flips the check), `dormant`, `insolvency-history`, `strike-off-proposed` | Companies House API | medium |
 | register | `overdue-filings`, `non-property-sic`, `virtual-office` | Companies House API | low |
 | register | `registered-active`: active, 24+ months old, name matches, filings current, not dormant (cleared, confidence 0.6) | Companies House API | low |
-| reputation | `scam-report-*`, `negative-review-*` (max 3 each, kept by an LLM snippet filter; confidence 0.75, or 0.5 from the keyword fallback when the LLM is down, so a fallback hit shows but cannot flip the check alone) | Linkup web search | high / medium |
+| reputation | `scam-report-*`, `negative-review-*` (max 3 each, kept by an LLM snippet filter; confidence 0.75 and 0.6. With the LLM down, a keyword fallback instead shows a medium `negative-review` titled "A public post mentions a problem with ..." at confidence 0.5, so it cannot flip the check alone; it needs a strong scam word (scam, fraud, conned ...) in the same sentence as the company name or number) | Linkup web search | high / medium |
 | reputation | `rogue-checker` (company number match), `rogue-checker-name` (record with no number, name match 95+) | London Rogue Landlord and Agent Checker, Linkup fallback | high / medium |
 | reputation | `redress-member`, `cmp-member` (cleared, confidence 0.5) | Linkup, on theprs.co.uk, tpos.co.uk, propertymark.co.uk, safeagent.co.uk, ukala.org.uk | low |
 | contact | `webmail`, `lookalike-domain` (imitates Rightmove, Zoopla ...), `new-domain` (< 90 days), `phone-scam-*` | landlord email/phone, RDAP, Linkup | low / high / medium / high |
@@ -50,7 +50,7 @@ Facts emitted: `company_number` (zero-padded) and `email_domain` only.
 | --- | --- |
 | `COMPANIES_HOUSE_API_KEY` | register (required in real mode) |
 | `LINKUP_API_KEY` | reputation and phone checks (a missing key shows as a "could not run" note) |
-| `ANTHROPIC_API_KEY` | the snippet filter (falls back to keywords if the LLM fails) |
+| `ANTHROPIC_API_KEY` | the snippet filter (batches of 12 snippets per call; keyword fallback if a call fails) |
 | `AGENT_MODE_COMPANIES_HOUSE=real` | switch this agent from stub to real in the full app |
 
 ## Run it alone

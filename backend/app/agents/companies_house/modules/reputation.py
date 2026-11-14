@@ -495,12 +495,12 @@ def _snippet_findings(kept: list[KeptSnippet], name: str) -> list[Finding]:
                         "post, so compare it with what you were told."
                     ),
                     severity=Severity.HIGH,
-                    confidence=CONF["scam-report" if item.via_llm else "scam-report-fallback"],
+                    confidence=CONF["scam-report"],
                     evidence=evidence,
                     sources=[item.snippet.url],
                 )
             )
-        else:
+        elif item.via_llm:
             findings.append(
                 make_finding(
                     f"negative-review-{slug_hash}",
@@ -511,6 +511,21 @@ def _snippet_findings(kept: list[KeptSnippet], name: str) -> list[Finding]:
                     ),
                     severity=Severity.MEDIUM,
                     confidence=CONF["negative-review"],
+                    evidence=evidence,
+                    sources=[item.snippet.url],
+                )
+            )
+        else:  # keyword fallback (LLM down): shown, but below the 0.6 flip threshold
+            findings.append(
+                make_finding(
+                    f"negative-review-{slug_hash}",
+                    title=f"A public post mentions a problem with {name}",
+                    detail=(
+                        f'A public post says: "{item.quote}". It was picked out by a keyword '
+                        "match, so check it is about the same company before relying on it."
+                    ),
+                    severity=Severity.MEDIUM,
+                    confidence=CONF["negative-review-fallback"],
                     evidence=evidence,
                     sources=[item.snippet.url],
                 )
