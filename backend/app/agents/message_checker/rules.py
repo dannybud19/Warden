@@ -141,9 +141,15 @@ _NO_PAYMENT_YET = re.compile(
     r"\bno (?:payment|deposit|money)\b.{0,20}\b(?:needed|required|yet)\b",
     _I,
 )
-_SORT_CODE = re.compile(r"\b(\d{2})[- ](\d{2})[- ](\d{2})\b|\bsort ?code:? ?(\d{6})\b", _I)
-_ACCOUNT_NO = re.compile(r"(?<![\d-])(\d{8})(?![\d-])")
-_IBAN = re.compile(r"\b([A-Z]{2})\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b")
+# Each pattern also matches the masked form intake stores (app/intake/redact.py), since uploads
+# arrive masked: sort code "**-**-56", account "****1234", IBAN "DE** **** **** 3000".
+_SORT_CODE = re.compile(
+    r"\b(\d{2})[- ](\d{2})[- ](\d{2})\b|\bsort ?code:? ?(\d{6})\b|(?<![\w*])\*\*-\*\*-(\d{2})\b", _I
+)
+_ACCOUNT_NO = re.compile(r"(?<![\d-])(\d{8})(?![\d-])|(?<![\w*])\*{4}(\d{4})(?!\d)")
+_IBAN = re.compile(
+    r"\b([A-Z]{2})(?:\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b|\*\* \*{4} \*{4} \d{4}\b)"
+)
 _SWIFT = re.compile(r"\b(swift|bic)\b", _I)
 _HOLD_OR_KEYS = re.compile(r"\bto (?:hold|secure|reserve)\b|\bkeys?\b", _I)
 
@@ -340,11 +346,12 @@ def mask_bank(text: str) -> str | None:
         return f"IBAN {iban.group(1)}** ****{re.sub(r'\s', '', iban.group(0))[-4:]}"
     sort = _SORT_CODE.search(text)
     account = _ACCOUNT_NO.search(text)
+    last4 = (account.group(1) or account.group(2))[-4:] if account else ""
     if sort and account:
-        last2 = sort.group(3) or sort.group(4)[-2:]
-        return f"sort **-**-{last2}, account ****{account.group(1)[-4:]}"
+        last2 = sort.group(3) or sort.group(5) or sort.group(4)[-2:]
+        return f"sort **-**-{last2}, account ****{last4}"
     if account and re.search(r"\baccount\b", text, _I):
-        return f"account ****{account.group(1)[-4:]}"
+        return f"account ****{last4}"
     return None
 
 

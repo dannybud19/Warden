@@ -85,6 +85,26 @@ def test_personal_emoney_transfer_but_not_to_a_company() -> None:
     assert "personal_emoney_transfer" not in by_id(chat("a: It would be wise to decide soon."))
 
 
+def test_masked_bank_details_from_intake_still_count() -> None:
+    """Intake masks uploads, so the rules must read the masked forms the same way."""
+    raw = chat(
+        "s: Can I view it?",
+        "a: Send the deposit today to hold it.",
+        "a: Bank transfer to Prime Ltd, sort code 12-34-56, account 00001234.",
+    )
+    masked = chat(
+        "s: Can I view it?",
+        "a: Send the deposit today to hold it.",
+        "a: Bank transfer to Prime Ltd, sort code **-**-56, account ****1234.",
+    )
+    assert set(by_id(raw)) == set(by_id(masked))
+    facts = {f.key: f.value for f in rules.run_rules(masked).facts}
+    assert facts[FactKey.BANK_ACCOUNT] == "sort **-**-56, account ****1234"
+    overseas = chat("a: Transfer the deposit to IBAN ES** **** **** 1332.")
+    assert "overseas_bank_account" in by_id(overseas)
+    assert "overseas_bank_account" not in by_id(chat("a: Transfer to IBAN GB** **** **** 6819."))
+
+
 def test_overseas_bank_account() -> None:
     found = by_id(chat("a: Transfer the deposit to IBAN ES91 2100 0418 4502 0005 1332."))
     assert found["overseas_bank_account"].severity == "high"
