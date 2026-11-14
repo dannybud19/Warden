@@ -1,4 +1,4 @@
-# Warden (working name: Rental Scam Shield)
+# Warden
 
 A multi-agent assistant that protects Londoners from rental scams. The student uploads what the
 property agent sent them (chats, emails, calls, videos, documents, the contract). The case starts at
