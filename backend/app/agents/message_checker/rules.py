@@ -187,12 +187,24 @@ _POSE = re.compile(
     r"family member|cousin)\b|\bfriends (?:and|&) family\b|\bfamily (?:and|&) friends\b|\bF&F\b",
     _I,
 )
-_ABROAD = re.compile(
-    r"\b(?:abroad|overseas|offshore)\b|\b(?:out of|outside|not in) the (?:country|uk)\b|"
+# Being away is not a red flag on its own: many genuine landlords live abroad and use an agent.
+# `landlord_abroad` needs both _AWAY (or a key hand-off) and a sign that nobody will show the flat.
+_AWAY = re.compile(
+    r"\b(?:abroad|overseas|offshore)\b|\b(?:out of|outside|not in) the (?:country|uk)\b",
+    _I,
+)
+_KEYS_HANDOFF = re.compile(
     r"\b(?:courier|post|mail|dhl|fedex|ups)\b.{0,40}\bkeys?\b|"
     r"\bkeys?\b.{0,40}\b(?:courier|by post|mail|dhl|fedex|ups)\b|"
     r"\b(?:agent|colleague|friend|lawyer|solicitor|brother|sister|cousin)\b.{0,40}"
     r"\b(?:give|hand|deliver|send|pass)\b.{0,30}\bkeys?\b",
+    _I,
+)
+# someone else offers to show the property: the genuine way to handle being away
+_PROXY_VIEWING = re.compile(
+    r"\b(?:agent|colleague|friend|brother|sister|cousin|neighbour|neighbor|caretaker|"
+    r"property manager|letting agent|someone)\b.{0,40}"
+    r"\b(?:show you|show it|let you in|do (?:the|a) viewing|meet you|take you round)\b",
     _I,
 )
 _REFUSED = re.compile(
@@ -420,8 +432,13 @@ def run_rules(case: Case) -> RuleResult:
             spec = SPECS[spec_id]
             found.append(finding(spec, hits, confidence=confidence, hard_flag=hard_flag))
 
-    abroad = _hits(_ABROAD, agent)
+    away = _hits(_AWAY, agent)
+    handoff = _hits(_KEYS_HANDOFF, agent)
     refused = _refusal_hits(messages)
+    proxy = _hits(_PROXY_VIEWING, agent)
+    # away is a concern only when nobody will show the flat: a refusal, or keys only after payment
+    no_one_shows = (refused or handoff) and not proxy
+    abroad = [*handoff, *refused, *away] if (away or handoff) and no_one_shows else []
     done = viewing_done_index(messages)
 
     # payment before viewing: explicit (hard) when a viewing is ruled out or money buys the keys
@@ -431,7 +448,7 @@ def run_rules(case: Case) -> RuleResult:
         if m.sender == "agent" and is_payment_request(m) and (done is None or i < done)
     ]
     if requests:
-        explicit = bool(abroad or refused) or any(
+        explicit = bool(away or handoff or refused) or any(
             _HOLD_OR_KEYS.search(norm(m.text)) for m in requests
         )
         flag(

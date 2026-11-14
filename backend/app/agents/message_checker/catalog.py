@@ -128,9 +128,10 @@ _SPECS = [
         Category.PROPERTY,
         Severity.HIGH,
         0.8,
-        "Landlord says they are away and cannot meet",
-        "The agent says they are abroad or unavailable, or that someone else will pass on the "
-        "keys once you have paid. This is the classic reason given for not showing a property.",
+        "Away, and nobody will show you the property",
+        "Being abroad is not a problem on its own: genuine landlords who are away arrange a "
+        "viewing through an agent or friend. Here nobody will show you the property in person, "
+        "and the keys only come after you pay.",
     ),
     _flag(
         "viewing_refused",

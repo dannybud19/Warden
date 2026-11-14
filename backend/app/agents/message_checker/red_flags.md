@@ -26,7 +26,7 @@ with its exact quote, so reruns replace rather than duplicate.
 | `lookalike_link` | A URL whose host contains airbnb, spareroom, rightmove, zoopla, openrent or booking but whose registered domain is not the real one | payment_safety | payment | high | 0.85 | No |
 | `overpayment_refund` | Overpaid, refund the difference, send back the balance, pay more and I will return it | payment_safety | payment | critical | 0.85 | No |
 | `pose_as_buyer` | Asked to say they are a buyer, friend or relative, or to pay as "friends and family" | payment_safety | payment | critical | 0.85 | No |
-| `landlord_abroad` | Abroad, overseas, out of the country, offshore, working in another country; keys by courier, or an agent or colleague hands over keys after payment | in_person_viewing | property | high | 0.8 | No |
+| `landlord_abroad` | Away (abroad, overseas, offshore, out of the country) or keys handed over by courier or a third party, **and** nobody will show the property: a viewing refusal or a key hand-off after payment, with no offer of a viewing through someone else. Being away alone does not fire | in_person_viewing | property | high | 0.8 | No |
 | `viewing_refused` (addition) | Viewings not possible, cannot show it, no viewings, video only, said by the agent after the student asked to view | in_person_viewing | property | high | 0.85 | No |
 | `off_platform_move` | WhatsApp me, email me directly, text me on, contact me on Telegram | in_person_viewing | identity | low | 0.6 | No |
 
