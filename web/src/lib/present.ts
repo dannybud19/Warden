@@ -1,6 +1,6 @@
 import type { Case, CheckId, EvidenceKind, Finding, AgentUiStatus, Action } from "./types";
 import { CHECK_LABELS } from "./labels";
-import { SEVERITY_ORDER, allFindings, openActions } from "./selectors";
+import { SEVERITY_ORDER, allFindings, detailText, openActions } from "./selectors";
 
 // Plain-language presentation of a case for the hi-fi screens. Pure functions over `Case`.
 
@@ -158,7 +158,7 @@ export function answerSuggestion(c: Case, q: Suggestion): string {
     const f = redFlags(c)[0];
     if (!f) return "Nothing is flagged yet. I'll tell you as soon as one of the agents spots something.";
     const quote = f.evidence?.[0]?.quote;
-    return `${f.title}. ${f.detail ?? ""}${quote ? ` They wrote: “${quote}”` : ""}`.trim();
+    return `${f.title}. ${detailText(f)}${quote ? ` They wrote: “${quote}”` : ""}`.trim();
   }
   if (q === "What should I say to them?") {
     const a = openActions(c)[0];

@@ -12,9 +12,9 @@ import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
 import type { Mood } from "@/lib/present";
 import { CHECK_TILE, SETTLE, goAheadUnlocked, sourceOf, tiles } from "@/lib/dashboard";
-import { currentScore } from "@/lib/selectors";
+import { currentScore, detailText, sourceUrls } from "@/lib/selectors";
 import { formatRent, shortAddress } from "@/lib/homes";
-import { Mascot, rise } from "./primitives";
+import { Mascot, SourceLinks, rise } from "./primitives";
 import { PILL, REPORT_URL, useDecision, writeDecision } from "./Dashboard";
 
 const RED = "#e06a52";
@@ -315,8 +315,9 @@ function FlagCard({ f, i, c }: { f: Finding; i: number; c: Case }) {
                 “{quote}”
               </blockquote>
             ) : (
-              <p className="mt-4 rounded-[14px] bg-field px-4 py-3 text-[14px] leading-[1.5] text-ink/80">{f.detail}</p>
+              <p className="mt-4 rounded-[14px] bg-field px-4 py-3 text-[14px] leading-[1.5] text-ink/80">{detailText(f)}</p>
             )}
+            <SourceLinks urls={sourceUrls(f)} className="mt-2" />
           </motion.div>
         )}
       </AnimatePresence>

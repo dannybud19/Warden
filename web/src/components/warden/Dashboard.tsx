@@ -11,7 +11,8 @@ import {
   type StepTone, type Tile,
 } from "@/lib/dashboard";
 import { formatRent, shortAddress } from "@/lib/homes";
-import { Mascot, PillButton, rise } from "./primitives";
+import { detailText, sourceUrls } from "@/lib/selectors";
+import { Mascot, PillButton, SourceLinks, rise } from "./primitives";
 import { ShareButton } from "./FeaturedHome";
 
 const card = "rounded-[22px] border border-white bg-white/85 shadow-card backdrop-blur-[15px]";
@@ -360,7 +361,8 @@ function TileDetail({ t, disabled, onUpload }: { t: Tile; disabled: boolean; onU
                     “{quote}”
                   </blockquote>
                 )}
-                {!quote && f.detail && <p className="mt-1.5 text-[13.5px] leading-[1.5] text-ink/75">{f.detail}</p>}
+                {!quote && detailText(f) && <p className="mt-1.5 text-[13.5px] leading-[1.5] text-ink/75">{detailText(f)}</p>}
+                <SourceLinks urls={sourceUrls(f)} className="mt-1.5" />
               </li>
             );
           })}

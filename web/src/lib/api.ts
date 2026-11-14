@@ -28,7 +28,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export interface OpenCaseInput {
   student: { university?: string; notes?: string; budget_pcm?: number };
-  listing?: { url?: string; platform?: string; address?: string; rent_pcm?: number; deposit?: number };
+  listing?: { url?: string; platform?: string; address?: string; postcode?: string; rent_pcm?: number; deposit?: number };
   landlord?: { name?: string; company_name?: string; company_number?: string };
 }
 
