@@ -219,12 +219,39 @@ def _verify(
 
 
 def _verified_quote(side: Side, source: Source) -> str | None:
-    """The cleaned quote when it is long enough and found in the source's text (V3)."""
+    """The quote as it is written in the source, when the LLM's quote is long enough and found in
+    the source's text after normalising (V3)."""
     quote = clean_quote(side.quote)
     needle = normalise(quote)
     if len(needle) < MIN_QUOTE_CHARS or needle not in normalise(source.text):
         return None
-    return quote
+    return original_span(quote, source.text)
+
+
+def original_span(quote: str, text: str) -> str:
+    """The exact characters of `text` that `quote` matches once both are normalised.
+
+    Evidence quotes must be real (golden rule 6) and the UI may search for them verbatim, so the
+    LLM's re-typed quote ("all BILLS", straight apostrophes, "£60" for "£ 60") is replaced by the
+    source's own wording. Falls back to `quote` if the span cannot be located.
+    """
+    if quote in text:
+        return quote
+    chars: list[str] = []  # `text` normalised one character at a time ...
+    origin: list[int] = []  # ... and where each normalised character came from
+    for index, char in enumerate(text):
+        for plain in char.lower().translate(_PLAIN_CHARS):
+            if plain.isspace():
+                if not chars or chars[-1] in (" ", "£"):
+                    continue
+                plain = " "
+            chars.append(plain)
+            origin.append(index)
+    needle = normalise(quote)
+    start = "".join(chars).find(needle)
+    if not needle or start < 0:
+        return quote
+    return text[origin[start] : origin[start + len(needle) - 1] + 1]
 
 
 def _repeats_rule(topic: str, quote_a: str, quote_b: str, rules: list[Finding]) -> bool:

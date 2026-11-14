@@ -18,6 +18,7 @@ from app.aggregators.crosschecker.validate import (
     is_llm_finding,
     normalise,
     not_run_finding,
+    original_span,
     slug,
     template_recap,
     to_findings,
@@ -237,26 +238,42 @@ def test_v3_drops_quotes_not_found_or_too_short(quote: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("quote", "cleaned"),
+    "quote",
     [
-        ("“All bills are included”", "All bills are included"),
-        ('"all BILLS are included"', "all BILLS are included"),
-        ("'All bills are included'", "All bills are included"),
-        ("...all bills are included…", "all bills are included"),
-        ('  "…All bills  are\nincluded..."  ', "All bills  are\nincluded"),
+        "“All bills are included”",
+        '"all BILLS are included"',
+        "'All bills are included'",
+        "...all bills are included…",
+        '  "…All bills  are\nincluded..."  ',
     ],
 )
-def test_v3_accepts_wrapped_cased_and_spaced_quotes(quote: str, cleaned: str) -> None:
+def test_v3_accepts_wrapped_cased_and_spaced_quotes_and_stores_the_source_wording(
+    quote: str,
+) -> None:
     (finding,) = _run(_inc(b=("S3", quote)))
-    assert finding.evidence[1].quote == cleaned
+    assert finding.evidence[1].quote == "All bills are included"  # as written in S3
 
 
 def test_v3_normalises_pound_spacing_curly_apostrophes_and_whitespace() -> None:
     (finding,) = _run(_inc("rent", ("S4", "it's fixed"), ("S5", "Rent: £950 per month. Deposit")))
     assert [ref.quote for ref in finding.evidence] == [
-        "it's fixed",
-        "Rent: £950 per month. Deposit",
+        "it’s fixed",  # the source's curly apostrophe
+        "Rent: £ 950 per month.  Deposit",  # the source's spacing
     ]
+
+
+@pytest.mark.parametrize(
+    ("quote", "text", "span"),
+    [
+        ("exact words", "some exact words here", "exact words"),
+        ("ALL BILLS", "[agent] All bills are in", "All bills"),
+        ("£60 a month", "costs £ 60 a  month", "£ 60 a  month"),
+        ("it's", "and it’s fine", "it’s"),
+        ("not there", "something else", "not there"),
+    ],
+)
+def test_original_span(quote: str, text: str, span: str) -> None:
+    assert original_span(quote, text) == span
 
 
 def test_normalise() -> None:
