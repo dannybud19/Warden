@@ -19,11 +19,16 @@ thanks and small talk. Include `notes` as an entry if it shows how the student i
 For each entry:
 
 - `message_id`: the id from the input (`notes` for the student notes).
-- `facts`: each checkable claim in the message, rewritten as a short neutral statement.
+- `facts`: each checkable claim in the message, as an object with:
+  - `statement`: the claim rewritten as a short neutral statement
+  - `quote`: the words in the message it rests on, copied character for character, 200 characters at
+    most. Facts without an exact quote are discarded.
   "Three other students want it. Send the deposit today to hold it." gives no checkable fact about
   other students (nobody can verify it), and one fact: "A deposit is requested today."
   A claim counts as a fact only if someone could in principle confirm it: a price, a date, an address,
   a payment method, who holds the keys, whether a viewing is possible.
+  Never repeat account numbers, sort codes or card numbers in a statement: write "Payment is by bank
+  transfer to Prime City Lettings Ltd", not the digits.
 - `influence`: each piece of language that pushes on feelings or hides meaning, with:
   - `kind`: one of the kinds below
   - `quote`: copied character for character from the message, 200 characters at most
@@ -72,7 +77,8 @@ From the student's side (in their messages or notes):
 
 ## Output
 
-A JSON object with one list, `entries`. Each entry has `message_id`, `facts` (list of strings),
+A JSON object with one list, `entries`. Each entry has `message_id`, `facts` (list of objects
+with `statement` and `quote`),
 `influence` (list of objects with `kind`, `quote`, `explanation`) and `reassurance` (list of strings).
 
 If the conversation has no influence at all, return entries with facts only, or an empty list.

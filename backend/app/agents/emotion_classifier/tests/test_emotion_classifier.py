@@ -155,7 +155,12 @@ async def test_llm_influence_is_validated(fake_agency_case: Case, ctx: AgentCont
         "entries": [
             {
                 "message_id": "msg_4",
-                "facts": ["The agent says an in-person viewing is not possible."],
+                "facts": [
+                    {
+                        "statement": "The agent says an in-person viewing is not possible.",
+                        "quote": "viewings aren't possible",
+                    }
+                ],
                 "influence": [
                     {"kind": "authority", "quote": "I'm working abroad", "explanation": "Why."},
                     {"kind": "guilt", "quote": "this text is not in the message"},
@@ -187,6 +192,49 @@ async def test_llm_influence_is_validated(fake_agency_case: Case, ctx: AgentCont
         for ref in f.evidence:
             if ref.quote and ref.evidence_id not in ("student_notes", "listing"):
                 assert any(ref.quote in m.text for m in fake_agency_case.messages)
+
+
+async def test_stated_facts_need_a_real_quote_and_hide_bank_numbers(
+    fake_agency_case: Case, ctx: AgentContext
+) -> None:
+    reply = {
+        "entries": [
+            {
+                "message_id": "msg_8",
+                "facts": [
+                    {
+                        "statement": "Payment is to sort code 12-34-56, account 00001234.",
+                        "quote": "sort code 12-34-56, account 00001234",
+                    },
+                    {"statement": "The flat has a garden.", "quote": "lovely garden"},
+                    "A plain string with no quote.",
+                ],
+            },
+            {"message_id": "notes", "facts": [{"statement": "x", "quote": "running out"}]},
+        ]
+    }
+    report = await EmotionClassifierAgent().run(fake_agency_case, with_llm(ctx, reply))
+    facts = ids(report)["stated_facts"]
+    assert "00001234" not in facts.detail and "12-34" not in facts.detail
+    assert "****1234" in facts.detail and "**-**-56" in facts.detail
+    assert "garden" not in facts.detail and "plain string" not in facts.detail
+    assert [ref.quote for ref in facts.evidence] == ["sort code 12-34-56, account 00001234"]
+    assert all(ref.quote for f in report.findings for ref in f.evidence)
+
+
+async def test_stated_facts_skipped_when_no_fact_is_quoted(
+    fake_agency_case: Case, ctx: AgentContext
+) -> None:
+    reply = {"entries": [{"message_id": "msg_2", "facts": ["Available from 1 December."]}]}
+    report = await EmotionClassifierAgent().run(fake_agency_case, with_llm(ctx, reply))
+    assert "stated_facts" not in ids(report)
+
+
+def test_mask_numbers_keeps_ordinary_text() -> None:
+    assert rules.mask_numbers("£850 pcm from 1 December 2026, W12 8QT") == (
+        "£850 pcm from 1 December 2026, W12 8QT"
+    )
+    assert rules.mask_numbers("IBAN GB29 NWBK 6016 1331 9268 19") == "IBAN ****6819"
 
 
 async def test_llm_failure_falls_back_to_rules(fake_agency_case: Case, ctx: AgentContext) -> None:

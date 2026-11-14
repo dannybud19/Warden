@@ -11,6 +11,7 @@ from app.agents.emotion_classifier.rules import (
     NOTES_SOURCE,
     STUDENT_KINDS,
     Hit,
+    mask_numbers,
     side_of,
 )
 from app.contracts import Case
@@ -25,7 +26,8 @@ MAX_FACTS = 10
 class LLMResult:
     hits: list[Hit] = field(default_factory=list)
     reassurance: list[Hit] = field(default_factory=list)
-    facts: list[tuple[str, str]] = field(default_factory=list)  # (statement, evidence id)
+    # (masked statement, evidence id, exact quote)
+    facts: list[tuple[str, str, str]] = field(default_factory=list)
 
 
 @lru_cache
@@ -58,15 +60,21 @@ def convert(output: EmotionOutput, case: Case) -> LLMResult:
             quote = item.quote.strip()
             if item.kind in allowed and quote and quote in text:
                 result.hits.append(
-                    Hit(item.kind, source, quote[:MAX_QUOTE], item.explanation.strip())
+                    Hit(
+                        item.kind, source, quote[:MAX_QUOTE], mask_numbers(item.explanation.strip())
+                    )
                 )
         if entry.message_id != NOTES_ID and by_id[entry.message_id].sender == "agent":
             for quote in (q.strip() for q in entry.reassurance):
                 if quote and quote in text:
                     result.reassurance.append(Hit("reassurance", source, quote[:MAX_QUOTE]))
-        for fact in (f.strip() for f in entry.facts):
-            if fact and len(result.facts) < MAX_FACTS and entry.message_id != NOTES_ID:
-                result.facts.append((fact, source))
+        if entry.message_id == NOTES_ID:
+            continue
+        for fact in entry.facts:
+            statement, quote = fact.statement.strip(), fact.quote.strip()
+            # golden rule 6: a statement with no exact quote behind it is dropped
+            if statement and quote and quote in text and len(result.facts) < MAX_FACTS:
+                result.facts.append((mask_numbers(statement), source, quote[:MAX_QUOTE]))
     return result
 
 

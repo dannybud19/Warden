@@ -9,6 +9,21 @@ MAX_QUOTE = 200
 NOTES_ID = "notes"  # message id the prompt uses for `student.notes`
 NOTES_SOURCE = "student_notes"  # evidence id for quotes taken from the notes
 
+_IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b")
+_SORT_CODE = re.compile(r"\b\d{2}[- ]\d{2}[- ](\d{2})\b")
+_LONG_NUMBER = re.compile(r"\b\d{6,}\b")  # account numbers, card numbers
+
+
+def mask_numbers(text: str) -> str:
+    """`text` with IBANs, sort codes and long numbers masked, as golden rule 8 requires.
+
+    Model-written text (fact statements, explanations) can repeat bank details from the chat.
+    """
+    text = _IBAN.sub(lambda m: "****" + re.sub(r"\s", "", m.group(0))[-4:], text)
+    text = _SORT_CODE.sub(lambda m: f"**-**-{m.group(1)}", text)
+    return _LONG_NUMBER.sub(lambda m: f"****{m.group(0)[-4:]}", text)
+
+
 AGENT_KINDS = ("urgency", "scarcity", "guilt", "authority", "jargon", "flattery")
 STUDENT_KINDS = ("desperation", "sunk_cost")
 # Flattery is shown but does not move the check on its own.

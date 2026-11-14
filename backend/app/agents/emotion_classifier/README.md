@@ -15,7 +15,8 @@ the rent with an approximate area figure.
 - **Clear on `no_pressure`:** only when the agent explicitly takes pressure off ("no rush") and no
   pressure language was found.
 - **Stated facts** (`stated_facts`, info): the model's neutral list of checkable claims, for the
-  facts-vs-feelings view.
+  facts-vs-feelings view. Each claim must come with an exact quote from the message (claims without
+  one are dropped), and account numbers, sort codes and IBANs are masked to the last digits.
 - **Pricing** (check `fair_price`, finding `rent_vs_area`): 25% or more below the area figure is
   medium; within 15% either way is a clear at 0.6; in between is low; above is info.
 

@@ -104,18 +104,23 @@ def pressure_findings(hits: list[Hit], reassurance: list[Hit]) -> list[Finding]:
     return findings
 
 
-def facts_finding(facts: list[tuple[str, str]]) -> Finding | None:
-    """The plain facts the messages state, for the facts-vs-feelings view. Never moves a check."""
+def facts_finding(facts: list[tuple[str, str, str]]) -> Finding | None:
+    """The plain facts the messages state, for the facts-vs-feelings view. Never moves a check.
+
+    Each statement is the model's neutral rewording; its evidence is the exact quote behind it.
+    """
     if not facts:
         return None
-    hits = [Hit("fact", source, statement) for statement, source in facts]
-    detail = " ".join(f"• {statement}" for statement, _ in facts)
+    detail = " ".join(f"• {statement}" for statement, _, _ in facts)
     finding = _finding(
-        "stated_facts", "What the messages actually state", detail, Severity.INFO, hits
+        "stated_facts", "What the messages actually state", detail, Severity.INFO, []
     )
-    # the statements are the model's neutral rewording, so cite the evidence without a quote
-    sources = list(dict.fromkeys(source for _, source in facts))
-    return finding.model_copy(update={"evidence": [EvidenceRef(evidence_id=s) for s in sources]})
+    refs: list[EvidenceRef] = []
+    for _, source, quote in facts:
+        ref = EvidenceRef(evidence_id=source, quote=quote)
+        if ref not in refs:
+            refs.append(ref)
+    return finding.model_copy(update={"evidence": refs})
 
 
 class EmotionClassifierAgent(BaseAgent):
