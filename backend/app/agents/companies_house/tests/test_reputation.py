@@ -227,7 +227,7 @@ async def test_negative_review_is_medium_and_ids_use_the_url_hash(
     llm = verdicts(verdict(0, "negative_review", SCAM_QUOTE))
     result = await run_rep(make_ctx, genuine_flat_case, make_company(), search=search, llm=llm)
     [finding] = by_prefix(result, "negative-review-")
-    assert finding.severity == "medium" and finding.confidence == 0.6
+    assert finding.severity == "medium" and finding.confidence == 0.5 and finding.confidence < 0.6
     assert finding.detail.startswith(f'A review of PRIME CITY LETTINGS LTD says: "{SCAM_QUOTE}".')
     assert (
         finding.id

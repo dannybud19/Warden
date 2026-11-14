@@ -157,7 +157,7 @@ CONF: Final = {
     "webmail": 0.5,
     "scam-report": 0.75,
     "negative-review-fallback": 0.5,  # below 0.6: with the LLM down it shows, cannot flip the check
-    "negative-review": 0.6,
+    "negative-review": 0.5,  # service complaints must not flip landlord_identity alone
     "rogue-checker": 0.9,
     "rogue-checker-name": 0.6,
     "lookalike-domain": 0.8,
