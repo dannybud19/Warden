@@ -1,0 +1,27 @@
+{
+  "company_name": "LARKFIELD & CO LETTINGS LTD",
+  "company_number": "09123456",
+  "company_status": "active",
+  "date_of_creation": "2014-07-03",
+  "type": "ltd",
+  "has_insolvency_history": false,
+  "sic_codes": [
+    "68310"
+  ],
+  "registered_office_address": {
+    "address_line_1": "21 Mercer Street",
+    "locality": "London",
+    "postal_code": "SE1 7LP",
+    "country": "England"
+  },
+  "accounts": {
+    "overdue": false,
+    "last_accounts": {
+      "type": "micro-entity",
+      "made_up_to": "2025-07-31"
+    }
+  },
+  "confirmation_statement": {
+    "overdue": false
+  }
+}
