@@ -1,7 +1,7 @@
 # Synthetic development cases (WS H, Bill)
 
-Latest: [fixes and the second live run](FIX_RESULTS.md), including payment confirmation and the
-before/after comparison. The [first live evaluation](RESULTS.md) remains the historical baseline.
+Latest: [evaluation results](RESULTS.md), including payment confirmation and the before/after
+comparison. The [original run summary](runs/2026-11-14-system/summary.json) remains available.
 
 The generator builds **40 fictional cases** for regression testing. It uses deterministic templates
 and eight optional, Codex-authored wording variants. It needs no API key, makes no network calls,
@@ -173,7 +173,7 @@ labels. Version the library when accepting revisions. The current strict model d
 silently claim a case has already received human approval.
 
 The generator and offline fixture adapters are complete independently of the orchestrator. The live
-system evaluation runner is also implemented; its first 40-case run is documented in
+system evaluation runner is also implemented; both 40-case runs are documented in
 [RESULTS.md](RESULTS.md). Weight tuning, automatic follow-up delivery and held-out evaluation remain
 separate work. Shared scripts, schemas and other owners' code were not changed here.
 
