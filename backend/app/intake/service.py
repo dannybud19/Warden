@@ -10,6 +10,7 @@ from app.contracts import Case, Evidence, EvidenceKind, Message
 from app.core.ids import new_id
 from app.core.logging import get_logger
 from app.intake import audio, ocr, pdf, whatsapp
+from app.intake.redact import mask_sensitive
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / ".uploads"  # backend/.uploads, gitignored
 
@@ -86,11 +87,19 @@ async def ingest(
     *,
     uploads_dir: Path | None = None,
 ) -> Case:
-    """Create the Evidence, extract its text and Messages, and return the updated Case."""
+    """Create the Evidence, extract its text and Messages, and return the updated Case.
+
+    Text is masked (`redact.mask_sensitive`) before it is stored, so no full bank or card number
+    reaches the case, the agents or the LLM. The raw file is kept only when no text could be
+    extracted (video, or a kind whose extractor is not built yet), so it can be processed later.
+    """
     evidence_id = new_id("ev")
     text, messages = await _extract(kind, data, evidence_id, student_name)
+    if text is not None:
+        text = mask_sensitive(text)
+    messages = [m.model_copy(update={"text": mask_sensitive(m.text)}) for m in messages]
     file_url = None
-    if filename:
+    if filename and text is None:
         file_url = await _store(
             case.case_id, evidence_id, filename, data, uploads_dir or UPLOADS_DIR
         )
@@ -101,7 +110,7 @@ async def ingest(
         filename=filename,
         file_url=file_url,
         extracted_text=text,
-        note=note,
+        note=mask_sensitive(note) if note else note,
     )
     return case.model_copy(
         update={
