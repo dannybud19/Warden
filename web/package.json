@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-fixture.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pretypecheck": "node scripts/copy-fixture.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "16.4.6",

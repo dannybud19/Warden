@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dev shell: copied from fixtures on every pnpm dev
+/src/mocks/full_case.json
+
+# keep the env template
+!.env.local.example
