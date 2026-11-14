@@ -89,6 +89,12 @@ function num(v: string): number | undefined {
   return v.trim() && Number.isFinite(n) ? n : undefined;
 }
 
+/** A full UK postcode found in free text (e.g. "… London E1 4AA"), formatted "E1 4AA", else undefined. */
+function ukPostcode(text: string | undefined): string | undefined {
+  const m = /\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b/i.exec(text ?? "");
+  return m ? `${m[1]} ${m[2]}`.toUpperCase() : undefined;
+}
+
 const field =
   "w-full rounded-[14px] border border-line bg-white px-4 py-3 text-[14px] text-ink outline-none transition placeholder:text-hint focus:border-aqua focus:ring-4 focus:ring-aqua/15";
 
@@ -126,10 +132,15 @@ export function AddHomeDialog({ open, onClose }: { open: boolean; onClose: () =>
     }
     try {
       const agency = get("agency");
+      const companyNumber = get("company_number")?.toUpperCase();
+      const agentName = get("agent_name");
+      const address = get("address");
       const c = await api.openCase({
         student: {},
-        listing: { url: get("url"), address: get("address"), rent_pcm: num(String(f.get("rent") ?? "")) },
-        landlord: agency ? { company_name: agency } : undefined,
+        listing: { url: get("url"), address, postcode: ukPostcode(address), rent_pcm: num(String(f.get("rent") ?? "")) },
+        landlord: agency || companyNumber || agentName
+          ? { company_name: agency, company_number: companyNumber, name: agentName }
+          : undefined,
       });
       if (!c.case_id) throw new Error("The server did not return a case id.");
       rememberCase(c.case_id);
@@ -173,6 +184,10 @@ export function AddHomeDialog({ open, onClose }: { open: boolean; onClose: () =>
               <div className="grid grid-cols-2 gap-3">
                 <input name="rent" inputMode="decimal" placeholder="Rent £ pcm" className={field} />
                 <input name="agency" placeholder="Agency or landlord" className={field} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input name="company_number" placeholder="Company number (optional)" className={field} />
+                <input name="agent_name" placeholder="Agent's name (optional)" className={field} />
               </div>
               {!storedName && <input name="name" placeholder="Your first name" autoComplete="given-name" className={field} />}
               <AnimatePresence>

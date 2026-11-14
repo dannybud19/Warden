@@ -147,3 +147,24 @@ export const rise = {
   hidden: { opacity: 0, y: 14 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } },
 };
+
+/** "Source" links for a finding that cites web pages (e.g. Companies House). Renders nothing without URLs. */
+export function SourceLinks({ urls, className = "" }: { urls: string[]; className?: string }) {
+  if (!urls.length) return null;
+  const host = (u: string) => {
+    try {
+      return new URL(u).hostname.replace(/^www\./, "");
+    } catch {
+      return u;
+    }
+  };
+  return (
+    <p className={`flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] ${className}`}>
+      {urls.map((u) => (
+        <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="font-medium text-teal underline underline-offset-2">
+          Source: {host(u)} ↗
+        </a>
+      ))}
+    </p>
+  );
+}

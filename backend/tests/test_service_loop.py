@@ -8,7 +8,7 @@ from app.contracts import ActionStatus, Case, CheckState, EvidenceKind, Verdict
 from app.orchestrator.conversation import InvalidActionError
 from app.orchestrator.events import EventBus
 from app.orchestrator.service import CaseService, Upload
-from tests.conftest import EmptyAgent
+from tests.conftest import EmptyAgent, add_evidence_and_settle, reply_and_settle
 
 MakeService = Callable[[list | None], CaseService]
 
@@ -22,8 +22,8 @@ async def test_actions_proposed_replies_then_decision(
     )
     queue = bus.subscribe(opened.case_id)
 
-    case = await service.add_evidence(
-        opened.case_id, Upload(EvidenceKind.EMAIL, b"Hello, the flat is available.")
+    case = await add_evidence_and_settle(
+        service, opened.case_id, Upload(EvidenceKind.EMAIL, b"Hello, the flat is available.")
     )
     assert case.status == "open"
     assert [a.id for a in case.actions] == [
@@ -37,7 +37,7 @@ async def test_actions_proposed_replies_then_decision(
     scores = [100.0]
     for _ in range(4):
         assert case.status == "open"
-        case = await service.reply(case.case_id, "yes, they did")
+        case = await reply_and_settle(service, case.case_id, "yes, they did")
         scores.append(case.score_history[-1].score)
 
     assert [a.id for a in case.actions][-1] == "act_deposit_scheme"
@@ -61,8 +61,12 @@ async def test_a_flagging_reply_makes_the_check_suspicious(
 ) -> None:
     service = make_service([EmptyAgent()])
     case = await service.open_case(fake_agency_case.student, None, None)
-    case = await service.add_evidence(case.case_id, Upload(EvidenceKind.EMAIL, b"Hello"))
-    case = await service.reply(case.case_id, "No, they refused and said they are abroad")
+    case = await add_evidence_and_settle(
+        service, case.case_id, Upload(EvidenceKind.EMAIL, b"Hello")
+    )
+    case = await reply_and_settle(
+        service, case.case_id, "No, they refused and said they are abroad"
+    )
     viewing = next(c for c in case.checks if c.id.value == "in_person_viewing")
     assert viewing.state == CheckState.SUSPICIOUS
     assert case.score_history[-1].score == 100.0  # score only drops through clears
@@ -73,9 +77,11 @@ async def test_reply_with_no_open_actions_still_settles(
 ) -> None:
     service = make_service([EmptyAgent()])
     case = await service.open_case(fake_agency_case.student, None, None)
-    case = await service.add_evidence(case.case_id, Upload(EvidenceKind.EMAIL, b"Hello"))
+    case = await add_evidence_and_settle(
+        service, case.case_id, Upload(EvidenceKind.EMAIL, b"Hello")
+    )
     for _ in range(4):
-        case = await service.reply(case.case_id, "unclear answer")
+        case = await reply_and_settle(service, case.case_id, "unclear answer")
     assert case.status == "decided"
     assert all(a.outcome == "neutral" for a in case.actions)
 
@@ -83,7 +89,9 @@ async def test_reply_with_no_open_actions_still_settles(
 async def _case_with_three_open_actions(make_service: MakeService, fake_agency_case: Case):
     service = make_service([EmptyAgent()])
     case = await service.open_case(fake_agency_case.student, None, None)
-    case = await service.add_evidence(case.case_id, Upload(EvidenceKind.EMAIL, b"Hello"))
+    case = await add_evidence_and_settle(
+        service, case.case_id, Upload(EvidenceKind.EMAIL, b"Hello")
+    )
     assert [a.id for a in case.actions] == [
         "act_viewing",
         "act_company_number",
@@ -98,7 +106,9 @@ async def test_reply_with_action_id_updates_only_that_action(
     service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
     before = {a.id: a.model_dump() for a in case.actions}
     # The second card, so the free-chat fallback (oldest open = act_viewing) would be caught.
-    case = await service.reply(case.case_id, "yes, registered", action_id="act_company_number")
+    case = await reply_and_settle(
+        service, case.case_id, "yes, registered", action_id="act_company_number"
+    )
     by_id = {a.id: a for a in case.actions}
     assert by_id["act_company_number"].status == ActionStatus.DONE
     assert by_id["act_company_number"].outcome == "clears"
@@ -111,8 +121,8 @@ async def test_skipped_sets_status_with_neutral_outcome(
     make_service: MakeService, fake_agency_case: Case
 ) -> None:
     service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
-    case = await service.reply(
-        case.case_id, "no, they refused", action_id="act_payment_method", status="skipped"
+    case = await reply_and_settle(
+        service, case.case_id, "no, they refused", action_id="act_payment_method", status="skipped"
     )
     by_id = {a.id: a for a in case.actions}
     assert by_id["act_payment_method"].status == ActionStatus.SKIPPED
@@ -124,7 +134,9 @@ async def test_impossible_sets_status_with_neutral_outcome(
     make_service: MakeService, fake_agency_case: Case
 ) -> None:
     service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
-    case = await service.reply(case.case_id, "", action_id="act_viewing", status="impossible")
+    case = await reply_and_settle(
+        service, case.case_id, "", action_id="act_viewing", status="impossible"
+    )
     by_id = {a.id: a for a in case.actions}
     assert by_id["act_viewing"].status == ActionStatus.IMPOSSIBLE
     assert by_id["act_viewing"].outcome == "neutral"
@@ -136,13 +148,13 @@ async def test_unknown_or_closed_action_id_is_rejected_without_changes(
     service, case = await _case_with_three_open_actions(make_service, fake_agency_case)
     snapshot = (await service.get_case(case.case_id)).model_dump()
     with pytest.raises(InvalidActionError):
-        await service.reply(case.case_id, "yes", action_id="act_nope")
+        await reply_and_settle(service, case.case_id, "yes", action_id="act_nope")
     assert (await service.get_case(case.case_id)).model_dump() == snapshot
 
-    case = await service.reply(case.case_id, "yes", action_id="act_viewing")
+    case = await reply_and_settle(service, case.case_id, "yes", action_id="act_viewing")
     snapshot = (await service.get_case(case.case_id)).model_dump()
     with pytest.raises(InvalidActionError):
-        await service.reply(case.case_id, "no", action_id="act_viewing")  # already done
+        await reply_and_settle(service, case.case_id, "no", action_id="act_viewing")  # already done
     stored = await service.get_case(case.case_id)
     assert stored.model_dump() == snapshot
     by_id = {a.id: a.status for a in stored.actions}
