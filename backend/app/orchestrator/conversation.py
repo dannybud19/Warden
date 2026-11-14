@@ -14,14 +14,14 @@ import json
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
 from functools import cache
 from pathlib import Path
 from typing import Literal
 
 from app.contracts import Action, ActionStatus, Case
 from app.core.agent import AgentContext
-from app.orchestrator.models import FieldName, LLMActionUpdate, LLMParseOutput, Outcome
+from app.orchestrator.fields import FieldUpdate
+from app.orchestrator.models import LLMActionUpdate, LLMParseOutput, Outcome
 
 ReplyStatus = Literal["done", "skipped", "impossible"]
 
@@ -48,20 +48,11 @@ class ActionUpdate:
 
 
 @dataclass(frozen=True)
-class FieldUpdate:
-    """A validated, normalised case field taken from the reply (P2)."""
-
-    field: FieldName
-    value: str | int | date
-    note: str  # short masked text for the round message, e.g. "rent set to 950"
-
-
-@dataclass(frozen=True)
 class ParseResult:
     updates: tuple[ActionUpdate, ...] = ()
-    question: str | None = None  # P2; always None in P1
-    field_updates: tuple[FieldUpdate, ...] = ()  # P2; always () in P1
-    invalid_fields: tuple[str, ...] = ()  # P2: masked labels of fields we could not use
+    question: str | None = None  # a question the student asked us, answered in the round message
+    field_updates: tuple[FieldUpdate, ...] = ()  # case fields the student stated (plan 4.7)
+    invalid_fields: tuple[str, ...] = ()  # labels of fields given but unusable, e.g. "rent"
     used_fallback: bool = False
     unmatched: bool = False  # free text that matched no open action
 
