@@ -85,7 +85,7 @@ export const SAMPLE_HOMES: Home[] = [
       "The agency isn't on the official register",
       "The landlord says they're abroad",
     ],
-    nudge: "Mile End Road asked for money before you've seen it. I'd hold off.",
+    nudge: "They asked for money before you've seen it. I'd hold off.",
     photos: PHOTO_SETS[0],
   },
   {

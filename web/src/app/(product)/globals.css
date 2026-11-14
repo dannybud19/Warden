@@ -2,7 +2,14 @@
 
 /* Warden hi-fi v3 tokens (from Figma "Warden · Hi-fi v3"). */
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-general), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Aave type system: hierarchy from size and tracking, never weight. Hold to 400-500. */
+  --font-weight-light: 400;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
 
   --color-ink: #0f2a2e;
   --color-teal: #138a93;
@@ -34,6 +41,7 @@ html {
 
 body {
   margin: 0;
+  letter-spacing: -0.005em;
   min-height: 100dvh;
   background: var(--color-canvas);
   overflow-x: hidden;

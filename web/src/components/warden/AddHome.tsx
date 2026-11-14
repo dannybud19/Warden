@@ -72,7 +72,7 @@ export function AddHomeCard({ size = "lg", title = "Add a home" }: { size?: keyo
             </motion.div>
           </motion.div>
         </div>
-        <span className="absolute inset-x-0 block text-[22px] font-light leading-[1.4] tracking-[-0.44px]" style={{ top: s.titleTop }}>
+        <span className="absolute inset-x-0 block text-[22px] font-light leading-[1.4] tracking-[-0.03em]" style={{ top: s.titleTop }}>
           {title}
         </span>
         <span className="absolute inset-x-0 block text-[12.5px] leading-[1.4] text-muted" style={{ top: s.titleTop + 32 }}>
@@ -163,7 +163,7 @@ export function AddHomeDialog({ open, onClose }: { open: boolean; onClose: () =>
             <div className="flex items-center gap-3">
               <Mascot width={40} height={48} float />
               <div>
-                <h2 id="add-home-title" className="text-[22px] font-light tracking-[-0.44px]">Add a home</h2>
+                <h2 id="add-home-title" className="text-[22px] font-light tracking-[-0.03em]">Add a home</h2>
                 <p className="text-[13px] text-muted">Tell Warden what you know. You can forward chats next.</p>
               </div>
             </div>

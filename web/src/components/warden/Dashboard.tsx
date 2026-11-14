@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Case, CheckId, EvidenceKind } from "@/lib/types";
@@ -15,7 +16,7 @@ import { ShareButton } from "./FeaturedHome";
 
 const card = "rounded-[22px] border border-white bg-white/85 shadow-card backdrop-blur-[15px]";
 
-const PILL: Record<Mood["state"], { bg: string; fg: string; dot: string; label: string }> = {
+export const PILL: Record<Mood["state"], { bg: string; fg: string; dot: string; label: string }> = {
   red: { bg: "#fcebe7", fg: "#9a3a27", dot: "/warden/dot-red.svg", label: "Likely scam · don't pay" },
   stop: { bg: "#fcebe7", fg: "#9a3a27", dot: "/warden/dot-red.svg", label: "Stop · don't pay" },
   amber: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Don't pay yet" },
@@ -23,6 +24,44 @@ const PILL: Record<Mood["state"], { bg: string; fg: string; dot: string; label: 
   thinking: { bg: "#e3f4f5", fg: "#0f6d74", dot: "/warden/dot-teal.svg", label: "Checking" },
   default: { bg: "#e3f4f5", fg: "#0f6d74", dot: "/warden/dot-teal.svg", label: "Waiting for evidence" },
 };
+
+// ---- Breadcrumb: back to all homes ----
+
+const MotionLink = motion.create(Link);
+
+/** Glass pill: round back button, "All homes", then this home with its status dot. */
+export function Breadcrumb({ title, mood }: { title: string; mood: Mood }) {
+  const pill = PILL[mood.state];
+  return (
+    <motion.nav
+      variants={rise}
+      aria-label="Breadcrumb"
+      className="liquid-glass relative inline-flex items-center gap-1 rounded-full py-1 pl-1 pr-4"
+    >
+      <span className="liquid-edge" aria-hidden />
+      <MotionLink
+        href="/"
+        initial="rest"
+        animate="rest"
+        whileHover="hover"
+        whileTap={{ scale: 0.96 }}
+        className="group flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-white/70"
+      >
+        <span className="flex size-8 items-center justify-center rounded-full bg-teal text-white shadow-tab">
+          <motion.span variants={{ rest: { x: 0 }, hover: { x: -2 } }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
+            ←
+          </motion.span>
+        </span>
+        <span className="text-[13.5px] font-medium text-ink/80 group-hover:text-teal">All homes</span>
+      </MotionLink>
+      <span aria-hidden className="text-[13px] text-ink/30">/</span>
+      <span className="flex items-center gap-2 pl-2" aria-current="page">
+        <Image src={pill.dot} alt="" width={8} height={8} unoptimized />
+        <span className="max-w-[320px] truncate text-[13.5px] text-ink/70">{title}</span>
+      </span>
+    </motion.nav>
+  );
+}
 
 // ---- Home header (Figma 52:60) ----
 
@@ -44,7 +83,7 @@ export function HomeHeader({ c, photo, mood, caseId }: { c: Case; photo: string 
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[24px] font-light leading-[1.4] tracking-[-0.48px]">{title}</h1>
+        <h1 className="truncate text-[24px] font-light leading-[1.4] tracking-[-0.03em]">{title}</h1>
         <p className="truncate text-[13px] leading-[1.4] text-muted">{meta || "Details still to come"}</p>
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
@@ -76,7 +115,7 @@ function readDecision(id: string): string {
     return "";
   }
 }
-function writeDecision(id: string, v: string) {
+export function writeDecision(id: string, v: string) {
   try {
     if (v) localStorage.setItem(DECISION_KEY(id), v);
     else localStorage.removeItem(DECISION_KEY(id));
@@ -85,7 +124,7 @@ function writeDecision(id: string, v: string) {
   }
   listeners.forEach((l) => l());
 }
-function useDecision(id: string): string {
+export function useDecision(id: string): string {
   return useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
@@ -96,7 +135,7 @@ function useDecision(id: string): string {
   );
 }
 
-const REPORT_URL = "https://www.actionfraud.police.uk/reporting-fraud-and-cyber-crime";
+export const REPORT_URL = "https://www.actionfraud.police.uk/reporting-fraud-and-cyber-crime";
 
 export function AnswerCard({ c, mood, caseId }: { c: Case; mood: Mood; caseId: string }) {
   const decision = useDecision(caseId);
@@ -122,7 +161,7 @@ export function AnswerCard({ c, mood, caseId }: { c: Case; mood: Mood; caseId: s
           <p className="text-[13px] text-muted">Verdict</p>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={mood.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
-              <h2 className="text-[26px] font-light leading-[1.25] tracking-[-0.52px]">{mood.title}</h2>
+              <h2 className="text-[26px] font-light leading-[1.25] tracking-[-0.03em]">{mood.title}</h2>
               <p className="mt-1 text-[14px] leading-[1.45] text-ink/70">{mood.sub}</p>
             </motion.div>
           </AnimatePresence>
@@ -227,7 +266,7 @@ export function CheckMap({
         <div>
           <p className="text-[13px] text-muted">What&apos;s checked</p>
           <p className="mt-0.5 text-[15px]">
-            <span className="text-[26px] font-light tracking-[-0.5px]">{counts.suspicious + counts.cleared} of 8</span>
+            <span className="text-[26px] font-light tracking-[-0.03em]">{counts.suspicious + counts.cleared} of 8</span>
             <span className="ml-2 text-muted">checked</span>
           </p>
           <p className="mt-1 flex flex-wrap gap-x-3 text-[12.5px] text-muted">

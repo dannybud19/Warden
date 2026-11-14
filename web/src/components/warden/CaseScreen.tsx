@@ -9,12 +9,12 @@ import { STUDENT_NAME_KEY } from "@/lib/config";
 import { isDecided, openActions } from "@/lib/selectors";
 import { rememberCase } from "@/lib/homes";
 import { DEMO_CASE_ID } from "@/lib/demo";
-import { agentRows, answerSuggestion, mood, type Suggestion } from "@/lib/present";
+import { agentRows, answerSuggestion, mood, redFlags, type Suggestion } from "@/lib/present";
 import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { Mascot, stagger } from "./primitives";
 import { SiteNav } from "./SiteNav";
 import { PixelField, type QuietZone } from "./PixelField";
-import { AnswerCard, CheckMap, HomeHeader, StoryStrip } from "./Dashboard";
+import { RiskHeader, SettleChecks, StillKeen, VerdictCard, WhyFlags } from "./RiskView";
 import { AgentsRail } from "./AgentsRail";
 
 function studentName(): string {
@@ -65,7 +65,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     if (!c) return null;
     const rows = agentRows(c, state.agentStatus);
     const working = rows.some((r) => r.chip === "checking") || state.busy;
-    return { rows, open: openActions(c), mood: mood(c, working) };
+    return { rows, open: openActions(c), mood: mood(c, working), flags: redFlags(c) };
   }, [c, state.agentStatus, state.busy]);
 
   const chat = useMemo(
@@ -81,7 +81,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
           <SiteNav />
           <div className="flex flex-col items-center pt-32 text-center">
             <Mascot width={110} height={132} float />
-            <p className="mt-6 text-[22px] font-light tracking-[-0.44px]">
+            <p className="mt-6 text-[22px] font-light tracking-[-0.03em]">
               {state.error ? "Warden couldn't open this home" : "Opening this home…"}
             </p>
             {state.error && (
@@ -110,29 +110,24 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-hidden">
+    <div className="relative min-h-dvh overflow-x-clip">
       <Backdrop />
       <div className="relative mx-auto max-w-[1440px] px-16 pb-10 pt-4">
         <SiteNav />
 
-        <div className="mt-4 grid grid-cols-[minmax(0,888fr)_minmax(0,408fr)] items-start gap-4">
-          <motion.main variants={stagger} initial="hidden" animate="show" className="flex min-w-0 flex-col gap-4">
-            <div className="flex items-center gap-8 pt-7">
-              <Link href="/" className="group inline-flex text-[13px] text-ink/60 hover:text-teal">
-                <span className="inline-block transition-transform group-hover:-translate-x-1">←</span>&nbsp;&nbsp;All homes
-              </Link>
-              <span className="text-[10.5px] font-semibold tracking-[1.2px] text-teal">DASHBOARD</span>
-            </div>
+        <div className="mt-6 grid grid-cols-[minmax(0,888fr)_minmax(0,408fr)] items-start gap-5">
+          <motion.main variants={stagger} initial="hidden" animate="show" className="flex min-w-0 flex-col gap-6">
+            <RiskHeader c={c} caseId={caseId} photo={caseId === DEMO_CASE_ID ? "/warden/photo-mile-end-front.png" : null} />
             {state.error && (
               <p role="alert" className="rounded-[16px] bg-[#fbe6e1] px-4 py-3 text-[13px] text-[#a8402b]">{state.error}</p>
             )}
-            <HomeHeader c={c} mood={view.mood} caseId={caseId} photo={caseId === DEMO_CASE_ID ? "/warden/photo-mile-end-front.png" : null} />
-            <AnswerCard c={c} mood={view.mood} caseId={caseId} />
-            <CheckMap c={c} disabled={closed || state.busy} onUpload={onUpload} />
-            <StoryStrip c={c} />
+            <VerdictCard c={c} mood={view.mood} caseId={caseId} flags={view.flags.length} />
+            <WhyFlags c={c} flags={view.flags} />
+            <StillKeen top={view.flags[0]} />
+            <SettleChecks c={c} disabled={closed || state.busy} onUpload={onUpload} />
           </motion.main>
 
-          <div className="sticky top-4">
+          <div className="sticky top-[96px] h-[calc(100dvh-112px)] max-h-[900px]">
             <AgentsRail
               mood={view.mood}
               action={action}

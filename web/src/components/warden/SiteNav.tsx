@@ -8,9 +8,8 @@ import { Dot, Mascot } from "./primitives";
 
 const ITEMS = [
   { label: "Cases", href: "/" },
-  { label: "Agents", href: null },
-  { label: "Inbox", href: null },
-  { label: "Settings", href: null },
+  { label: "Inbox", href: "/inbox" },
+  { label: "Settings", href: "/settings" },
 ] as const;
 
 function readName(): string {
@@ -44,7 +43,7 @@ export function SiteNav({ active = "Cases" }: { active?: (typeof ITEMS)[number][
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-20 flex h-14 items-center justify-between rounded-full border border-white/95 py-2 pl-[10px] pr-2 shadow-nav"
+      className="sticky top-4 z-30 flex h-14 items-center justify-between rounded-full border border-white/95 py-2 pl-[10px] pr-2 shadow-nav"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-white/[0.42] backdrop-blur-[14px]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.9)]" />
@@ -74,15 +73,9 @@ export function SiteNav({ active = "Cases" }: { active?: (typeof ITEMS)[number][
           const cls = "relative block rounded-full px-4 py-2 leading-[normal]";
           return (
             <li key={item.label} onMouseEnter={() => setHovered(item.label)}>
-              {item.href ? (
-                <Link href={item.href} className={cls} aria-current={isActive ? "page" : undefined}>
-                  {inner}
-                </Link>
-              ) : (
-                <span className={`${cls} cursor-default`} title="Coming soon">
-                  {inner}
-                </span>
-              )}
+              <Link href={item.href} className={cls} aria-current={isActive ? "page" : undefined}>
+                {inner}
+              </Link>
             </li>
           );
         })}

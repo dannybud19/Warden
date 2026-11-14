@@ -10,12 +10,12 @@ import { Dot, Mascot, PillButton } from "./primitives";
 
 // Right side of the one-home screen (Figma "Agents rail", 52:199): who is working on it and what they need.
 
-const AGENT_NAME: Record<string, { name: string; icon: string; size: number }> = {
-  companies_house: { name: "Agency checker", icon: "/warden/agent-agency.png", size: 44 },
-  message_checker: { name: "Chat reader", icon: "/warden/agent-chat.png", size: 52 },
-  emotion_classifier: { name: "Pressure spotter", icon: "/warden/agent-pressure.png", size: 52 },
-  contract_checker: { name: "Contract reader", icon: "/warden/agent-contract.png", size: 52 },
-  video_analysis: { name: "Video checker", icon: "/warden/agent-video.png", size: 52 },
+const AGENT_NAME: Record<string, { name: string; icon: string; job: string }> = {
+  companies_house: { name: "Agency checker", icon: "/warden/agent-agency.png", job: "Checks agency" },
+  message_checker: { name: "Chat reader", icon: "/warden/agent-chat.png", job: "Reads chats" },
+  emotion_classifier: { name: "Pressure spotter", icon: "/warden/agent-pressure.png", job: "Spots pressure" },
+  contract_checker: { name: "Contract reader", icon: "/warden/agent-contract.png", job: "Reads contract" },
+  video_analysis: { name: "Video checker", icon: "/warden/agent-video.png", job: "Checks video" },
 };
 
 /** Guess the evidence kind from a picked file. */
@@ -53,7 +53,7 @@ function NeedsYou({ action, busy, onSkip }: { action: Action; busy: boolean; onS
         <Dot src="/warden/dot-red.svg" pulse /> Needs you
       </span>
       <p className="mt-2.5 text-[15.5px] font-medium leading-[1.3]">{action.text}</p>
-      <p className="mt-1.5 text-[12px] leading-[1.45] text-muted">{whyAsk(action)}</p>
+      <p className="mt-1.5 text-[12px] leading-[1.45] text-muted [@media(max-height:760px)]:hidden">{whyAsk(action)}</p>
       <div className="mt-3 flex gap-2">
         <PillButton onClick={copy} className="py-2! text-[12.5px]!">
           <AnimatePresence mode="wait" initial={false}>
@@ -87,6 +87,8 @@ export function AgentsRail({
   const file = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const waiting = rows.filter((r) => r.chip === "waiting").length;
+  // Once a conversation starts, give it the room: the mascot stage folds away and the team row compacts.
+  const chatting = chat.length > 0;
 
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "smooth" });
@@ -106,13 +108,19 @@ export function AgentsRail({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-      className="relative flex flex-col overflow-hidden rounded-[28px] border border-white bg-[linear-gradient(to_bottom,#d6eff1,#bee4e7)] px-[15px] pb-4 shadow-card"
+      className="relative flex h-full flex-col overflow-hidden rounded-[28px] [&>*:not(.rail-grow)]:shrink-0 border border-white bg-[linear-gradient(to_bottom,#d6eff1,#bee4e7)] px-[15px] pb-4 shadow-card"
     >
       <p className="mt-[9px] text-center text-[10px] font-semibold tracking-[1.2px] text-teal">AGENTS</p>
-      <p className="mt-1 text-center text-[14px] text-ink/70">Warden is checking this home with you</p>
+      <p className="mt-1 text-center text-[14px] text-ink/70 [@media(max-height:760px)]:hidden">Warden is checking this home with you</p>
 
       {/* mascot peeking over the Needs-you card */}
-      <div className="pointer-events-none relative mx-auto h-[150px] w-full">
+      <motion.div
+        className="shrink-0 overflow-hidden"
+        initial={false}
+        animate={{ height: chatting ? 0 : "auto", opacity: chatting ? 0 : 1 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+      <div className="pointer-events-none relative mx-auto h-[150px] w-full shrink-0 [@media(max-height:880px)]:h-[100px] [@media(max-height:760px)]:hidden">
         <div className="absolute left-1/2 top-[-6px] size-[200px] -translate-x-1/2">
           <Image src="/warden/rail-halo.svg" alt="" width={320} height={320} unoptimized className="absolute inset-[-30%] max-w-none" />
         </div>
@@ -132,7 +140,8 @@ export function AgentsRail({
         </div>
       </div>
 
-      <div className="relative z-10">
+      </motion.div>
+      <div className={`relative z-10 ${chatting ? "mt-3" : ""}`}>
         <AnimatePresence mode="popLayout" initial={false}>
           {action ? (
             <motion.div
@@ -164,37 +173,51 @@ export function AgentsRail({
           {agentSummary(rows, 0).replace(/(\d+) waiting/, waiting ? "$1 waiting for evidence" : "$1 waiting")}
         </p>
       </div>
-      <ul className="mt-2.5 flex flex-col gap-2">
+      <ul className="mt-2.5 grid grid-cols-5 gap-2">
         {rows.map((r, i) => {
           const a = AGENT_NAME[r.name];
           const chip = CHIP[r.chip];
+          const waiting = r.chip === "waiting";
           return (
             <motion.li
               key={r.name}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25 + i * 0.06 }}
-              whileHover={{ x: 2 }}
-              className={`relative flex h-[52px] items-center gap-2 rounded-[16px] pl-1 pr-3 ${r.chip === "waiting" ? "bg-white/55" : "bg-white/80"}`}
+              tabIndex={0}
+              aria-label={`${a?.name ?? r.meta.title}: ${chip.label}. ${r.line}`}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 + i * 0.06, type: "spring", stiffness: 300, damping: 24 }}
+              whileHover="hover"
+              whileFocus="hover"
+              className={`group relative flex cursor-default flex-col items-center rounded-[18px] px-1 outline-none transition-[padding] ${chatting ? "py-1.5" : "pb-2.5 pt-2"} focus-visible:ring-2 focus-visible:ring-teal ${waiting ? "bg-white/50" : "bg-white/85"}`}
             >
-              <motion.div
-                className="relative shrink-0"
-                style={{ width: 52, height: 52 }}
-                animate={r.chip === "checking" ? { rotate: [0, -6, 6, 0] } : { rotate: 0 }}
-                transition={r.chip === "checking" ? { duration: 1.2, repeat: Infinity } : undefined}
+              <motion.span
+                className={`relative transition-all ${chatting ? "size-8" : "size-12"}`}
+                variants={{ hover: { y: -3, rotate: [0, -8, 6, 0] } }}
+                animate={r.chip === "checking" ? { scale: [1, 1.08, 1] } : undefined}
+                transition={r.chip === "checking" ? { duration: 1, repeat: Infinity } : { duration: 0.45 }}
               >
-                <Image src={a?.icon ?? r.meta.icon} alt="" fill sizes="52px" className="object-contain p-[2px]" />
-              </motion.div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13.5px] font-medium leading-[1.4]">{a?.name ?? r.meta.title}</p>
-                <p className="flex items-center gap-1.5 text-[11.5px] leading-[1.4] text-muted">
-                  <Dot src={`/warden/dot-xs-${r.tone}.svg`} size={6} />
-                  <span className="truncate">{r.line}</span>
-                </p>
-              </div>
-              <span className="inline-flex shrink-0 items-center gap-[7px] rounded-full border border-line bg-white py-[3px] pl-2 pr-[9px] text-[11px] font-medium">
-                <Dot src={chip.dot} pulse={r.chip === "checking"} /> {chip.label}
+                <Image src={a?.icon ?? r.meta.icon} alt="" fill sizes="48px" className={`object-contain ${waiting ? "opacity-55 grayscale-[40%]" : ""}`} />
+                <span className="absolute -right-0.5 -top-0.5 rounded-full bg-white p-[2px] shadow-tab">
+                  <Dot src={chip.dot} size={8} pulse={r.chip === "checking"} />
+                </span>
+              </motion.span>
+              <span className={`mt-1.5 text-center text-[11.5px] font-medium leading-[1.2] ${chatting ? "hidden" : ""} ${waiting ? "text-muted" : "text-ink/85"}`}>
+                {a?.job ?? r.meta.title}
               </span>
+
+              {/* what it found, on hover / focus */}
+              <motion.span
+                role="tooltip"
+                className={`pointer-events-none absolute bottom-[calc(100%+8px)] z-20 w-[200px] rounded-[14px] ${i === 0 ? "left-0" : i === rows.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2"} bg-ink px-3 py-2.5 text-[12px] leading-[1.4] text-white shadow-glass`}
+                initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                variants={{ hover: { opacity: 1, y: 0, scale: 1 } }}
+                transition={{ type: "spring", stiffness: 420, damping: 30 }}
+              >
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Dot src={`/warden/dot-xs-${r.tone}.svg`} size={6} /> {a?.name}
+                </span>
+                <span className="mt-0.5 block text-white/80">{r.line}</span>
+              </motion.span>
             </motion.li>
           );
         })}
@@ -202,13 +225,28 @@ export function AgentsRail({
 
       <div className="mx-2 mt-3 h-px bg-white/80" />
 
+      <div className="rail-grow flex min-h-0 flex-1 flex-col justify-end">
+      {chat.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-6 text-center"
+        >
+          <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
+            <Mascot width={40} height={48} />
+          </motion.div>
+          <p className="mt-2 text-[14px] font-medium text-ink/80">Ask me anything about this home</p>
+          <p className="mt-1 text-[12.5px] leading-[1.45] text-ink/55">Or forward the agent&apos;s reply and I&apos;ll check it.</p>
+        </motion.div>
+      )}
       <AnimatePresence initial={false}>
         {chat.length > 0 && (
           <motion.div
             ref={log}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="mt-3 flex max-h-[220px] flex-col gap-2 overflow-y-auto px-1"
+            className="mt-3 flex min-h-[140px] flex-col gap-2 overflow-y-auto px-1 pt-3 [mask-image:linear-gradient(to_bottom,transparent,black_28px)]"
             aria-live="polite"
           >
             {chat.map((m, i) => (
@@ -235,6 +273,8 @@ export function AgentsRail({
           </motion.div>
         )}
       </AnimatePresence>
+
+      </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5 px-2">
         {(["Why is this a red flag?", "What should I say to them?"] as const).map((q) => (

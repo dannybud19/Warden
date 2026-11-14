@@ -95,7 +95,7 @@ export function firstTile(ts: Tile[]): CheckId {
 
 // ---- Story strip: what each upload changed ----
 
-const AGENTS_FOR: Partial<Record<EvidenceKind, string[]>> = {
+export const AGENTS_FOR: Partial<Record<EvidenceKind, string[]>> = {
   chat_export: ["message_checker", "emotion_classifier"],
   chat_screenshot: ["message_checker", "emotion_classifier"],
   email: ["message_checker", "emotion_classifier"],

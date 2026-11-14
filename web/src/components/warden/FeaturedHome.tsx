@@ -66,7 +66,7 @@ export function FeaturedHome({ home }: { home: Home }) {
         animate="show"
       >
         <span className="liquid-edge" aria-hidden />
-        <motion.h2 variants={rise} className="truncate text-[30px] font-light leading-[1.15] tracking-[-0.6px]">
+        <motion.h2 variants={rise} className="truncate text-[30px] font-light leading-[1.15] tracking-[-0.03em]">
           {home.title}
         </motion.h2>
         <motion.p variants={rise} className="mt-1.5 truncate text-[13.5px] leading-[1.4] text-ink/60">

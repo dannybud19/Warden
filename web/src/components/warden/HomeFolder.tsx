@@ -40,7 +40,7 @@ export function HomeFolder({ home, priority = false }: { home: Home; priority?: 
         transition={spring}
       >
         <span className="liquid-edge" aria-hidden />
-        <p className="truncate text-[20px] font-light leading-[1.2] tracking-[-0.4px]">{home.title}</p>
+        <p className="truncate text-[20px] font-light leading-[1.2] tracking-[-0.03em]">{home.title}</p>
         <p className="mt-1 truncate text-[12px] leading-[1.4] text-ink/60">{home.meta}</p>
         <div className="mt-2.5 flex items-center justify-between gap-3">
           <Chip dot={meta.dot} label={meta.label} size="sm" className="border-white/80 bg-white/80" />
