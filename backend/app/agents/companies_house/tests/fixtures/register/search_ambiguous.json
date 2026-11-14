@@ -1,0 +1,29 @@
+{
+  "total_results": 2,
+  "items": [
+    {
+      "title": "OAKWOOD LETTINGS LTD",
+      "company_number": "10000001",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2016-03-01",
+      "address_snippet": "1 Oak Road, London, N1 1AA"
+    },
+    {
+      "title": "OAKWOOD LETTINGS LIMITED",
+      "company_number": "12000002",
+      "company_status": "dissolved",
+      "company_type": "ltd",
+      "date_of_creation": "2019-03-01",
+      "address_snippet": "9 Elm Road, Leeds, LS1 1AA"
+    },
+    {
+      "title": "OAKWOOD LETTING SERVICES",
+      "company_number": "13000003",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2020-03-01",
+      "address_snippet": "3 Ash Road, Bath, BA1 1AA"
+    }
+  ]
+}
