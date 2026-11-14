@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Warden hi-fi v3 tokens (from Figma "Warden · Hi-fi v3"). */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0f2a2e;
+  --color-teal: #138a93;
+  --color-aqua: #5cc6c9;
+  --color-muted: #6b8287;
+  --color-hint: #9db0b4;
+  --color-line: #e2ebed;
+  --color-track: #e3ebed;
+  --color-mint: #e3f4f5;
+  --color-field: #f1f6f7;
+  --color-canvas: #f5f8f9;
+  --color-flag-red: #e06a52;
+  --color-flag-amber: #d99a2b;
+  --color-flag-green: #2e9a7c;
+
+  --shadow-glass: 0px 8px 22px 0px rgba(27, 111, 117, 0.08);
+  --shadow-card: 0px 8px 22px 0px rgba(27, 111, 117, 0.07);
+  --shadow-nav: 0px 6px 20px 0px rgba(27, 111, 117, 0.1);
+  --shadow-tab: 0px 2px 8px 0px rgba(27, 111, 117, 0.1);
+  --shadow-photo: 0px 8px 18px 0px rgba(15, 42, 46, 0.16);
+  --shadow-photo-lg: 0px 10px 22px 0px rgba(15, 42, 46, 0.16);
+}
+
+html {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-canvas);
+  overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+/* Liquid glass: a bright, uneven rim (light catching the top-left and bottom-right edges) drawn as a
+   gradient border via mask, plus a soft inner glow. Put it on an absolutely positioned overlay. */
+.liquid-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.25) 30%,
+    rgba(255, 255, 255, 0.08) 55%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+.liquid-glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.66));
+  backdrop-filter: blur(26px) saturate(1.6);
+  -webkit-backdrop-filter: blur(26px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -8px 24px rgba(255, 255, 255, 0.25),
+    0 10px 30px rgba(15, 42, 46, 0.14);
+}
