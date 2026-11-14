@@ -153,7 +153,7 @@ CONF: Final = {
     "virtual-office": 0.5,
     "webmail": 0.5,
     "scam-report": 0.75,
-    "scam-report-fallback": 0.6,
+    "scam-report-fallback": 0.5,  # below 0.6: with the LLM down it shows but cannot flip the check
     "negative-review": 0.6,
     "rogue-checker": 0.9,
     "rogue-checker-name": 0.6,

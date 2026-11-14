@@ -22,7 +22,7 @@ confidence 0.6 or more flips `landlord_identity`, and a clear's confidence lower
 | register | `ambiguous-match`, `young-company` (< 12 months), `officer-mismatch` (confidence 0.5, never flips the check), `dormant`, `insolvency-history`, `strike-off-proposed` | Companies House API | medium |
 | register | `overdue-filings`, `non-property-sic`, `virtual-office` | Companies House API | low |
 | register | `registered-active`: active, 24+ months old, name matches, filings current, not dormant (cleared, confidence 0.6) | Companies House API | low |
-| reputation | `scam-report-*`, `negative-review-*` (max 3 each, kept by an LLM snippet filter) | Linkup web search | high / medium |
+| reputation | `scam-report-*`, `negative-review-*` (max 3 each, kept by an LLM snippet filter; confidence 0.75, or 0.5 from the keyword fallback when the LLM is down, so a fallback hit shows but cannot flip the check alone) | Linkup web search | high / medium |
 | reputation | `rogue-checker` (company number match), `rogue-checker-name` (record with no number, name match 95+) | London Rogue Landlord and Agent Checker, Linkup fallback | high / medium |
 | reputation | `redress-member`, `cmp-member` (cleared, confidence 0.5) | Linkup, on theprs.co.uk, tpos.co.uk, propertymark.co.uk, safeagent.co.uk, ukala.org.uk | low |
 | contact | `webmail`, `lookalike-domain` (imitates Rightmove, Zoopla ...), `new-domain` (< 90 days), `phone-scam-*` | landlord email/phone, RDAP, Linkup | low / high / medium / high |

@@ -296,7 +296,8 @@ async def test_llm_down_uses_keyword_fallback_with_lower_confidence(
         make_ctx, genuine_flat_case, make_company(), search=search, llm=RaisingLLM()
     )
     findings = by_prefix(result, "scam-report-")
-    assert findings and all(f.confidence == 0.6 for f in findings)
+    # 0.5 (App. D, Danny's decision): shown, but below the 0.6 flip threshold on its own.
+    assert findings and all(f.confidence == 0.5 and f.confidence < 0.6 for f in findings)
     assert all(
         quote_of(f) in results("linkup_scam.json")[0].snippet
         or quote_of(f) in results("linkup_scam.json")[1].snippet
