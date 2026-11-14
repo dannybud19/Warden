@@ -13,11 +13,11 @@ Keep the last 8; delete older lines.
 
 | When | Change | What it means for you |
 | --- | --- | --- |
+| Sat 21:00 | **LLM reply parser, round message, Cross-checker recap and chat history** (WS A + J wiring, Danny) | Contracts (additive): `AgentReport.summary: str \| None` and `Case.chat: list[ChatTurn]` (`role` student/orchestrator, `text`, `at`, `action_ids`); run `make schema` after rebasing. Free-text replies are read by an LLM and may answer several actions; with no API key, or when the LLM fails, a keyword fallback runs only if the reply targets an action or exactly one is open, so **tests that reply in free text with several open actions must pass `action_id`**. `status` without `action_id` is now 422. After every round that does not decide: the Cross-checker recap (when it changed), then one round message (max 60 words, template fallback). The Cross-checker is a stub for now (`aggregators/crosschecker/`). With `STORAGE=mongo` the app pings Atlas at startup and fails fast. Web: `web/src/lib/demo.ts` needs `summary: null` and `chat: []` to type-check |
 | Sat 20:10 | **Companies House wired into the live app; analysis runs in the background** (Danny) | `open_case` with a landlord company name or number starts the agency check at once; `add_evidence` and `reply` save and return the Case immediately and analyse in a background task (one analysis per case, short state lock, so nothing is blocked or overwritten). Agent progress and results arrive **only over the stream** after the HTTP call returns; a client that connects late is sent `agent_started` for agents still running. A failed analysis becomes an `orchestrator_message`. Tests: use `wait_idle()` / the `settled` helpers in `backend/tests/conftest.py`. Web: Add home has optional Company number and Agent's name (and sends `listing.postcode` when the address has one); findings that cite web pages show a clickable "Source" link (`sourceUrls` in `selectors.ts`). To run it live: `AGENT_MODE_COMPANIES_HOUSE=real` in `.env` (stubs hard-flag every home that has an agency) |
 | Sat 19:01 | **Standalone contract checker ready** (WS G, Bill) | Accepts text-based PDF/text plus explicit context and returns quoted issues, legal links and targeted questions. The existing `AgentReport` adapter exports concerns and contract facts; rule-level passes do not clear whole shared checks. Upload integration and revision history remain follow-ups. See [WS G](docs/workstreams.md#ws-g-contract-checker-bill) and the [checker README](backend/app/agents/contract_checker/README.md) |
 | Sat 18:30 | **New agent: Cross-checker** (WS J, Danny), in `backend/app/aggregators/crosschecker/` (being built) | A generalist agent that reads every agent's report side by side, flags where they disagree (contract says £60/month utilities, messages say bills included) and writes a recap. The orchestrator relays the recap to the student. Its report replaces `case.reports["crosscheck"]`. Your agent changes nothing: just keep findings and facts accurate and quoted |
 | Sat 18:30 | **Companies House is now a background check** (WS B, Danny) | Register, reputation (scam reports, negative reviews, redress, London Rogue Landlord Checker), contact details, postcode. Hard flags only from the register: a company number that doesn't exist, or a dissolved or liquidated company. A name with no match is suspicious, not a hard flag. Facts: `company_number` (zero-padded) and `email_domain` only, never `address` or `landlord_name` |
-| Planned | **`AgentReport.summary: str \| None`** (contracts change, Danny) | Optional, defaults to `None`, used for the Cross-checker recap. When it lands: rebase, and the TS types gain one field |
 | Sat 18:00 | **Consultant role clarified** | The consultant only picks the next 1 to 3 questions or actions. The orchestrator is the only thing that talks to the student |
 | Sat 16:00 | **Replies target one action** | `POST /cases/{id}/messages` takes `action_id` and `status` (`done`, `skipped`, `impossible`). Unknown or closed `action_id` gives 422 |
 | Sat 16:00 | **Strict generated TS types** | All fields required, no index signatures. The single evidence type is `Evidence1` |
@@ -115,12 +115,12 @@ Full rules: `docs/architecture.md` section 7.
 
 | Type | What it is |
 | --- | --- |
-| `Case` | The shared record: student, listing, landlord, evidence, messages, checks, actions, reports, score_history, decision |
+| `Case` | The shared record: student, listing, landlord, evidence, messages, checks, actions, reports, score_history, decision, chat (`ChatTurn`s between the student and the orchestrator) |
 | `Evidence`, `Message` | An upload and the messages parsed out of it |
 | `Fact` | A typed value an agent extracted (bank account, company number, address, rent, deposit) |
 | `Finding` | A flag or clear: check id, severity, confidence, `supports` (suspicious/cleared), `hard_flag`, evidence quotes |
 | `Check`, `Action` | One of the 8 checks with its state; a question or action for the student, with status and outcome |
-| `AgentReport` | What one agent returns: status, input_hash, facts, findings (planned: optional `summary`, used for the Cross-checker recap) |
+| `AgentReport` | What one agent returns: status, input_hash, facts, findings, optional `summary` (the Cross-checker recap) |
 | `ScoreResult`, `Decision` | Score with per-check contributions; final verdict with summary and reasons |
 | `StreamEvent` | `agent_started`, `agent_finished`, `score_updated`, `actions_proposed`, `orchestrator_message`, `decision_made` |
 
@@ -163,8 +163,8 @@ logic is the work of the workstreams. Things that surprise people:
   name or number, as soon as it is added). To see the question and reply loop, run
   `DEFAULT_AGENT_MODE=real make dev` (agents not built yet return empty reports).
 - **Agent modes:** `AGENT_MODE_<NAME>=real` in `.env` switches one agent; `.env` values are read.
-- **Crosscheck findings** are stored as a pseudo report under `case.reports["crosscheck"]`. Once WS J
-  lands, the Cross-checker writes that same key (rule findings plus its own), so the UI needs no change.
+- **Crosscheck findings** are stored under `case.reports["crosscheck"]`, written by the Cross-checker
+  (`aggregators/crosschecker`, a stub for now: rule findings plus a template recap in `summary`).
 - **Facts feed the cross-check.** Any `address`, `landlord_name`, `company_number`, `rent_pcm` or `deposit`
   fact you emit is compared with the listing, the landlord and other agents. Only emit a fact that means
   the same thing as theirs (e.g. Companies House emits no registered-office `address`).

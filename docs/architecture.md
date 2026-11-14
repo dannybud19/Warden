@@ -163,9 +163,23 @@ Warden/
    5. `scoring.score()` appends a ScoreResult.
    6. If any confirmed `hard_flag` finding: `decide()` and stop.
    7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
-      Else store and emit the actions and an `orchestrator_message`.
-4. `reply(case_id, text, evidence_ids)`: `conversation.parse()` maps the student's free text onto open
-   actions (status + answer). Answers can clear or flag checks directly via `checks.update`. Then `analyse()`.
+      Else store and emit any new actions, then one **round message** (`orchestrator/composer.py`): what
+      changed (score delta, checks that moved, checks that did not run, notes about the reply), then the
+      steps by count. An LLM writes it (max 60 words); a validator (no "safe"/"scam"/"genuine", no
+      number that is not in its input, no 6+ digit run, no JSON) falls back to a fixed template.
+   Steps 3 to 7 apply their results in short locked steps; the Cross-checker, the consultant and the
+   composer run between them, so no LLM call ever holds the state lock. Every orchestrator message is
+   also stored in `case.chat`.
+4. `reply(case_id, text, evidence_ids, action_id?, status?)`: `conversation.parse()` maps the reply
+   onto open actions on a snapshot (LLM, no lock held), then `apply()` writes it to the latest stored
+   actions. With `action_id` only that action can change; `skipped` / `impossible` never call the LLM;
+   free text may answer several actions, but only a reply on a step's own card can close it as
+   `neutral` (a hedge like "I'll ask them" leaves it open). Every update must quote the reply or it is
+   dropped. When the
+   LLM fails (error, timeout, bad JSON, unknown ids) a keyword fallback runs, but only when exactly one
+   action could be meant; otherwise nothing changes and the round message says it could not match the
+   reply. The reply is stored in `case.chat`. Answers can clear or flag checks via `checks.update`; a
+   flagged answer about payment asks the student to upload that message. Then the background analysis.
 5. `decide(case_id)`: `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
 
 Scoring formula (team doc): `score = 100 * sum(w_i * s_i) / sum(w_i)`, with s = 1 for UNVERIFIED or
@@ -203,7 +217,7 @@ API (`api/`):
 | --- | --- | --- |
 | POST | /cases | `{student, listing?, landlord?}` -> Case |
 | POST | /cases/{id}/evidence | multipart file + kind + note -> Case |
-| POST | /cases/{id}/messages | `{text, evidence_ids?}` -> Case |
+| POST | /cases/{id}/messages | `{text, evidence_ids?, action_id?, status?}` -> Case (`status` without `action_id`: 422) |
 | GET | /cases/{id} | Case |
 | GET | /cases/{id}/decision | Decision or 404 |
 | WS | /cases/{id}/stream | StreamEvent JSON |
