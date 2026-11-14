@@ -514,6 +514,18 @@ def test_rank_hits_resolves_one_exact_match_even_when_a_longer_name_also_scores_
     assert decision.hit is not None and decision.hit.company_number == "00000010"
 
 
+def test_rank_hits_exact_match_wins_even_when_runner_up_is_within_five_points() -> None:
+    hits = [
+        hit("LARKFIELD LETTINGSS LIMITED", "00000021"),
+        hit("LARKFIELD LETTINGS LIMITED", "00000020"),
+    ]
+    decision = rank_hits("Larkfield Lettings Ltd", hits)
+    scores = [score for score, _ in decision.scored]
+    assert scores[0] - scores[1] < 5 and scores[1] >= 90  # a close, strong runner-up
+    assert decision.kind == "resolved"
+    assert decision.hit is not None and decision.hit.company_number == "00000020"
+
+
 def test_rank_hits_is_ambiguous_for_two_strong_hits_within_five_points() -> None:
     hits = [hit("OAKWOOD HOME LETTING", "1"), hit("OAKWOOD HOMES LETTINGS", "2")]
     decision = rank_hits("Oakwood Home Lettings", hits)
