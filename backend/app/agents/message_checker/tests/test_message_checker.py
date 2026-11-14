@@ -161,3 +161,27 @@ async def test_llm_failure_falls_back_to_rules(fake_agency_case: Case, ctx: Agen
     report = await MessageCheckerAgent().run(fake_agency_case, with_llm(ctx, "not json at all"))
     assert report.status == AgentStatus.OK
     assert ids(report)["payment_before_viewing"].hard_flag
+
+
+async def test_move_in_date_year_comes_from_the_message(
+    fake_agency_case: Case, ctx: AgentContext
+) -> None:
+    """msg_2 says "1 December" with no year and was sent on 12 Nov 2026; the model guessed 2023."""
+    reply = {"facts": [{"key": "move_in_date", "value": "2023-12-01", "message_id": "msg_2"}]}
+    report = await MessageCheckerAgent().run(fake_agency_case, with_llm(ctx, reply))
+    assert {f.key: f.value for f in report.facts}[FactKey.MOVE_IN_DATE] == "2026-12-01"
+
+
+async def test_move_in_date_without_a_year_or_send_time_is_dropped(
+    fake_agency_case: Case, ctx: AgentContext
+) -> None:
+    messages = [m.model_copy(update={"sent_at": None}) for m in fake_agency_case.messages]
+    case = fake_agency_case.model_copy(update={"messages": messages})
+    reply = {
+        "facts": [
+            {"key": "move_in_date", "value": "2023-12-01", "message_id": "msg_2"},
+            {"key": "move_in_date", "value": "1 December", "message_id": "msg_2"},
+        ]
+    }
+    report = await MessageCheckerAgent().run(case, with_llm(ctx, reply))
+    assert FactKey.MOVE_IN_DATE not in {f.key for f in report.facts}

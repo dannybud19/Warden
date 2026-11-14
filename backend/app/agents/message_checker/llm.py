@@ -6,6 +6,7 @@ It can never set a hard flag, and anything it cannot quote exactly is dropped.
 
 import json
 from dataclasses import dataclass, field
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
@@ -104,7 +105,31 @@ def _other(check_raw: str | None, hit: Hit, explanation: str, confidence: float)
     )
 
 
-def _fact(key_raw: str, value: str, source: str) -> Fact | None:
+def _move_in_date(value: str, message: Message) -> str | None:
+    """An ISO date the message supports, or None.
+
+    Messages often say "1 December" with no year, and the model then guesses one. When the year is
+    not written in the message, it is taken from when the message was sent (the next such date).
+    """
+    try:
+        stated = date.fromisoformat(value)
+    except ValueError:
+        return None
+    if str(stated.year) in message.text:
+        return stated.isoformat()
+    if message.sent_at is None:
+        return None
+    sent = message.sent_at.date()
+    try:
+        moved = stated.replace(year=sent.year)
+        if moved < sent:
+            moved = stated.replace(year=sent.year + 1)
+    except ValueError:  # 29 February in a year without one
+        return None
+    return moved.isoformat()
+
+
+def _fact(key_raw: str, value: str, message: Message) -> Fact | None:
     """A model-reported fact, kept only in a form the crosscheck can compare safely."""
     try:
         key = FactKey(key_raw)
@@ -124,7 +149,11 @@ def _fact(key_raw: str, value: str, source: str) -> Fact | None:
         return None
     if key == FactKey.ADDRESS:
         return None
-    return Fact(key=key, value=value, source=source, agent=AGENT)
+    if key == FactKey.MOVE_IN_DATE:
+        value = _move_in_date(value, message) or ""
+        if not value:
+            return None
+    return Fact(key=key, value=value, source=message.evidence_id, agent=AGENT)
 
 
 def convert(output: LLMOutput, case: Case, fired: set[str]) -> LLMResult:
@@ -163,7 +192,7 @@ def convert(output: LLMOutput, case: Case, fired: set[str]) -> LLMResult:
     by_id = {m.id: m for m in messages}
     for f in output.facts:
         source = by_id.get(f.message_id)
-        fact = _fact(f.key, f.value, source.evidence_id) if source else None
+        fact = _fact(f.key, f.value, source) if source else None
         if fact and fact not in result.facts:
             result.facts.append(fact)
 

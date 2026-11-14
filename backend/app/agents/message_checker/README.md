@@ -16,7 +16,8 @@ The full list of flags, with check, severity and confidence for each, is in `red
 - **Clears:** viewing completed, viewing offered, payment after a viewing through a portal, deposit
   scheme named. A clear is dropped when a medium or higher flag sits on the same check.
 - **Facts:** `bank_account` (masked to the last 4 digits), `email_domain`, `address`, `rent_pcm`,
-  `deposit`, and `landlord_name` (LLM, full names only).
+  `deposit`, `landlord_name` (LLM, full names only) and `move_in_date` (LLM, ISO date; when the
+  message gives no year, the year comes from when it was sent, and without a send time it is dropped).
 - Bank patterns also read the masked forms intake stores (`**-**-56`, `****1234`,
   `DE** **** **** 3000`), so masking uploads does not hide payment or overseas-account flags.
 - It does not flag pressure or urgency. That is `emotion_classifier`.
