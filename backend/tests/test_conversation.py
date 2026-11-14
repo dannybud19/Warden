@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, TypeVar
 
 import pytest
@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from app.contracts import Action, ActionKind, ActionStatus, Case, CheckId
 from app.core.agent import AgentContext
 from app.core.llm import FakeLLM
-from app.orchestrator import conversation
+from app.orchestrator import conversation, fields
 from app.orchestrator.conversation import (
     ActionUpdate,
     InvalidActionError,
@@ -24,8 +24,11 @@ from app.orchestrator.conversation import (
     parse_prompt,
     validate_target,
 )
+from app.orchestrator.fields import FieldUpdate
 
 T = TypeVar("T", bound=BaseModel)
+
+TODAY = date(2026, 11, 14)
 
 COMPANY = "ask_company_number"
 VIEWING = "book_viewing"
@@ -91,6 +94,18 @@ def one_open() -> Case:
 
 def llm_json(*updates: dict[str, Any]) -> str:
     return json.dumps({"updates": list(updates), "question": None})
+
+
+def full_json(
+    updates: list[dict[str, Any]] | None = None,
+    fields: list[dict[str, Any]] | None = None,
+    question: str | None = None,
+) -> str:
+    return json.dumps({"updates": updates or [], "fields": fields or [], "question": question})
+
+
+def fld(field: str, value: str, quote: str, correction: bool = False) -> dict[str, Any]:
+    return {"field": field, "value": value, "quote": quote, "correction": correction}
 
 
 def upd(action_id: str, outcome: str, quote: str, evidence_ids: list[str] | None = None) -> dict:
@@ -213,7 +228,7 @@ async def test_quote_not_in_text_is_dropped(ctx: AgentContext) -> None:
     assert outcomes(result) == {COMPANY: "clears"}
 
 
-@pytest.mark.parametrize("quote", ["", "   ", "a" * (conversation.MAX_QUOTE_CHARS + 1)])
+@pytest.mark.parametrize("quote", ["", "   ", "a" * (fields.MAX_QUOTE_CHARS + 1)])
 async def test_empty_or_long_quote_is_dropped(ctx: AgentContext, quote: str) -> None:
     text = "a" * 300
     ctx, _ = fake(ctx, llm_json(upd(COMPANY, "clears", quote)))
@@ -470,3 +485,116 @@ def test_apply_with_no_updates_returns_equal_copies() -> None:
     new, dropped = apply(actions, ParseResult(unmatched=True), "ok")
     assert new == actions and new[0] is not actions[0]
     assert dropped == []
+
+
+# Fields and question (plan 4.7, 4.8)
+
+
+async def test_fields_and_question_come_back_with_action_updates(ctx: AgentContext) -> None:
+    text = "Company number is 01234567. Actually rent is £950 pcm. Is a holding deposit normal?"
+    reply = full_json(
+        [upd(COMPANY, "clears", "Company number is 01234567")],
+        [
+            fld("landlord.company_number", "01234567", "Company number is 01234567"),
+            fld("listing.rent_pcm", "£950 pcm", "Actually rent is £950 pcm", correction=True),
+        ],
+        "  Is a holding deposit normal?  ",
+    )
+    ctx, _ = fake(ctx, reply)
+
+    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+
+    assert outcomes(result) == {COMPANY: "clears"}
+    assert result.field_updates == (
+        FieldUpdate("landlord.company_number", "01234567"),
+        FieldUpdate("listing.rent_pcm", 950, correction=True),
+    )
+    assert result.invalid_fields == ()
+    assert result.question == "Is a holding deposit normal?"
+    assert not result.unmatched and not result.used_fallback
+
+
+async def test_free_text_that_only_gives_a_rent_is_not_unmatched(ctx: AgentContext) -> None:
+    text = "the rent is 950 a month"
+    ctx, _ = fake(ctx, full_json(fields=[fld("listing.rent_pcm", "950", "the rent is 950")]))
+    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    assert result == ParseResult(field_updates=(FieldUpdate("listing.rent_pcm", 950),))
+
+
+async def test_a_question_alone_is_not_unmatched(ctx: AgentContext) -> None:
+    text = "is a holding deposit normal?"
+    ctx, _ = fake(ctx, full_json(question=text))
+    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    assert result == ParseResult(question=text)
+
+
+async def test_an_unusable_field_alone_is_not_unmatched(ctx: AgentContext) -> None:
+    text = "rent is about 900 or so"
+    ctx, _ = fake(ctx, full_json(fields=[fld("listing.rent_pcm", "about 900", "about 900")]))
+    result = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    assert result == ParseResult(invalid_fields=("rent",))
+
+
+async def test_made_up_field_quote_leaves_the_reply_unmatched(ctx: AgentContext) -> None:
+    ctx, _ = fake(ctx, full_json(fields=[fld("listing.rent_pcm", "950", "rent is 950")]))
+    result = await parse(three_open(), "ok thanks", [], None, None, ctx, today=TODAY)
+    assert result == ParseResult(unmatched=True)
+
+
+@pytest.mark.parametrize(("raw", "expected"), [("   ", None), ("", None), ("q" * 250, "q" * 200)])
+async def test_question_is_blank_or_truncated(
+    ctx: AgentContext, raw: str, expected: str | None
+) -> None:
+    ctx, _ = fake(ctx, full_json(question=raw))
+    result = await parse(three_open(), "hm", [], None, None, ctx, today=TODAY)
+    assert result.question == expected
+    assert result.unmatched is (expected is None)
+
+
+async def test_targeted_reply_also_reads_fields(ctx: AgentContext) -> None:
+    text = "deposit is £1,200"
+    reply = full_json(fields=[fld("listing.deposit", "£1,200", "deposit is £1,200")])
+    ctx, _ = fake(ctx, reply)
+    result = await parse(three_open(), text, [], DEPOSIT, "done", ctx, today=TODAY)
+    assert result == ParseResult(
+        updates=(ActionUpdate(DEPOSIT, "done", "neutral", ""),),
+        field_updates=(FieldUpdate("listing.deposit", 1200),),
+    )
+
+
+async def test_today_bounds_the_move_in_date(ctx: AgentContext) -> None:
+    text = "I move in on 1 March 2027"
+    ctx, _ = fake(ctx, full_json(fields=[fld("student.move_in_date", "1 March 2027", text)]))
+    inside = await parse(three_open(), text, [], None, None, ctx, today=TODAY)
+    outside = await parse(three_open(), text, [], None, None, ctx, today=date(2028, 6, 1))
+    assert inside.field_updates == (FieldUpdate("student.move_in_date", date(2027, 3, 1)),)
+    assert outside.field_updates == () and outside.invalid_fields == ("move-in date",)
+
+
+async def test_fallback_path_reads_no_fields_or_question(ctx: AgentContext) -> None:
+    text = "yes, the rent is 950. Is that normal?"
+    reply = full_json(
+        [upd("invented", "clears", "yes")],
+        [fld("listing.rent_pcm", "950", "the rent is 950")],
+        "Is that normal?",
+    )
+    ctx, _ = fake(ctx, reply)
+    result = await parse(one_open(), text, [], None, None, ctx, today=TODAY)
+    assert result.used_fallback
+    assert result.field_updates == () and result.invalid_fields == () and result.question is None
+
+
+async def test_llm_error_reads_no_fields(ctx: AgentContext) -> None:
+    result = await parse(
+        three_open(), "rent is 950", [], None, None, with_llm(ctx, RaisingLLM()), today=TODAY
+    )
+    assert result == ParseResult(used_fallback=True, unmatched=True)
+
+
+async def test_skipped_reply_still_never_calls_the_llm(ctx: AgentContext) -> None:
+    llm = RaisingLLM()
+    result = await parse(
+        three_open(), "rent is 950", [], DEPOSIT, "skipped", with_llm(ctx, llm), today=TODAY
+    )
+    assert result == ParseResult(updates=(ActionUpdate(DEPOSIT, "skipped", "neutral", ""),))
+    assert llm.calls == 0

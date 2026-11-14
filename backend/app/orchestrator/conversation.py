@@ -13,20 +13,21 @@ import asyncio
 import json
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from datetime import date
 from functools import cache
 from pathlib import Path
 from typing import Literal
 
 from app.contracts import Action, ActionStatus, Case
 from app.core.agent import AgentContext
-from app.orchestrator.fields import FieldUpdate
+from app.orchestrator.fields import FieldUpdate, quote_found, read_fields
 from app.orchestrator.models import LLMActionUpdate, LLMParseOutput, Outcome
 
 ReplyStatus = Literal["done", "skipped", "impossible"]
 
 PARSE_TIMEOUT_S = 15.0
-MAX_QUOTE_CHARS = 200
+MAX_QUESTION_CHARS = 200
 
 CLEARS = ("yes", "confirmed", "verified", "they did", "it is", "registered")
 FLAGS = ("no", "refused", "won't", "wouldn't", "can't", "declined", "abroad")
@@ -88,21 +89,6 @@ def validate_target(case: Case, action_id: str | None) -> None:
         raise InvalidActionError(f"action is not open: {action_id}")
 
 
-# Curly quotes and apostrophes the LLM (or the student's keyboard) may use instead of straight ones.
-_QUOTE_MAP = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})
-
-
-def _normalise(text: str) -> str:
-    """Straight quotes, single spaces, case-folded: the form quotes are compared in."""
-    return " ".join(text.translate(_QUOTE_MAP).split()).casefold()
-
-
-def _quote_found(quote: str, text: str) -> bool:
-    """True when `quote` is a non-empty, short span of the student's `text`."""
-    needle = _normalise(quote)
-    return bool(needle) and len(needle) <= MAX_QUOTE_CHARS and needle in _normalise(text)
-
-
 def _prompt_actions(case: Case, action_id: str | None) -> list[Action]:
     """The actions the LLM may answer: the targeted one, or every open action."""
     open_actions = [a for a in case.actions if a.status == ActionStatus.OPEN]
@@ -142,7 +128,7 @@ def _usable(raw: list[LLMActionUpdate], text: str) -> list[LLMActionUpdate]:
     seen: set[str] = set()
     kept: list[LLMActionUpdate] = []
     for update in raw:
-        if update.action_id not in seen and _quote_found(update.quote, text):
+        if update.action_id not in seen and quote_found(update.quote, text):
             seen.add(update.action_id)
             kept.append(update)
     return kept
@@ -160,6 +146,40 @@ def _to_updates(raw: list[LLMActionUpdate], evidence_ids: list[str]) -> tuple[Ac
     )
 
 
+def _question(raw: str | None) -> str | None:
+    """The student's question to us, stripped and cut to 200 characters; None when blank."""
+    question = (raw or "").strip()[:MAX_QUESTION_CHARS].rstrip()
+    return question or None
+
+
+def _read_actions(
+    output: LLMParseOutput,
+    actions: list[Action],
+    text: str,
+    evidence_ids: list[str],
+    action_id: str | None,
+    ctx: AgentContext,
+) -> ParseResult:
+    """The action part of a well-formed LLM reading (all-unknown ids take the fallback)."""
+    prompt_ids = {a.id for a in actions}
+    known = [u for u in output.updates if u.action_id in prompt_ids]
+    if output.updates and not known:
+        ctx.log.warning("parse fallback: %s", "unknown action ids")
+        return _fallback(actions, text, evidence_ids)
+
+    usable = _usable(known, text)
+    if action_id is None:
+        # In free text a neutral reading ("I'll ask them") must not close a step the student has
+        # not done; only a reply to that step's own card can close it as neutral.
+        usable = [u for u in usable if u.outcome != "neutral"]
+    if usable:
+        return ParseResult(updates=_to_updates(usable, evidence_ids))
+    if action_id is not None:
+        # The student did answer the targeted action, we just cannot read how.
+        return ParseResult(updates=(_done(action_id, "neutral", "", evidence_ids),))
+    return ParseResult(unmatched=True)
+
+
 async def parse(
     case: Case,
     text: str,
@@ -167,11 +187,14 @@ async def parse(
     action_id: str | None,
     status: ReplyStatus | None,
     ctx: AgentContext,
+    *,
+    today: date | None = None,
 ) -> ParseResult:
-    """Map the reply onto the case's open actions (rules: plan 4.3).
+    """Map the reply onto the case's open actions, and read fields and a question (plan 4.3).
 
     Never raises except InvalidActionError (from `validate_target`). LLM errors, timeouts, bad
-    JSON and all-unknown ids take the keyword fallback and set `used_fallback`.
+    JSON and all-unknown ids take the keyword fallback and set `used_fallback`; that path reads
+    no fields and no question. `today` (default: the real date) bounds the move-in date.
     """
     validate_target(case, action_id)
     if action_id is not None and status in ("skipped", "impossible"):
@@ -192,23 +215,20 @@ async def parse(
         ctx.log.warning("parse fallback: %s", type(exc).__name__)
         return _fallback(actions, text, evidence_ids)
 
-    prompt_ids = {a.id for a in actions}
-    known = [u for u in output.updates if u.action_id in prompt_ids]
-    if output.updates and not known:
-        ctx.log.warning("parse fallback: %s", "unknown action ids")
-        return _fallback(actions, text, evidence_ids)
-
-    usable = _usable(known, text)
-    if action_id is None:
-        # In free text a neutral reading ("I'll ask them") must not close a step the student has
-        # not done; only a reply to that step's own card can close it as neutral.
-        usable = [u for u in usable if u.outcome != "neutral"]
-    if usable:
-        return ParseResult(updates=_to_updates(usable, evidence_ids))
-    if action_id is not None:
-        # The student did answer the targeted action, we just cannot read how.
-        return ParseResult(updates=(_done(action_id, "neutral", "", evidence_ids),))
-    return ParseResult(unmatched=True)
+    result = _read_actions(output, actions, text, evidence_ids, action_id, ctx)
+    if result.used_fallback:
+        return result
+    field_updates, invalid = read_fields(output.fields, text, today or date.today())
+    question = _question(output.question)
+    # A reply that gives a field or asks a question is not unmatched, even with no action.
+    answered_something = bool(field_updates or invalid or question)
+    return replace(
+        result,
+        question=question,
+        field_updates=field_updates,
+        invalid_fields=invalid,
+        unmatched=result.unmatched and not answered_something,
+    )
 
 
 def apply(actions: list[Action], result: ParseResult, text: str) -> tuple[list[Action], list[str]]:
