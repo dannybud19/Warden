@@ -35,9 +35,31 @@ def _parse_time(date_str: str, time_str: str) -> datetime | None:
         return None
 
 
+def _words(name: str) -> list[str]:
+    return name.strip().lower().split()
+
+
+def student_senders(names: list[str], student_name: str | None) -> set[str]:
+    """Which chat names are the student. An exact match (any case or spacing) wins; otherwise
+    a first-name match, but only when exactly one person in the chat has that first name.
+
+    The app knows the student by the name they typed (onboarding keeps only the first name),
+    while the export shows their WhatsApp name, so "Georgi" must match "Georgi Roussinov".
+    """
+    wanted = _words(student_name or "")
+    if not wanted:
+        return set()
+    exact = {n for n in names if _words(n) == wanted}
+    if exact:
+        return exact
+    first = {n for n in names if _words(n)[:1] == wanted[:1]}
+    people = {" ".join(_words(n)) for n in first}  # "Sam Reed" and "sam  reed" are one person
+    return first if len(people) == 1 else set()
+
+
 def parse_export(text: str, evidence_id: str, student_name: str | None) -> list[Message]:
     """Messages from a WhatsApp export. `student_name` decides which side is the student."""
-    student = (student_name or "").strip().lower()
+    names: list[str] = []
     messages: list[Message] = []
     open_message = False  # True while continuation lines may still extend the last message
     for raw in text.translate(_INVISIBLE).splitlines():
@@ -48,12 +70,12 @@ def parse_export(text: str, evidence_id: str, student_name: str | None) -> list[
             if any(phrase in line.lower() for phrase in _SYSTEM_PHRASES):
                 open_message = False
                 continue
-            sender = "student" if name.strip().lower() == student else "agent"
+            names.append(name)
             messages.append(
                 Message(
                     id=new_id("msg"),
                     evidence_id=evidence_id,
-                    sender=sender,
+                    sender="agent",  # settled below, once every name in the chat is known
                     sent_at=_parse_time(date_str, time_str),
                     channel="whatsapp",
                     text=body,
@@ -65,4 +87,8 @@ def parse_export(text: str, evidence_id: str, student_name: str | None) -> list[
         elif open_message and line:
             last = messages[-1]
             messages[-1] = last.model_copy(update={"text": f"{last.text}\n{line}"})
-    return messages
+    student = student_senders(names, student_name)
+    return [
+        m.model_copy(update={"sender": "student"}) if name in student else m
+        for name, m in zip(names, messages, strict=True)
+    ]
