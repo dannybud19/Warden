@@ -12,7 +12,8 @@ import { DEMO_CASE_ID } from "@/lib/demo";
 import { agentRows, answerSuggestion, mood, redFlags, type Suggestion } from "@/lib/present";
 import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { Mascot, stagger } from "./primitives";
-import { RiskHeader, SettleChecks, StillKeen, VerdictCard, WhyFlags } from "./RiskView";
+import { EvidencePanel, IssueList, RiskHeader, StillKeen, VerdictCard } from "./RiskView";
+import { NextStep } from "./NextStep";
 import { AgentsRail } from "./AgentsRail";
 import type { CallContext } from "./CaseCall";
 
@@ -37,6 +38,10 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     if (c && caseId !== DEMO_CASE_ID) rememberCase(caseId);
   }, [c, caseId]);
 
+  const onPaste = useCallback(
+    (kind: EvidenceKind, text: string) => void upload({ kind, text, studentName: studentName() }),
+    [upload],
+  );
   const onUpload = useCallback(
     (kind: EvidenceKind, file: File) => void upload({ kind, file, studentName: studentName() }),
     [upload],
@@ -128,22 +133,30 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <p role="alert" className="rounded-[16px] bg-[#fbe6e1] px-4 py-3 text-[13px] text-[#a8402b]">{state.error}</p>
             )}
             <VerdictCard c={c} mood={view.mood} flags={view.flags.length} />
-            <WhyFlags c={c} flags={view.flags} />
+            {action && (
+              <NextStep
+                key={action.id}
+                action={action}
+                busy={state.busy}
+                onSkip={() => void sendReply({ text: "Skip for now", actionId: action.id, status: "skipped" })}
+                onAnswer={(text) => void sendReply({ text, actionId: action.id, status: "done" })}
+                onPaste={() => document.getElementById("rail-input")?.focus()}
+              />
+            )}
+            <IssueList c={c} flags={view.flags} disabled={closed || state.busy} onUpload={onUpload} />
             <StillKeen top={view.flags[0]} />
-            <SettleChecks c={c} disabled={closed || state.busy} onUpload={onUpload} />
+            <EvidencePanel c={c} disabled={closed || state.busy} onUpload={onUpload} onPaste={onPaste} />
           </motion.main>
 
           <div className="sticky top-[96px] h-[calc(100dvh-112px)] max-h-[900px]">
             <AgentsRail
               mood={view.mood}
-              action={action}
               rows={view.rows}
               chat={chat}
               busy={state.busy}
               canReply={!closed && view.open.length > 0}
               closed={closed}
-              onSkip={() => action && void sendReply({ text: "Skip for now", actionId: action.id, status: "skipped" })}
-              onAnswer={(text) => action && void sendReply({ text, actionId: action.id, status: "done" })}
+              onAnswer={action ? (text) => void sendReply({ text, actionId: action.id, status: "done" }) : undefined}
               onAsk={ask}
               onSend={(text) => void sendReply({ text })}
               onUpload={onUpload}

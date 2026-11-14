@@ -6,12 +6,12 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import {
   Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Globe, HelpCircle, KeyRound,
-  PoundSterling, Share, Trash2, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
+  Mail, MessageSquare, Mic, PoundSterling, Share, Trash2, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
 } from "lucide-react";
 import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip } from "recharts";
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
 import type { Mood } from "@/lib/present";
-import { CHECK_TILE, SETTLE, sourceOf, tiles } from "@/lib/dashboard";
+import { SETTLE, sourceOf, tiles } from "@/lib/dashboard";
 import { currentScore, detailText, quoteSource, sourceUrls } from "@/lib/selectors";
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
 import { useRouter } from "next/navigation";
@@ -35,13 +35,6 @@ const CHECK_ICON: Record<CheckId, LucideIcon> = {
   deposit_protection: ShieldCheck,
   no_pressure: Timer,
   fair_price: PoundSterling,
-};
-
-const UPLOAD_TITLE: Partial<Record<EvidenceKind, string>> = {
-  video: "Viewing video",
-  contract: "Tenancy agreement",
-  chat_export: "Your chats",
-  listing: "Listing link",
 };
 
 // ---- small client-only clock for "Updated 3 min ago" ----
@@ -274,88 +267,143 @@ export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: nu
   );
 }
 
-// ---- 3. Why Warden thinks so: flag cards ----
+// ---- 3. Why Warden thinks so: every issue, one row each, one open at a time ----
 
-function FlagCard({ f, i, c }: { f: Finding; i: number; c: Case }) {
-  const [open, setOpen] = useState(false);
+function severityOf(f: Finding): { label: string; color: string; bg: string } {
+  if (f.hard_flag || f.severity === "critical" || f.severity === "high") return { label: "High", color: "#b8432f", bg: "#fcebe7" };
+  if (f.severity === "medium") return { label: "Medium", color: "#8a5f12", bg: "#fbf2df" };
+  return { label: "Low", color: "#5f6f73", bg: "#eef3f4" };
+}
+
+function IssueRow({
+  f, c, open, onToggle, disabled, onUpload,
+}: {
+  f: Finding; c: Case; open: boolean; onToggle: () => void; disabled: boolean;
+  onUpload: (kind: EvidenceKind, file: File) => void;
+}) {
   const Icon = CHECK_ICON[f.check_id as CheckId] ?? HelpCircle;
+  const sev = severityOf(f);
+  // every quote the agent cited, each with where it came from (Danny's quoteSource)
   const quotes = (f.evidence ?? []).filter((r) => r.quote);
   const ev = (c.evidence ?? []).find((e) => e.id === f.evidence?.[0]?.evidence_id);
   const date = ev ? new Date(ev.uploaded_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" }) : null;
-  const tone = f.severity === "critical" || f.severity === "high" || f.hard_flag ? RED : AMBER;
+  const settle = SETTLE[f.check_id as CheckId];
+  const input = useRef<HTMLInputElement>(null);
 
   return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 + i * 0.08, type: "spring", stiffness: 260, damping: 24 }}
-      whileHover={{ y: -3 }}
-      className={`${card} flex flex-col p-5`}
-    >
-      <div className="flex items-center justify-between">
-        <motion.span
-          className="flex size-11 items-center justify-center rounded-[13px]"
-          style={{ background: `${tone}1f`, color: tone }}
-          whileHover={{ rotate: [0, -10, 8, 0] }}
-        >
-          <Icon size={22} strokeWidth={1.8} />
+    <li className="border-t border-line first:border-t-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-field/70"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px]" style={{ background: sev.bg, color: sev.color }}>
+          <Icon size={20} strokeWidth={1.8} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-medium leading-[1.35]">{f.title}</span>
+          <span className="mt-0.5 block text-[13px] text-muted">{[sourceOf(f), date].filter(Boolean).join(" · ")}</span>
+        </span>
+        <span className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ background: sev.bg, color: sev.color }}>
+          {sev.label}
+        </span>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} className="shrink-0 text-ink/40">
+          <ChevronRight size={18} />
         </motion.span>
-        <span className="text-[13.5px] font-medium" style={{ color: tone }}>Flag {i + 1}</span>
-      </div>
-      <p className="mt-4 text-[17px] font-medium leading-[1.4]">{f.title}</p>
-      <p className="mt-2 text-[14px] text-muted">{[sourceOf(f), date].filter(Boolean).join(" · ")}</p>
+      </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            {quotes.length ? (
-              quotes.map((r, k) => (
-                <figure key={k} className="mt-4">
-                  <blockquote className="rounded-[14px] border-l-[3px] bg-field px-4 py-3 text-[14px] italic leading-[1.5] text-ink/80" style={{ borderColor: tone }}>
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pb-5 pl-[76px] pr-6">
+              {quotes.map((r, k) => (
+                <figure key={k} className={k ? "mt-3" : ""}>
+                  <blockquote className="rounded-[14px] border-l-[3px] bg-field px-4 py-3 text-[14px] italic leading-[1.5] text-ink/80" style={{ borderColor: sev.color }}>
                     “{r.quote}”
                   </blockquote>
                   <figcaption className="mt-1.5 pl-1 text-[12.5px] leading-[1.4] text-muted">{quoteSource(c, r)}</figcaption>
                 </figure>
-              ))
-            ) : (
-              <p className="mt-4 rounded-[14px] bg-field px-4 py-3 text-[14px] leading-[1.5] text-ink/80">{detailText(f)}</p>
-            )}
-            <SourceLinks urls={sourceUrls(f)} className="mt-2" />
+              ))}
+              {(() => {
+                // don't repeat the quote if the explanation already includes it
+                let d = detailText(f);
+                for (const { quote } of quotes) if (quote) d = d.replace(new RegExp(`["“”']?${quote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["“”']?\\s*`), "").trim();
+                return d ? <p className={`text-[14px] leading-[1.55] text-ink/75 ${quotes.length ? "mt-3" : ""}`}>{d}</p> : null;
+              })()}
+              <SourceLinks urls={sourceUrls(f)} className="mt-2" />
+              {settle && (
+                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] bg-mint/50 px-4 py-3">
+                  <p className="min-w-0 flex-1 text-[13.5px] leading-[1.5]">
+                    <span className="font-medium">What would settle it: </span>
+                    {settle.text}
+                  </p>
+                  {settle.upload && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => input.current?.click()}
+                        className="shrink-0 cursor-pointer rounded-full border border-line bg-white px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50"
+                      >
+                        {settle.upload.label}
+                      </button>
+                      <input
+                        ref={input}
+                        type="file"
+                        accept={settle.upload.accept}
+                        hidden
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && settle.upload) onUpload(settle.upload.kind, file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="group mt-auto inline-flex cursor-pointer items-center gap-1 self-start pt-5 text-[15px] font-medium text-[#2f6f73]"
-      >
-        {open ? "Hide evidence" : "See evidence"}
-        <motion.span animate={{ rotate: open ? 90 : 0 }}><ChevronRight size={17} /></motion.span>
-      </button>
-    </motion.li>
+    </li>
   );
 }
 
-export function WhyFlags({ c, flags }: { c: Case; flags: Finding[] }) {
+export function IssueList({
+  c, flags, disabled, onUpload,
+}: { c: Case; flags: Finding[]; disabled: boolean; onUpload: (kind: EvidenceKind, file: File) => void }) {
+  const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   if (!flags.length) return null;
-  const top = flags.slice(0, 3);
-  const rest = flags.slice(3);
+  // the worst issue starts open; after that, one row at a time
+  const current = openId === undefined ? flags[0].id : openId;
   return (
     <motion.section variants={rise}>
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-[21px] font-semibold tracking-[-0.02em]">Why Warden thinks so</h2>
-        <p className="text-[14px] text-muted">Tap a flag for the evidence</p>
+      <div className="mb-3 flex items-baseline justify-between px-1">
+        <h2 className="text-[21px] font-medium tracking-[-0.02em]">
+          Why Warden thinks so <span className="text-muted">· {flags.length} issue{flags.length === 1 ? "" : "s"}</span>
+        </h2>
+        <p className="text-[14px] text-muted">Tap an issue for the evidence</p>
       </div>
-      <ul className="grid grid-cols-3 gap-4">
-        {top.map((f, i) => <FlagCard key={f.id} f={f} i={i} c={c} />)}
+      <ul className={`${card} overflow-hidden`}>
+        {flags.map((f) => (
+          <IssueRow
+            key={f.id}
+            f={f}
+            c={c}
+            open={current === f.id}
+            onToggle={() => setOpenId(current === f.id ? null : f.id)}
+            disabled={disabled}
+            onUpload={onUpload}
+          />
+        ))}
       </ul>
-      {rest.length > 0 && (
-        <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-white/70 px-4 py-2 text-[13.5px] text-ink/70">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#fbf2df] text-[11px] font-medium text-[#8a5f12]">+{rest.length}</span>
-          <span className="truncate">Smaller worr{rest.length === 1 ? "y" : "ies"}: {rest.map((f) => f.title.toLowerCase()).join("; ")}</span>
-        </p>
-      )}
     </motion.section>
   );
 }
@@ -393,79 +441,152 @@ function ChecksDonut({ red, green, open }: { red: number; green: number; open: n
   );
 }
 
-export function SettleChecks({ c, disabled, onUpload }: { c: Case; disabled: boolean; onUpload: (kind: EvidenceKind, file: File) => void }) {
+const KIND_ICON: Partial<Record<EvidenceKind, LucideIcon>> = {
+  chat_export: MessageSquare, chat_screenshot: MessageSquare, email: Mail, contract: FileText,
+  video: Video, document: FileText, listing: Globe, call_recording: Mic,
+};
+const KIND_NAME: Record<EvidenceKind, string> = {
+  chat_export: "Chats", chat_screenshot: "Chat screenshot", email: "Email", contract: "Contract", video: "Viewing video",
+  document: "Document", listing: "Listing", call_recording: "Call recording",
+};
+
+/** What the student can always add, whatever state the checks are in. */
+const ADDABLE: { kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; paste?: string }[] = [
+  { kind: "chat_export", label: "Chats", icon: MessageSquare, accept: ".txt,.zip,image/*", paste: "Paste a WhatsApp chat or messages…" },
+  { kind: "email", label: "Emails", icon: Mail, accept: ".eml,.pdf,.txt,image/*", paste: "Paste the email, including who it's from…" },
+  { kind: "contract", label: "Contract", icon: FileText, accept: ".pdf,image/*" },
+  { kind: "video", label: "Viewing video", icon: Video, accept: "video/*" },
+  { kind: "document", label: "Payment details", icon: Banknote, accept: ".pdf,image/*" },
+  { kind: "document", label: "Other document", icon: Upload, accept: ".pdf,image/*,.txt" },
+];
+
+export function EvidencePanel({
+  c, disabled, onUpload, onPaste,
+}: {
+  c: Case; disabled: boolean;
+  onUpload: (kind: EvidenceKind, file: File) => void;
+  onPaste: (kind: EvidenceKind, text: string) => void;
+}) {
   const ts = tiles(c);
   const red = ts.filter((t) => t.state === "suspicious").length;
   const green = ts.filter((t) => t.state === "cleared").length;
-  const open = ts.filter((t) => t.state === "unverified");
-  const uploads = open.filter((t) => SETTLE[t.id].upload);
+  const open = ts.filter((t) => t.state === "unverified").length;
+  const sent = [...(c.evidence ?? [])].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at));
   const input = useRef<HTMLInputElement>(null);
   const pending = useRef<EvidenceKind | null>(null);
+  const [pasting, setPasting] = useState<(typeof ADDABLE)[number] | null>(null);
+  const [text, setText] = useState("");
 
   return (
     <motion.section variants={rise} className={`${card} p-7`}>
       <div className="flex items-start gap-5">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[20px] font-semibold tracking-[-0.02em]">Settle the open checks</h2>
+          <h2 className="text-[20px] font-medium tracking-[-0.02em]">Your evidence</h2>
           <p className="mt-1 text-[14.5px] text-muted">
-            {red + green} of 8 checked{uploads.length ? ` · ${uploads.length} upload${uploads.length === 1 ? "" : "s"} would firm up the verdict` : ""}
+            {red + green} of 8 checked · add anything new and the right agents run again
           </p>
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-ink/70">
             <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: RED }}>!</span>{red} red flag{red === 1 ? "" : "s"}</li>
             <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full text-white" style={{ background: GREEN }}><Check size={10} strokeWidth={3} /></span>{green} verified</li>
-            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full border border-[#c9d6d9] text-[10px] font-bold text-muted">?</span>{open.length} not proven yet</li>
+            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full border border-[#c9d6d9] text-[10px] font-bold text-muted">?</span>{open} not proven yet</li>
           </ul>
         </div>
-        <ChecksDonut red={red} green={green} open={open.length} />
+        <ChecksDonut red={red} green={green} open={open} />
       </div>
 
-      {uploads.length > 0 && (
-        <ul className="mt-6 grid grid-cols-3 gap-3">
-          {uploads.map((t, i) => {
-            const up = SETTLE[t.id].upload!;
-            const Icon = up.kind === "video" ? Video : up.kind === "contract" || up.kind === "document" ? FileText : Upload;
-            const title = up.kind === "document" ? (t.id === "deposit_protection" ? "Deposit certificate" : "Proof they can let it") : UPLOAD_TITLE[up.kind] ?? up.label;
-            const addButton = (
-            <motion.button
-              type="button"
-              disabled={disabled}
-              aria-label={`Add ${title.toLowerCase()}`}
-              onClick={() => {
-                pending.current = up.kind;
-                if (input.current) {
-                  input.current.accept = up.accept;
-                  input.current.click();
-                }
-              }}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.92 }}
-              className="shrink-0 cursor-pointer rounded-full border border-line bg-white px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50"
-            >
-              Add
-            </motion.button>
-            );
+      {sent.length > 0 && (
+        <ul className="mt-5 flex flex-wrap gap-2">
+          {sent.map((e) => {
+            const Icon = KIND_ICON[e.kind] ?? FileText;
             return (
-              <motion.li
-                key={t.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.06 }}
-                whileHover={{ y: -2 }}
-                className="flex flex-col gap-3 rounded-[18px] bg-field p-4"
-              >
-                <span className="flex items-center justify-between">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-[#2f6f73] shadow-tab"><Icon size={19} strokeWidth={1.8} /></span>
-                  {addButton}
-                </span>
-                <span>
-                  <span className="block text-[15px] leading-[1.3]">{title}</span>
-                  <span className="mt-0.5 block text-[12.5px] text-muted">Settles: {CHECK_TILE[t.id].toLowerCase()}</span>
-                </span>
-              </motion.li>
+              <li key={e.id} className="flex max-w-[260px] items-center gap-2 rounded-full bg-field py-1.5 pl-2 pr-3.5 text-[13px]">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-[#2f6f73]"><Icon size={13} /></span>
+                <span className="truncate">{e.filename ?? `Pasted ${KIND_NAME[e.kind].toLowerCase()}`}</span>
+              </li>
             );
           })}
         </ul>
       )}
+
+      <p className="mt-6 text-[13px] font-medium text-ink/70">Add more</p>
+      <ul className="mt-2 grid grid-cols-3 gap-3">
+        {ADDABLE.map((a, i) => (
+          <motion.li
+            key={a.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.04 }}
+            whileHover={{ y: -2 }}
+            className="flex items-center gap-3 rounded-[16px] bg-field p-3"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[#2f6f73] shadow-tab"><a.icon size={17} strokeWidth={1.8} /></span>
+            <span className="min-w-0 flex-1 truncate text-[14px]">{a.label}</span>
+            {a.paste && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => { setPasting(a); setText(""); }}
+                className="shrink-0 cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-teal hover:bg-white disabled:opacity-50"
+              >
+                Paste
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={disabled}
+              aria-label={`Upload ${a.label.toLowerCase()}`}
+              onClick={() => {
+                pending.current = a.kind;
+                if (input.current) {
+                  input.current.accept = a.accept;
+                  input.current.click();
+                }
+              }}
+              className="shrink-0 cursor-pointer rounded-full border border-line bg-white px-3 py-1 text-[12.5px] font-medium disabled:opacity-50"
+            >
+              Add
+            </button>
+          </motion.li>
+        ))}
+      </ul>
+
+      <AnimatePresence>
+        {pasting && (
+          <motion.form
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!text.trim()) return;
+              onPaste(pasting.kind, text.trim());
+              setPasting(null);
+              setText("");
+            }}
+          >
+            <label className="mt-4 block text-[13px] font-medium text-ink/70" htmlFor="paste-evidence">Paste {pasting.label.toLowerCase()}</label>
+            <textarea
+              id="paste-evidence"
+              autoFocus
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={pasting.paste}
+              rows={5}
+              className="mt-2 w-full resize-y rounded-[16px] border border-line bg-white px-4 py-3 text-[14px] outline-none focus:border-aqua focus:ring-4 focus:ring-aqua/15"
+            />
+            <div className="mt-2 flex gap-2">
+              <button type="submit" disabled={!text.trim() || disabled} className="cursor-pointer rounded-full bg-teal px-4 py-2 text-[13.5px] font-medium text-white disabled:opacity-50">
+                Send to Warden
+              </button>
+              <button type="button" onClick={() => setPasting(null)} className="cursor-pointer rounded-full px-3 py-2 text-[13.5px] text-ink/60 hover:text-ink">
+                Cancel
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
       <input
         ref={input}
         type="file"
