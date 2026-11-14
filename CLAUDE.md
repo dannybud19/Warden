@@ -55,6 +55,7 @@ Sun 15 Nov 11:45 (hard close 12:00).
 | `docs/decisions.md` | Every product and process decision so far, on one page | When you wonder "why is it like this?" |
 | `docs/system-design.md` | Short architecture summary and agent list | Quick context |
 | `docs/hackathon-brief.md` | Deadlines, submission requirements, prize strategy, original brief | Planning, demo, write-up |
+| `handoffs` branch (`git show origin/handoffs:README.md`) | Notes between teammates' coding agents | Start of every session |
 | `docs/design.md` | Look, brand, tokens and Audrey's frontend plan (being written) | Any work in `web/` |
 | `web/AGENTS.md` | Next.js 16's own rules: read its bundled docs before writing web code | Any work in `web/` |
 | `backend/app/agents/*/README.md`, `backend/app/aggregators/*/README.md` | What each agent flags and how to run it alone | Working on that agent |
@@ -178,7 +179,7 @@ logic is the work of the workstreams. Things that surprise people:
 
 ## 6. How to start a session
 
-1. `git pull`, then make your worktree (Setup in `AGENTS.md`).
+1. `git pull`, check the handoff notes ("Handoffs between agents" in `AGENTS.md`), then make your worktree (Setup in `AGENTS.md`).
 2. Read this file, then your brief in `docs/workstreams.md` section 4, then `docs/architecture.md`.
 3. Read the code you depend on: `backend/app/contracts/`, `backend/app/core/agent.py`, your agent folder
    and its stub fixture.
