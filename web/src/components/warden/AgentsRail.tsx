@@ -135,7 +135,7 @@ export function AgentsRail({
             <Image src={s.src} alt="" width={s.size} height={s.size} unoptimized />
           </motion.div>
         ))}
-        <div className="pointer-events-auto absolute left-1/2 top-[-10px] -translate-x-1/2">
+        <div className="pointer-events-auto absolute left-1/2 top-[-10px] origin-top -translate-x-1/2 [@media(max-height:880px)]:top-[-4px] [@media(max-height:880px)]:scale-[0.64]">
           <AnimatedWarden state={mood.state} width={250} />
         </div>
       </div>

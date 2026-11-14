@@ -123,7 +123,10 @@ export function formatRent(rent: number | null | undefined): string | null {
 }
 
 export function caseToHome(c: Case, index: number): Home {
-  const status: HomeStatus = c.decision?.verdict ?? "checking";
+  // Verdict when there is one. Otherwise: once any agent has read something, the home is unverified
+  // ("Don't pay yet"); "checking" is only for a home nothing has been analysed for yet.
+  const analysed = Object.values(c.reports ?? {}).some((r) => r.status === "ok");
+  const status: HomeStatus = c.decision?.verdict ?? (analysed ? "not_verified" : "checking");
   const checks = c.checks ?? [];
   const outward = c.listing?.postcode?.split(" ")[0] ?? null;
   const who = c.landlord?.company_name ?? c.landlord?.name ?? null;
