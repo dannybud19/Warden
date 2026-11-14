@@ -8,6 +8,7 @@ import httpx
 from app.agents.companies_house.constants import (
     LINKUP_DEEP_TIMEOUT_S,
     LINKUP_STANDARD_TIMEOUT_S,
+    RETRY_ATTEMPTS,
 )
 from app.agents.companies_house.models import Fetch, Outcome, QueryBudget
 from app.agents.companies_house.retry import Sleep, with_retries
@@ -23,9 +24,10 @@ async def http_get(
     headers: dict[str, str] | None = None,
     params: dict[str, Any] | None = None,
     follow_redirects: bool = False,
+    attempts: int = RETRY_ATTEMPTS,
     sleep: Sleep = asyncio.sleep,
 ) -> Fetch[httpx.Response]:
-    """GET through `ctx.http` with retries. `url` in the result includes the query string."""
+    """GET through `ctx.http` with retries (`attempts` to override). Result `url` has the query."""
     request = ctx.http.build_request("GET", url, headers=headers, params=params)
     full_url = str(request.url)
 
@@ -34,7 +36,9 @@ async def http_get(
             url, headers=headers, params=params, follow_redirects=follow_redirects
         )
 
-    result = await with_retries(call, per_try_timeout=per_try_timeout, sleep=sleep, url=full_url)
+    result = await with_retries(
+        call, attempts=attempts, per_try_timeout=per_try_timeout, sleep=sleep, url=full_url
+    )
     if result.outcome == Outcome.FAILED:
         # 401/403 means a key or config problem: say so clearly in the log.
         level = "error" if result.status_code in (401, 403) else "warning"
