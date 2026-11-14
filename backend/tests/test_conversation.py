@@ -21,6 +21,7 @@ from app.orchestrator.conversation import (
     apply,
     confirmation_outcome,
     keyword_outcome,
+    looks_like_question,
     parse,
     parse_prompt,
     read_reply,
@@ -683,4 +684,48 @@ def test_sync_parse_is_the_keyword_reading() -> None:
     # Free text with several ordinary open actions is not guessed (decision 11).
     assert [a.model_dump() for a in parse(three_open(), "yes", [])] == [
         a.model_dump() for a in three_open().actions
+    ]
+
+
+# Questions to us are never recorded as answers
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("so what are the issues with this property", True),
+        ("Is it normal to pay a deposit before a viewing?", True),
+        ("why", True),
+        ("they refused?", True),
+        ("yes", False),
+        ("no, they did not", False),
+        ("I saw it on Saturday", False),
+        ("Island Gardens is the station", False),
+        ("yes, the rent is 950. Is that normal?", False),
+    ],
+)
+def test_looks_like_question(text: str, expected: bool) -> None:
+    assert looks_like_question(text) is expected
+
+
+async def test_a_question_does_not_answer_an_open_confirmation(ctx: AgentContext) -> None:
+    question = "so what are the issues with this property"
+    ctx, llm = fake(ctx, json.dumps({"updates": [], "question": question}))
+    result = await read_reply(with_confirmation(), question, [], None, None, ctx)
+    assert outcomes(result) == {} and result.question == question
+    # The reader saw every open action, not only the confirmation.
+    seen = [a["id"] for a in json.loads(llm.calls[0]["user"])["open_actions"]]
+    assert seen == [COMPANY, VIEWING, DEPOSIT, CONFIRM]
+
+
+async def test_the_keyword_fallback_keeps_a_question_and_answers_nothing(
+    ctx: AgentContext,
+) -> None:
+    text = "Is it normal to pay before a viewing?"
+    result = await read_reply(
+        with_confirmation(), text, [], None, None, with_llm(ctx, RaisingLLM())
+    )
+    assert result.used_fallback and outcomes(result) == {} and result.question == text
+    assert [a.model_dump() for a in parse(with_confirmation(), text, [])] == [
+        a.model_dump() for a in with_confirmation().actions
     ]
