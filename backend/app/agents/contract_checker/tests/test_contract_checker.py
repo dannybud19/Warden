@@ -15,5 +15,7 @@ async def test_stub_returns_valid_report(fake_agency_case: Case, ctx: AgentConte
 
 async def test_real_agent_runs_with_fakes(fake_agency_case: Case, ctx: AgentContext) -> None:
     report = await ContractCheckerAgent().run(fake_agency_case, ctx)
-    assert report.status == AgentStatus.OK
+    assert report.status == AgentStatus.NEEDS_INPUT
     assert report.agent == "contract_checker"
+    assert report.findings and report.questions
+    assert all(not finding.hard_flag for finding in report.findings)

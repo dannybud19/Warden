@@ -1,6 +1,6 @@
 {
   "agent": "contract_checker",
-  "version": "0.1.0-stub",
+  "version": "0.2.0-stub",
   "status": "ok",
   "input_hash": "",
   "findings": [
@@ -9,7 +9,7 @@
       "agent": "contract_checker",
       "check_id": "deposit_protection",
       "title": "Deposit is 2 months' rent, above the 5-week cap",
-      "detail": "The contract asks for a £1,700 deposit on £850 rent. The legal cap is 5 weeks' rent (about £981), and the deposit is held by the landlord, not in a scheme.",
+      "detail": "Assuming a covered private tenancy in England, annual rent is £10,200 and the five-week cap is £980.76 rounded down to pennies. The £1,700 deposit exceeds this amount. This check does not determine deposit protection. Source: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
       "category": "document",
       "severity": "high",
       "confidence": 0.9,
@@ -17,8 +17,25 @@
         {
           "evidence_id": "ev_contract",
           "quote": "Deposit: £1,700"
+        },
+        {
+          "evidence_id": "ev_contract",
+          "quote": "Rent: £850 per calendar month"
         }
       ],
+      "supports": "suspicious",
+      "hard_flag": false
+    },
+    {
+      "id": "contract_checker:administration_fee",
+      "agent": "contract_checker",
+      "check_id": "contract_consistency",
+      "title": "The contract requires an administration fee",
+      "detail": "The £150 signing charge needs removal or an explanation of an applicable permitted-payment category. Source: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+      "category": "document",
+      "severity": "high",
+      "confidence": 0.9,
+      "evidence": [{"evidence_id": "ev_contract", "quote": "The Tenant shall pay an administration fee of £150 on signing."}],
       "supports": "suspicious",
       "hard_flag": false
     }
