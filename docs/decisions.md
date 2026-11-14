@@ -67,3 +67,15 @@ OpenRent, Rightmove, WhatsApp, email and Companies House.
 - [ ] Danny's account of his experience, to build the demo case
 - [ ] Area rent figures for the pricing check (a small hand-built table is the plan)
 - [ ] Approve the system design doc, then export it as a PDF for the team
+
+## Team design decisions (updated Sat 18:30)
+
+| Who | Decision | Where it lands |
+| --- | --- | --- |
+| Danny | The orchestrator routes all communication between the agents and the student; the student keeps the final confirmation on the property | Orchestrator |
+| Danny | Checker agents are independent flaggers. A separate generalist Cross-checker reads every report, flags where they disagree and writes a recap that the orchestrator relays (replaces the orchestrator cross-flagging itself) | WS J |
+| Danny | Companies House becomes a background check; hard flags only from the register; facts `company_number` and `email_domain` only | WS B |
+| Bill | UK rental law grounding as a reference pack in the Contract checker prompt (Tenant Fees Act 2019, deposit protection), not fine-tuning | WS G |
+| Bill | Adversarial challenger that tries to disprove findings before they count | After the MVP |
+| Brief | Colour-coded dashboard | WS I (Audrey) |
+| Brief | Payment checkpoint (MongoDB history) and cloned-listing detector (Linkup) | After the MVP, if time |
