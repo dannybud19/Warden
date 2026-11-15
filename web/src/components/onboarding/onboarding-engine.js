@@ -315,23 +315,69 @@ function startWardenOnboarding(root, opts) {
 
   const SCENES = MODE === 'onboarding' ? ONBOARDING : NEWCASE;
 
+  // Fields the listing page can fill, with how they are named to the student.
+  const PREFILL = [
+    ['address', 'address', (p) => p.address],
+    ['rent', 'rent', (p) => (p.rent_pcm ? `£${Number(p.rent_pcm).toLocaleString('en-GB')}` : '')],
+    ['agency', 'agency', (p) => p.agency_name],
+    ['companyNumber', 'company number', (p) => p.company_number],
+    ['agentName', "agent's name", (p) => p.landlord_name],
+  ];
+  let readSeq = 0;
+
+  /** Copy what the listing states into the fields the student has left empty. */
+  function fillFromListing(p) {
+    const filled = [];
+    for (const [id, label, pick] of PREFILL) {
+      const value = String(pick(p) || '').trim();
+      if (!value || data[id].trim()) continue;
+      data[id] = value;
+      const el = $(id);
+      if (el) el.value = value;
+      filled.push(label);
+    }
+    return filled;
+  }
+
+  function listingStatus(host, p, filled) {
+    const site = esc((p && p.platform) || host);
+    if (!p || p.status === 'skipped') return `<span class="ok">✓ Got it, it's on ${esc(host)}.</span>`;
+    if (p.status === 'ok' && filled.length) {
+      const list = filled.length > 1 ? `${filled.slice(0, -1).join(', ')} and ${filled[filled.length - 1]}` : filled[0];
+      return `<span class="ok">✓ Read it on ${site}: I filled in the ${esc(list)}. Check they're right.</span>`;
+    }
+    if (p.status === 'ok') return `<span class="ok">✓ Read it on ${site}. I kept what you typed.</span>`;
+    if (p.status === 'blocked') return `${site} wouldn't let me read it. Fill in the details below.`;
+    return "I couldn't read that page. Fill in the details below.";
+  }
+
   function readListing() {
     clearTimeout(readTimer); readTimer = null; data.host = '';
+    const seq = ++readSeq;
     const st = $('status');
     let host = '';
     try { const u = new URL(data.url.trim()); if (/^https?:$/.test(u.protocol) && u.hostname.includes('.')) host = u.hostname.replace(/^www\./, ''); } catch { /* not a URL yet */ }
     if (!host) { st.textContent = data.url.trim() ? "That doesn't look like a link yet." : ''; if (w.state === 'thinking') setState('default'); check(); return; }
     st.textContent = '';
+    const url = data.url.trim();
     flyCard($('url'), host, 'search').then(() => {
-      if (data.url.trim() && !data.host) { setState('thinking'); st.innerHTML = 'Reading the listing…'; }
+      if (seq === readSeq && !data.host) { setState('thinking'); st.innerHTML = 'Reading the listing…'; }
     });
-    readTimer = setTimeout(() => {
+    // A short pause so typing a link does not start a read per keystroke; Continue waits for it.
+    readTimer = setTimeout(async () => {
+      let preview = null;
+      if (opts.previewListing) {
+        try { preview = await opts.previewListing(url); } catch { preview = null; }
+      }
+      if (seq !== readSeq) return; // the link changed while the page was being read
       readTimer = null; data.host = host;
       setState('default');
-      st.innerHTML = `<span class="ok">✓ Got it, it's on ${esc(host)}.</span>`;
+      const filled = preview && preview.status === 'ok' ? fillFromListing(preview) : [];
+      const live = $('status');
+      if (live) live.innerHTML = listingStatus(host, preview, filled);
       setTimeout(() => w.react('happy'), 700);
       check();
-    }, 1600);
+    }, opts.previewListing ? 500 : 1600);
     check();
   }
 

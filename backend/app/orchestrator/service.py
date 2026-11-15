@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from app.aggregators.consultant.consultant import propose_actions
 from app.aggregators.crosschecker import crosschecker
+from app.aggregators.listing_reader.reader import apply_details, read_listing, summary_message
 from app.aggregators.scoring.scoring import Weights, score
 from app.contracts import (
     Action,
@@ -151,7 +152,17 @@ class CaseService:
         listing: Listing | None = None,
         landlord: Landlord | None = None,
     ) -> Case:
-        """New case: all 8 checks UNVERIFIED and a first score of 100."""
+        """New case: all 8 checks UNVERIFIED and a first score of 100.
+
+        A listing link is read first (`aggregators/listing_reader`): what the page states fills the
+        listing and landlord fields the student left empty. It never raises, and in stub mode it
+        makes no request.
+        """
+        note = None
+        if listing and listing.url:
+            details = await read_listing(listing.url, self.ctx)
+            listing, landlord = apply_details(listing, landlord, details)
+            note = summary_message(details)
         case = Case(
             case_id=new_id("case"),
             created_at=datetime.now(UTC),
@@ -162,8 +173,12 @@ class CaseService:
         )
         first = score(case.checks, self.weights)
         case.score_history.append(first)
+        # Kept in the chat history: no stream is connected yet when a case opens.
+        said = _say(case, note) if note else None
         await self.repo.create(case)
         await self._emit(case.case_id, ScoreUpdated(score=first))
+        if said:
+            await self._emit(case.case_id, said)
         landlord = case.landlord
         if landlord and (
             (landlord.company_name or "").strip() or (landlord.company_number or "").strip()

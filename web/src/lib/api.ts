@@ -138,3 +138,33 @@ export function subscribe(
     ws?.close();
   };
 }
+
+
+/** What a listing page states, read by the backend before a case exists (POST /listing/preview). */
+export interface ListingPreview {
+  status: string; // ok | skipped | unsafe_url | unreachable | blocked | empty
+  message?: string | null;
+  platform?: string | null;
+  address?: string | null;
+  postcode?: string | null;
+  rent_pcm?: number | null;
+  deposit?: number | null;
+  agency_name?: string | null;
+  company_number?: string | null;
+  landlord_name?: string | null;
+  description?: string | null;
+}
+
+/** Read a listing link to prefill the add-home form. Null when it cannot be read (never throws). */
+export async function previewListing(url: string): Promise<ListingPreview | null> {
+  if (USE_MOCK) return null;
+  try {
+    return await request<ListingPreview>("/listing/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+  } catch {
+    return null;
+  }
+}
