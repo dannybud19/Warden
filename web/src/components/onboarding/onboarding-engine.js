@@ -162,7 +162,9 @@ function startWardenOnboarding(root, opts) {
 
   // upload tiles: [key, icon, label, accept]
   function tiles(list, cls = '') {
-    const tile = ([k, ic, l, accept]) => `<label class="tile ${data.files[k] ? 'has' : ''}" data-k="${k}" data-ic="${ic}"><img src="${ICONS[ic]}" alt=""><span>${data.files[k] ? '✓ ' + esc(data.files[k]) : l}</span><input type="file" accept="${accept}" aria-label="${l}"></label>`;
+    const tile = ([k, ic, l, accept, soon]) => soon
+      ? `<div class="tile soon" data-k="${k}" data-ic="${ic}" aria-disabled="true"><img src="${ICONS[ic]}" alt=""><span>${l}</span><em>Coming soon</em></div>`
+      : `<label class="tile ${data.files[k] ? 'has' : ''}" data-k="${k}" data-ic="${ic}"><img src="${ICONS[ic]}" alt=""><span>${data.files[k] ? '✓ ' + esc(data.files[k]) : l}</span><input type="file" accept="${accept}" aria-label="${l}"></label>`;
     return `<div class="tiles ${cls}">${list.map(tile).join('')}</div>`;
   }
   function wireTiles(onFirst) {
@@ -279,10 +281,10 @@ function startWardenOnboarding(root, opts) {
         });
     } },
     { ok: () => true, run: async () => {
-        const has = ['messages', 'contract', 'video'].some((k) => data.files[k]);
+        const has = ['messages', 'contract'].some((k) => data.files[k]);
         setState(has ? 'green' : risky() ? 'amber' : 'default');
         await say(has ? `Good clues. Keep them coming.` : `Got any receipts?`, has ? "Add anything else here, or let's keep going." : 'Every message is a clue. All optional.');
-        showForm(tiles([['messages', 'chat', 'Messages', 'image/*,.txt,.zip'], ['contract', 'doc', 'Contract', '.pdf,.docx,.txt,image/*'], ['video', 'camera', 'Viewing video', 'video/*']]) +
+        showForm(tiles([['messages', 'chat', 'Messages', 'image/*,.txt,.zip'], ['contract', 'doc', 'Contract', '.pdf,.docx,.txt,image/*'], ['video', 'camera', 'Viewing video', 'video/*', true]]) +
           nextRow(has ? 'Continue' : 'Skip for now'), () => { wire([]); wireTiles(() => SCENES[step].run()); });
     } },
     { ok: () => true, run: async () => {

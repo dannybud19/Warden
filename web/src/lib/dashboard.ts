@@ -26,8 +26,7 @@ export const SETTLE: Record<CheckId, { text: string; upload?: { kind: EvidenceKi
     upload: { kind: "document", label: "Add proof", accept: ".pdf,.docx,.txt,image/*" },
   },
   in_person_viewing: {
-    text: "Book a viewing, or upload a video of you walking round it.",
-    upload: { kind: "video", label: "Add video", accept: "video/*" },
+    text: "Book a viewing and see it in person before you pay anything.",
   },
   contract_consistency: {
     text: "Upload the tenancy agreement so Warden can compare it with the listing.",

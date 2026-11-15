@@ -491,12 +491,12 @@ const KIND_NAME: Record<EvidenceKind, string> = {
 
 /** What the student can always add, whatever state the checks are in. */
 const ADDABLE: {
-  slot: AddSlot; kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; formats: string; paste?: string; note?: string;
+  slot: AddSlot; kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; formats: string; paste?: string; note?: string; comingSoon?: boolean;
 }[] = [
   { slot: "chats", kind: "chat_export", label: "Chats", icon: MessageSquare, accept: ".txt,.zip,image/*", formats: "WhatsApp export (.txt, .zip) or screenshot", paste: "Paste a WhatsApp chat or messages…" },
   { slot: "emails", kind: "email", label: "Emails", icon: Mail, accept: ".eml,.pdf,.txt,image/*", formats: ".eml, PDF, text or screenshot", paste: "Paste the email, including who it's from…" },
   { slot: "contract", kind: "contract", label: "Contract", icon: FileText, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word (.docx), text or photo" },
-  { slot: "video", kind: "video", label: "Viewing video", icon: Video, accept: "video/*", formats: "Any video (MP4, MOV…)" },
+  { slot: "video", kind: "video", label: "Viewing video", icon: Video, accept: "video/*", formats: "Any video (MP4, MOV…)", comingSoon: true },
   { slot: "payment", kind: "document", label: "Payment details", icon: Banknote, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo", note: PAYMENT_NOTE },
   { slot: "other", kind: "document", label: "Other document", icon: Upload, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo" },
 ];
@@ -561,8 +561,9 @@ export function EvidencePanel({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.04 }}
-            whileHover={{ y: -2 }}
-            className={`relative flex items-center gap-3 rounded-[16px] p-3 ${count ? "bg-[#e9f6f1] ring-1 ring-[#bfe3d5]" : "bg-field"}`}
+            whileHover={a.comingSoon ? undefined : { y: -2 }}
+            aria-disabled={a.comingSoon || undefined}
+            className={`relative flex items-center gap-3 rounded-[16px] p-3 ${a.comingSoon ? "bg-field opacity-55 grayscale" : count ? "bg-[#e9f6f1] ring-1 ring-[#bfe3d5]" : "bg-field"}`}
           >
             <span className="relative flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[#2f6f73] shadow-tab">
               <a.icon size={17} strokeWidth={1.8} />
@@ -574,7 +575,9 @@ export function EvidencePanel({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px]">{a.label}</span>
-              {count > 0 ? (
+              {a.comingSoon ? (
+                <span className="block truncate text-[11.5px] text-muted">Coming soon</span>
+              ) : count > 0 ? (
                 <span className="block truncate text-[11.5px] font-medium text-[#1f7a60]">{count} added</span>
               ) : (
                 <span className="block truncate text-[11.5px] text-muted" title={a.formats}>{a.formats}</span>
@@ -590,6 +593,11 @@ export function EvidencePanel({
                 Paste
               </button>
             )}
+            {a.comingSoon ? (
+              <span className="shrink-0 rounded-full border border-line px-3 py-1 text-[12.5px] font-medium text-muted">
+                Coming soon
+              </span>
+            ) : (
             <button
               type="button"
               disabled={disabled}
@@ -605,6 +613,7 @@ export function EvidencePanel({
             >
               {count ? "Add more" : "Add"}
             </button>
+            )}
           </motion.li>
           );
         })}

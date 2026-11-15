@@ -118,6 +118,9 @@
 .wd-onb .tile img { display: block; width: 48px; height: 48px; margin: 0 auto 6px; }
 .wd-onb .tile.has { border-style: solid; border-color: var(--o-teal); background: #fff; color: var(--o-teal-d); }
 .wd-onb .tile input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.wd-onb .tile.soon { opacity: 0.55; filter: grayscale(1); cursor: not-allowed; }
+.wd-onb .tile.soon:hover { border-color: rgba(19, 138, 147, 0.35); transform: none; }
+.wd-onb .tile.soon em { display: block; margin-top: 2px; font-size: 11px; font-style: normal; }
 
 .wd-onb .note {
   display: flex; gap: 10px; align-items: baseline; margin: 8px 0; padding: 12px 14px;

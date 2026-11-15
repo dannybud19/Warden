@@ -35,8 +35,7 @@ export const AGENT_META: Record<string, AgentMeta> = {
   },
   video_analysis: {
     title: "Checking the viewing video", icon: "/warden/icon-video.svg",
-    missing: "Upload a viewing video to run this",
-    upload: { kind: "video", label: "Upload video", accept: "video/*" },
+    missing: "Video checks coming soon",
   },
 };
 
