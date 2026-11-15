@@ -605,6 +605,7 @@ class CaseService:
             case.reports.update(new_reports)
             case.reports[crosschecker.NAME] = cross
             case.checks = checks_mod.update(case, _all_findings(case))
+            case.actions = payment_confirmation.refresh(case)
             case.actions = _retire_settled(case)
             result = score(case.checks, self.weights)
             case.score_history.append(result)

@@ -67,6 +67,12 @@ _TRAILING_ZERO_DECIMALS = re.compile(r"\.0{1,2}$")
 _SOURCE_LINE = re.compile(r"^Source: \S.*$", re.MULTILINE)
 _SLUG_JUNK = re.compile(r"[^a-z0-9]+")
 _SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+")
+# Internal source labels (S1, S2, ...) the LLM may echo into text the student reads. A bare "S1 2AB"
+# is a Sheffield postcode, so an id followed by a postcode inward code is left alone.
+_SOURCE_IDS = r"S\d{1,3}(?:\s*(?:,|;|&|and)\s*S\d{1,3})*"
+_PAREN_IDS = re.compile(rf"\s*[(\[]\s*(?:(?i:sources?)\s+)?{_SOURCE_IDS}\s*[)\]]")
+_BARE_ID = re.compile(r"(?:(?i:sources?)\s+)?\bS\d{1,3}(?:['\u2019]s)?\b(?!\s*\d[A-Z]{2}\b)")
+_SPACE_BEFORE_PUNCT = re.compile(r"\s+([,.;:!?])")
 _PAYMENT_WORDS = re.compile(r"\b(?:pay|paying|payment|payments|bank|transfer|transfers)\b")
 
 
@@ -153,10 +159,26 @@ def clean_recap(recap: str, kept: list[Inconsistency], rule_findings: list[Findi
         return None
     topics = rule_topics([f for f in rule_findings if f.supports == "suspicious"])
     fallback = template_recap([*topics, *(i.topic for i in kept)])
-    text = " ".join(recap.split())
+    text = _tidy(_PAREN_IDS.sub("", " ".join(recap.split())))
+    if _BARE_ID.search(text):  # "S7's messages": removing the id would leave a broken sentence
+        return fallback
     if not text or _BANNED.search(normalise(text)) or not _topics_allowed(text, kept, topics):
         return fallback
     return _within_words(text, MAX_RECAP_WORDS) or fallback
+
+
+def strip_source_ids(text: str) -> str:
+    """`text` without internal source ids such as "(S36)", "(S3, S12)", "S7's" or "source S4".
+
+    The LLM sees its inputs as S1, S2, ... and sometimes repeats them; the student must not.
+    Postcodes like "S1 2AB" are kept.
+    """
+    return _tidy(_BARE_ID.sub("", _PAREN_IDS.sub("", text)))
+
+
+def _tidy(text: str) -> str:
+    """One space between words and none before punctuation."""
+    return _SPACE_BEFORE_PUNCT.sub(r"\1", " ".join(text.split()))
 
 
 def template_recap(topics: Iterable[str]) -> str:
@@ -336,13 +358,13 @@ def _finding(verified: _Verified, sources: list[Source]) -> Finding:
     inconsistency = verified.inconsistency
     a, b = verified.source_a, verified.source_b
     who_a, who_b = friendly_name(a.agent), friendly_name(b.agent)
-    topic = _capitalised(inconsistency.topic.strip())
+    topic = _capitalised(strip_source_ids(inconsistency.topic))
     title = (
         f"{topic}: two parts of {who_a[:1].lower()}{who_a[1:]} disagree"
         if who_a == who_b
         else f"{topic}: {who_a} and {who_b} disagree"
     )
-    why = inconsistency.why_it_matters.strip()
+    why = strip_source_ids(inconsistency.why_it_matters)
     if _BANNED.search(normalise(why)):
         why = ""  # shown to the student: no verdict words, even in the explanation
     detail = (
@@ -374,7 +396,7 @@ def _finding(verified: _Verified, sources: list[Source]) -> Finding:
 
 def _claim(side: Side) -> str:
     """The side's claim without surrounding whitespace or a final full stop."""
-    return side.claim.strip().removesuffix(".")
+    return strip_source_ids(side.claim).removesuffix(".")
 
 
 def _capitalised(text: str) -> str:

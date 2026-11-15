@@ -72,6 +72,8 @@ def test_new_contact_changes_the_hash_but_unrelated_messages_do_not(
 import json  # noqa: E402
 from typing import Any  # noqa: E402
 
+import httpx  # noqa: E402
+
 from app.agents.companies_house.constants import (  # noqa: E402
     EXTERNAL_EVIDENCE_IDS,
     ROGUE_CHECKER_URL,
@@ -180,6 +182,26 @@ async def test_fake_agency_no_match_is_high_not_hard_and_asks_for_the_number(
     assert finding.severity == "high" and not finding.hard_flag
     assert any("company number" in q for q in report.questions)
     assert report.facts == []
+
+
+async def test_branch_suffixed_agency_name_matches_and_is_not_flagged(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    full = "Chestertons, Camden & Primrose Hill"
+    case = genuine_flat_case.model_copy(deep=True)
+    assert case.landlord is not None
+    case.landlord.company_name, case.landlord.company_number = full, None
+
+    def search(request: httpx.Request) -> httpx.Response:
+        found = request.url.params.get("q") == "Chestertons"
+        items = [{"title": "CHESTERTONS LIMITED", "company_number": "09123456"}]
+        return httpx.Response(200, json={"items": items if found else []})
+
+    routes = genuine_routes({("GET", "/search/companies"): search})
+    report = await run_agent(case, make_ctx, routes)
+    assert report.status == AgentStatus.OK
+    assert "companies_house:name-no-match" not in by_id(report)
+    assert [(f.key.value, f.value) for f in report.facts] == [("company_number", "09123456")]
 
 
 async def test_genuine_flat_is_cleared_with_no_suspicious_findings(

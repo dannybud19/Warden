@@ -16,7 +16,7 @@ confidence 0.6 or more flips `landlord_identity`, and a clear's confidence lower
 | --- | --- | --- | --- |
 | register | `not-found`: the company number is not on the register | Companies House API | critical, **hard flag** |
 | register | `dissolved`: status dissolved, liquidation, receivership, administration, insolvency-proceedings, converted-closed, removed or closed (not voluntary-arrangement) | Companies House API | critical, **hard flag** |
-| register | `name-no-match`: name search finds no close match (asks for the number) | Companies House API | high |
+| register | `name-no-match`: name search finds no close match (asks for the number). A name with a branch ("Chestertons, Camden & Primrose Hill", "Foxtons - Camden", "Hawes and Co (Wimbledon)", "Dexters \| Kentish Town") that finds nothing in full is searched again by its base name (`normalise.strip_branch_suffix`), with the same thresholds | Companies House API | high |
 | register | `name-number-mismatch`: the number belongs to a differently named company | Companies House API | high |
 | register | `disqualified-director`: an active officer is disqualified | Companies House API | high |
 | register | `ambiguous-match`, `young-company` (< 12 months), `officer-mismatch` (confidence 0.5, never flips the check), `dormant`, `insolvency-history`, `strike-off-proposed` | Companies House API | medium |

@@ -723,6 +723,94 @@ async def test_name_with_no_close_hit_is_high_not_hard_and_asks_for_the_number(
     assert router.calls("/company/") == []
 
 
+def _search_by_query(hits_by_query: dict[str, list[dict[str, str]]]):
+    """Handler for /search/companies that answers by the `q` parameter (case-insensitive)."""
+    import httpx
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        q = request.url.params.get("q", "").lower()
+        return httpx.Response(200, json={"items": hits_by_query.get(q, [])})
+
+    return handler
+
+
+def _ch_hit(title: str, number: str) -> dict[str, str]:
+    return {"title": title, "company_number": number, "company_status": "active"}
+
+
+async def test_branch_suffixed_name_matches_on_its_base_name(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    full = "Chestertons, Camden & Primrose Hill"
+    case = with_landlord(genuine_flat_case, company_name=full, company_number=None)
+    routes = genuine_routes(
+        {
+            ("GET", "/search/companies"): _search_by_query(
+                {
+                    full.lower(): [_ch_hit("CHESTERTON PROPERTY SERVICES LTD", "00000001")],
+                    "chestertons": [
+                        _ch_hit("CHESTERTONS LIMITED", "09123456"),
+                        _ch_hit("CHESTERTONS GLOBAL LIMITED", "00000002"),
+                    ],
+                }
+            )
+        }
+    )
+    result, router = await run_register(case, routes, make_ctx)
+    assert not result.fatal
+    assert "companies_house:name-no-match" not in ids(result.findings)
+    assert result.questions == []
+    assert result.resolved_company is not None
+    assert (result.resolved_company.number, result.resolved_company.matched_by) == (
+        "09123456",
+        "name",
+    )
+    assert [r.url.params["q"] for r in router.calls("/search/companies")] == [full, "Chestertons"]
+
+
+async def test_branch_suffixed_name_with_no_match_on_either_search_is_still_no_match(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    full = "Foxtons - Camden"
+    case = with_landlord(genuine_flat_case, company_name=full, company_number=None)
+    routes = {
+        ("GET", "/search/companies"): _search_by_query(
+            {"foxtons": [_ch_hit("FOXHOUND TRADING LTD", "00000003")]}
+        )
+    }
+    result, router = await run_register(case, routes, make_ctx)
+    found = by_id(result.findings, "name-no-match")
+    assert full in found.title and not found.hard_flag
+    assert result.questions == [register.ASK_FOR_NUMBER]
+    assert len(router.calls("/search/companies")) == 2
+    assert router.calls("/company/") == []
+
+
+async def test_plain_name_with_no_match_is_searched_only_once(
+    fake_agency_case: Case, make_ctx
+) -> None:
+    routes = {("GET", "/search/companies"): (200, {"items": []})}
+    _, router = await run_register(fake_agency_case, routes, make_ctx)
+    assert len(router.calls("/search/companies")) == 1
+
+
+async def test_a_name_that_matches_in_full_is_not_stripped(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    full = "Smith, Jones & Co Ltd"
+    case = with_landlord(genuine_flat_case, company_name=full, company_number=None)
+    routes = genuine_routes(
+        {
+            ("GET", "/search/companies"): _search_by_query(
+                {full.lower(): [_ch_hit("SMITH, JONES & CO LTD", "09123456")]}
+            )
+        }
+    )
+    result, router = await run_register(case, routes, make_ctx)
+    assert result.resolved_company is not None
+    assert len(router.calls("/search/companies")) == 1
+
+
 async def test_name_search_returning_nothing_at_all_is_a_no_match_not_a_failure(
     fake_agency_case: Case, make_ctx
 ) -> None:

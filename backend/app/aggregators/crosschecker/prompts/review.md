@@ -14,6 +14,9 @@ Rules:
 - Quote each side EXACTLY as it appears in its source, 3 to 200 characters. Copy, don't paraphrase.
 - Use two different sources. Never pair a source with itself.
 - Don't repeat what a source already flags on its own; only report contradictions BETWEEN sources.
+- The S1, S2 labels are for your input only. Never write them (or "source 3") in the recap, topic,
+  claims or why_it_matters: say who said it instead ("the contract", "your messages", "the agent").
+  The only place to use a label is the source_id field.
 - Don't judge whether this is a scam, don't give legal advice, and never say anything is "safe".
 - If nothing disagrees, return an empty list and an empty recap.
 - At most 6 disagreements, most important first.

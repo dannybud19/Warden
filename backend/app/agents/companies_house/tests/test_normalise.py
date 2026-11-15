@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from app.agents.companies_house.normalise import (
     domain_of,
     extract_contacts,
@@ -14,6 +16,7 @@ from app.agents.companies_house.normalise import (
     person_matches_officer,
     slug,
     split_officer_name,
+    strip_branch_suffix,
     strip_title,
     url_hash8,
 )
@@ -149,3 +152,28 @@ def test_contacts_from_agent_messages_only() -> None:
     assert c.phones == ["07911123456"]
     assert "me@student.ac.uk" not in c.emails
     assert c.keys() == ["email:a@one.com", "email:b@two.com", "phone:07911123456"]
+
+
+@pytest.mark.parametrize(
+    ("name", "base"),
+    [
+        ("Chestertons, Camden & Primrose Hill", "Chestertons"),
+        ("Foxtons - Camden", "Foxtons"),
+        ("Foxtons – Camden", "Foxtons"),
+        ("Hawes and Co (Wimbledon)", "Hawes and Co"),
+        ("Savills Lettings, Clapham", "Savills Lettings"),
+        ("Dexters | Kentish Town", "Dexters"),
+        ("Dexters|Kentish Town", "Dexters"),
+        ("Winkworth (Notting Hill), W11", "Winkworth"),
+    ],
+)
+def test_strip_branch_suffix_cuts_the_branch(name: str, base: str) -> None:
+    assert strip_branch_suffix(name) == base
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["Foxtons", "Prime City Lettings Ltd", "Savills-Smith Lettings", "", "(Camden)", ", Camden"],
+)
+def test_strip_branch_suffix_leaves_plain_names_alone(name: str) -> None:
+    assert strip_branch_suffix(name) is None
