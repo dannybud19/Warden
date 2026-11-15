@@ -79,6 +79,7 @@ function severityRank(f: Finding): number {
 
 function toneOf(f: Finding): Tone {
   if (f.supports === "cleared") return "green";
+  if (!isRedFlag(f)) return "grey";
   return f.severity === "critical" || f.severity === "high" ? "red" : "amber";
 }
 
@@ -87,9 +88,10 @@ export function agentRows(c: Case, live: Record<string, AgentUiStatus>): AgentRo
     const meta = AGENT_META[name];
     const report = c.reports?.[name];
     const status: AgentUiStatus = live[name] === "running" ? "running" : (report?.status ?? "idle");
+    // Red flags lead, then what checks out; notes that cannot move a check come last.
+    const rank = (f: Finding) => (isRedFlag(f) ? 0 : f.supports === "cleared" ? 1 : 2);
     const findings = [...(report?.findings ?? [])].sort((a, b) => {
-      const s = Number(a.supports === "cleared") - Number(b.supports === "cleared");
-      return s || severityRank(a) - severityRank(b);
+      return rank(a) - rank(b) || severityRank(a) - severityRank(b);
     });
     const top = findings[0];
 

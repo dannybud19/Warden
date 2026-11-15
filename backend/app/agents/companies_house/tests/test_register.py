@@ -881,13 +881,14 @@ async def test_student_message_naming_the_company_becomes_a_second_evidence_ref(
     assert quote in case.messages[1].text
 
 
-async def test_negotiator_sam_patel_gets_a_medium_officer_mismatch_that_cannot_flip_the_check(
+async def test_negotiator_at_an_established_agency_gets_an_informational_officer_mismatch(
     genuine_flat_case: Case, make_ctx
 ) -> None:
     case = with_landlord(genuine_flat_case, name="Sam Patel")
     result, _ = await run_register(case, genuine_routes(), make_ctx)
     mismatch = by_id(result.findings, "officer-mismatch")
-    assert (mismatch.severity, mismatch.confidence) == (Severity.MEDIUM, 0.5)
+    # Larkfield is active since 2014, so a non-director contact is expected: info, confidence 0.
+    assert (mismatch.severity, mismatch.confidence) == (Severity.INFO, 0.0)
     strong = [
         f
         for f in result.findings
@@ -1160,3 +1161,27 @@ async def test_every_finding_is_quoted_cited_and_only_not_found_and_dissolved_ar
     assert {f.id for f in findings if f.supports == "cleared"} == {
         "companies_house:registered-active"
     }
+
+
+def test_officer_mismatch_is_informational_only_for_an_established_company() -> None:
+    people = officers(director("CLARKE, Hannah Louise"))
+    f = rule_officer_mismatch(subj(), people, "Sam Patel", established=True)
+    assert f is not None
+    assert f.id == "companies_house:officer-mismatch"
+    assert f.severity == "info" and f.confidence == 0.0 and f.supports == "suspicious"
+    young = rule_officer_mismatch(subj(), people, "Sam Patel", established=False)
+    assert young is not None and young.severity == "medium" and young.confidence == 0.5
+
+
+def test_is_established_needs_active_five_years_and_clean_filings() -> None:
+    old = prof(date_of_creation="2014-07-03", company_status="active")
+    assert register.is_established(subj(old), TODAY)
+    five = prof(date_of_creation="2021-11-14", company_status="active")
+    assert register.is_established(subj(five), TODAY)
+    assert not register.is_established(subj(prof(date_of_creation="2021-11-15")), TODAY)
+    assert not register.is_established(subj(prof(date_of_creation="2025-06-01")), TODAY)
+    assert not register.is_established(
+        subj(prof(date_of_creation="2014-07-03", company_status="dissolved")), TODAY
+    )
+    overdue = prof(date_of_creation="2014-07-03", accounts={"overdue": True})
+    assert not register.is_established(subj(overdue), TODAY)

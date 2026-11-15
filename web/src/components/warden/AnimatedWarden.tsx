@@ -15,8 +15,8 @@ type MascotEl = HTMLElement & { poke?: () => void };
  * `lively` adds a gentle float and a little bounce every few seconds, for hero spots.
  */
 export function AnimatedWarden({
-  state = "default", width, className = "", lively = false,
-}: { state?: WardenState; width: number; className?: string; lively?: boolean }) {
+  state = "default", width, className = "", lively = false, quiet = false,
+}: { state?: WardenState; width: number; className?: string; lively?: boolean; quiet?: boolean }) {
   const ref = useRef<MascotEl>(null);
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export function AnimatedWarden({
     <warden-mascot
       ref={ref}
       state={state}
+      quiet={quiet ? "" : undefined}
       assets="/warden/"
       aria-hidden
       className={`block shrink-0 ${lively ? "" : className}`}

@@ -75,21 +75,39 @@ characters; findings, quotes, facts and student fields are never trimmed.
 | --- | --- | --- | --- |
 | Stub mode (default) | no | rule findings | template recap of the rule findings, or `None` |
 | Fewer than 2 sides (OK reports, plus what the student entered about the listing or landlord, plus each uploaded listing) | no | rule + previous LLM findings | previous summary if there were any, else the template recap of the rule findings, or `None` |
-| Inputs unchanged since the last run (same input hash and version) | no | rule + previous LLM findings | previous summary |
+| Compared material unchanged since the last run (same digest and version) | no | rule + previous LLM findings | previous summary |
 | LLM error, bad JSON or over 25 s | yes, failed | rule + previous LLM findings + `crosscheck:not-run` (info, confidence 0) | previous summary, else the template; `input_hash=""` so the next analysis retries |
-| LLM finds nothing that survives validation | yes | rule findings | template recap of the rule findings, or `None` |
-| LLM finds disagreements | yes | rule + LLM findings | the LLM's recap if it passes the checks below, else a fixed template |
+| LLM finds nothing that survives validation | yes | rule findings + carried findings (below) | the previous summary if something is carried, else the template recap of the rule findings, or `None` |
+| LLM finds disagreements | yes | rule + LLM findings + carried findings | the LLM's recap if it passes the checks below and nothing is carried, else a fixed template naming every topic |
 
 The recap is at most 80 words in whole sentences. It is replaced by the template ("A few details
 don't match between your documents: ... Before paying anything, ask the agent to confirm the correct
 terms in writing.") if it is empty, still names an internal source id such as "S7's" (references
 like "(S36)" are stripped first, and the same ids are stripped from finding titles and details), uses a verdict or legal word (safe, scam, fraud, legit,
 guarantee, illegal, sue, lawyer, genuine, fake, and their inflections), or mentions a topic that is
-neither a kept disagreement nor a rule finding. The orchestrator decides whether to send it: only
-when it is non-empty and different from the previous one.
+neither a kept disagreement nor a rule finding. The orchestrator relays a recap only when it is non-empty and the report holds a disagreement
+(`disagreements.of_report`) that was never relayed before in this case, matched with
+`disagreements.same`. A reworded recap, a reworded finding, a disagreement that went away, or one
+that comes back after being relayed is not sent again.
 
 "Previous LLM findings" are those of the last run by this version: a report or LLM call that
 fails for now never makes verified disagreements disappear.
+
+**Skip key.** The run is skipped on a digest of the sources it would send (`sources.digest`):
+upload and message text, student fields, facts and the quotes agents cite. It leaves out agents'
+input hashes and the wording of their findings, because both change on every action answer while
+the material does not. A reply with no new evidence therefore never calls the LLM again and keeps
+the findings and recap as they were. The LLM would otherwise word the same disagreements
+differently each time, so check states and the verdict flipped between rounds.
+
+**Carried findings.** When new material does trigger a run, a disagreement verified earlier by
+this version is kept (after the new run's findings, within the limit of 5) if every quote it cites
+is still in the evidence it cites (`disagreements.still_quoted`) and the new run did not find the
+same one. "The same" means the same id, or the same two quoted places (`disagreements.same`: each
+quote has a counterpart on the same evidence, one containing the other), because the LLM's topic
+slug changes with its wording. A disagreement is dropped only when its quote is gone. When
+something is carried the summary is the previous one (nothing new found) or the fixed template
+naming every topic.
 
 The 25 s limit sits below the orchestrator's own 30 s deadline around `review()`, so this module's
 fallback, with its not-run finding, applies first.
@@ -105,14 +123,15 @@ rule findings through with the template recap, which is what the orchestrator di
 
 Done in the orchestrator (`service.py`), not here: it computes the rule findings, calls `review()`
 **outside** the state lock, stores the report as `case.reports["crosscheck"]`, and relays a changed
-recap as an `orchestrator_message` before the consultant's actions.
+recap (see above) as an `orchestrator_message` before the consultant's actions.
 
 ## Files
 
 | File | Role |
 | --- | --- |
-| `crosschecker.py` | `review()`: stub switch, gate, reuse, LLM pass, validation, report |
-| `sources.py` | Input reports, numbered sources, budget, input hash |
+| `crosschecker.py` | `review()`: stub switch, gate, reuse, LLM pass, validation, carried findings, report |
+| `sources.py` | Input reports, numbered sources, budget, digest (the skip key) |
+| `disagreements.py` | The report's disagreements, "same disagreement" matching, quote still present |
 | `llm_pass.py` | Renders the sources, calls `ctx.llm.complete_json`, raises `LLMPassError` on any failure |
 | `prompts/review.md` | System prompt |
 | `models.py` | The LLM's output (`Side`, `Inconsistency`, `ReviewOutput`) |

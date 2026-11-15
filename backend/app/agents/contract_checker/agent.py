@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from app.agents.contract_checker.models import ContractReview, ReviewContext
+from app.agents.contract_checker.models import ContractReview, Issue, ReviewContext, RuleId
 from app.agents.contract_checker.review import review_contract
 from app.contracts import (
     AgentReport,
@@ -70,6 +70,9 @@ def report_findings(review: ContractReview) -> list[Finding]:
             "holding_deposit_cap": CheckId.PAYMENT_SAFETY,
             "advance_rent": CheckId.PAYMENT_SAFETY,
         }.get(issue.rule_id, CheckId.CONTRACT_CONSISTENCY)
+        # A cap the amount passes is a note, never a concern: scope doubts alone do not flag it.
+        passed_cap = issue.within_cap is True
+        severity = Severity.LOW if issue.status == "conditional" else Severity.HIGH
         detail = issue.explanation
         if issue.calculation:
             detail += " " + issue.calculation
@@ -83,11 +86,11 @@ def report_findings(review: ContractReview) -> list[Finding]:
                 id=issue.id,
                 agent="contract_checker",
                 check_id=check,
-                title=issue.title,
+                title=_within_cap_title(issue) if passed_cap else issue.title,
                 detail=detail,
                 category=Category.DOCUMENT,
-                severity=Severity.LOW if issue.status == "conditional" else Severity.HIGH,
-                confidence=issue.confidence,
+                severity=Severity.INFO if passed_cap else severity,
+                confidence=0.0 if passed_cap else issue.confidence,
                 evidence=[
                     EvidenceRef(evidence_id=e.document_id, quote=e.quote) for e in issue.evidence
                 ],
@@ -96,6 +99,12 @@ def report_findings(review: ContractReview) -> list[Finding]:
             )
         )
     return findings
+
+
+def _within_cap_title(issue: Issue) -> str:
+    """Say plainly that the amount passed; scope doubts stay in the detail."""
+    what = "Holding deposit" if issue.rule_id == RuleId.HOLDING else "Deposit"
+    return f"{what} is within the legal cap (scope not confirmed)"
 
 
 def report_facts(review: ContractReview) -> list[Fact]:

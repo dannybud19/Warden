@@ -205,6 +205,7 @@ def make_issue(
     uncertainty: list[str] | None = None,
     calculation: str | None = None,
     cleared: bool = False,
+    within_cap: bool | None = None,
 ) -> Issue:
     """Assign stable clause-based IDs and keep priority distinct from confidence."""
     unknown = list(dict.fromkeys(scope_uncertainty(context, rule, book) + (uncertainty or [])))
@@ -243,6 +244,7 @@ def make_issue(
             "importance": 0 if status == "cleared" else priority,
             "confidence": 0.5 if unknown else (0.95 if origin == "rule" else 0.75),
             "calculation": calculation,
+            "within_cap": within_cap,
             "question": None if status == "cleared" else question_for(rule),
             "origin": origin,
         }
@@ -274,8 +276,14 @@ def check_amounts(
             )
     for kind, rule in (("deposit", RuleId.DEPOSIT), ("holding_deposit", RuleId.HOLDING)):
         payments = [term for term in terms if term.kind == kind]
-        for payment in payments:
-            refs = cite_all(document, [payment.evidence] + [term.evidence for term in rents])
+        # One issue per distinct amount: a deposit stated in several clauses is one deposit.
+        by_amount: dict[Decimal, list[MoneyTerm]] = {}
+        for term in payments:
+            by_amount.setdefault(term.amount, []).append(term)
+        for same in by_amount.values():
+            payment = same[0]
+            quotes = [term.evidence for term in same] + [term.evidence for term in rents]
+            refs = cite_all(document, quotes)
             if not refs:
                 continue
             unknown: list[str] = []
@@ -323,6 +331,7 @@ def check_amounts(
                     uncertainty=unknown,
                     calculation=calculation,
                     cleared=not above,
+                    within_cap=not above,
                 )
             )
     return issues

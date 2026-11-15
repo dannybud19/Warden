@@ -8,9 +8,10 @@ LLM's consistency findings follow, and the recap goes in `summary` for the orche
 import asyncio
 import time
 
-from app.aggregators.crosschecker import llm_pass, sources, stub, validate
+from app.aggregators.crosschecker import disagreements, llm_pass, sources, stub, validate
 from app.aggregators.crosschecker.constants import AGENT
-from app.aggregators.crosschecker.rule_recap import recap
+from app.aggregators.crosschecker.rule_recap import recap, rule_topics
+from app.aggregators.crosschecker.validate import MAX_KEPT
 from app.contracts import AgentReport, AgentStatus, Case, EvidenceKind, Finding
 from app.core.agent import AgentContext
 
@@ -33,7 +34,10 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
 
     inputs = sources.input_reports(case)
     previous = case.reports.get(NAME)
-    digest = sources.input_hash(case, inputs)
+    srcs, trimmed = sources.fit_budget(sources.collect(case, inputs))
+    # Our own skip key: the material we compare, not the agents' input hashes (those change with
+    # every action answer, and the LLM would word the same disagreements differently each time).
+    digest = sources.digest(srcs)
 
     def report(findings: list[Finding], summary: str | None, input_hash: str) -> AgentReport:
         return AgentReport(
@@ -57,8 +61,6 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
     if previous and previous.input_hash == digest and previous.version == VERSION:
         return report(rules + carried, previous.summary, digest)
 
-    collected = sources.collect(case, inputs)
-    srcs, trimmed = sources.fit_budget(collected)
     if trimmed:
         ctx.log.info("cross-checker trimmed %d sources to fit the budget", trimmed)
 
@@ -74,8 +76,40 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
 
     kinds = {evidence.id: evidence.kind for evidence in case.evidence}
     found, kept = validate.to_findings(output, srcs, rules, evidence_kinds=kinds, log=ctx.log)
-    summary = validate.clean_recap(output.recap, kept, rules) if kept else recap(rules)
-    return report(rules + found, summary, digest)
+    # A verified disagreement does not vanish because this run worded things differently: it stays
+    # while its quotes are still in the evidence, unless this run found the same one again.
+    kept_over = [
+        f
+        for f in carried
+        if disagreements.still_quoted(f, srcs) and not any(disagreements.same(f, n) for n in found)
+    ][: max(MAX_KEPT - len(found), 0)]
+    if kept_over:
+        summary = _summary_with(kept_over, found, rules, previous)
+    else:
+        summary = validate.clean_recap(output.recap, kept, rules) if kept else recap(rules)
+    return report(rules + found + kept_over, summary, digest)
+
+
+def _summary_with(
+    kept_over: list[Finding],
+    found: list[Finding],
+    rules: list[Finding],
+    previous: AgentReport | None,
+) -> str:
+    """The recap when earlier disagreements are carried over: the previous one if this run found
+    nothing new, else the fixed template naming every topic."""
+    if not found and previous and previous.summary:
+        return previous.summary
+    topics = [
+        *rule_topics([f for f in rules if f.supports == "suspicious"]),
+        *(_topic(f) for f in [*kept_over, *found]),
+    ]
+    return validate.template_recap(topics)
+
+
+def _topic(finding: Finding) -> str:
+    """The topic a consistency finding's title starts with ("Utilities: A and B disagree")."""
+    return finding.title.partition(":")[0]
 
 
 def _verified_before(previous: AgentReport | None) -> list[Finding]:

@@ -121,6 +121,8 @@ class Issue(StrictModel):
     importance: int = Field(ge=0, le=100)
     confidence: float = Field(ge=0, le=1)
     calculation: str | None = None
+    # Amount checks only: True when the arithmetic shows the payment is at or under its cap.
+    within_cap: bool | None = None
     question: Question | None = None
     origin: Literal["rule", "llm"]
     review_reason: str | None = None

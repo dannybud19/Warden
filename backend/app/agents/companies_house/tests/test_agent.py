@@ -1,9 +1,13 @@
 """Agent tests: the shell (Phase 1) and every Appendix F scenario run through the whole agent."""
 
+import json
+
 from app.agents.companies_house.agent import CompaniesHouseAgent
 from app.agents.companies_house.testing import Router, no_sleep
-from app.contracts import AgentStatus, Case
+from app.contracts import AgentReport, AgentStatus, Case, Finding
 from app.core.agent import hash_slice
+from app.core.llm import FakeLLM
+from app.core.search import FakeSearch, SearchResult
 
 
 async def test_skipped_without_company_and_no_http(overseas_landlord_case: Case, make_ctx) -> None:
@@ -69,7 +73,6 @@ def test_new_contact_changes_the_hash_but_unrelated_messages_do_not(
 
 # ===== Phase 3: every Appendix F scenario, run through the whole agent ========================
 
-import json  # noqa: E402
 from typing import Any  # noqa: E402
 
 import httpx  # noqa: E402
@@ -85,8 +88,6 @@ from app.agents.companies_house.testing import (  # noqa: E402
     fixture_json,
     fixture_text,
 )
-from app.contracts import AgentReport  # noqa: E402
-from app.core.search import FakeSearch, SearchResult  # noqa: E402
 
 NOT_RUN = "companies_house:not-run-"
 HARD_FLAGS = {"companies_house:not-found", "companies_house:dissolved"}
@@ -295,13 +296,13 @@ async def test_no_linkup_key_reports_web_checks_as_not_run_without_searching(
     assert "companies_house:redress-member" not in found
 
 
-async def test_negotiator_who_is_not_an_officer_never_flips_the_check(
+async def test_negotiator_at_an_established_agency_is_informational_and_never_flips_the_check(
     genuine_flat_case: Case, make_ctx
 ) -> None:
     case = with_landlord(genuine_flat_case, name="Sam Patel")
     report = await run_agent(case, make_ctx, genuine_routes(), search=redress_search())
     mismatch = by_id(report)["companies_house:officer-mismatch"]
-    assert mismatch.confidence == 0.5 and mismatch.severity == "medium"
+    assert mismatch.confidence == 0.0 and mismatch.severity == "info"  # Larkfield: since 2014
     # The check tracker flips on suspicious findings with severity >= medium AND confidence >= 0.6.
     flippers = [
         f
@@ -390,3 +391,72 @@ async def test_a_module_that_overruns_the_deadline_becomes_a_note_and_register_s
     found = by_id(report)
     assert "companies_house:registered-active" in found
     assert "timed out" in found["companies_house:not-run-property"].detail
+
+
+POST = "Its a scam. The agent lied to me about the price."
+
+
+def noisy_search() -> FakeSearch:
+    snippet = f"Forum post about the agency: {POST} Never again."
+    return FakeSearch(
+        {
+            "scam OR fraud": [
+                SearchResult(title="Complaint", url="https://a.example.org/1", snippet=snippet),
+                SearchResult(title="Complaint", url="https://b.example.org/2", snippet=snippet),
+            ],
+            "Property Redress Scheme": redress_search().results["Property Redress Scheme"],
+        }
+    )
+
+
+def scam_verdict_llm() -> FakeLLM:
+    item = {"keep": True, "label": "scam_report", "about_this_company": True, "quote": POST}
+    return FakeLLM(default=json.dumps({"items": [{"index": 0, **item}, {"index": 1, **item}]}))
+
+
+def flippers(report: AgentReport) -> list[Finding]:
+    """What the check tracker turns into 'suspicious': medium+ and confidence >= 0.6."""
+    return [
+        f
+        for f in report.findings
+        if f.supports == "suspicious"
+        and f.severity in {"critical", "high", "medium"}
+        and f.confidence >= 0.6
+    ]
+
+
+async def test_established_agency_web_noise_and_staff_contact_do_not_flag_the_check(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    case = with_landlord(genuine_flat_case, name="Sam Patel")  # branch staff, not a director
+    report = await run_agent(
+        case, make_ctx, genuine_routes(), search=noisy_search(), llm=scam_verdict_llm()
+    )
+    found = by_id(report)
+    posts = [f for i, f in found.items() if i.startswith("companies_house:scam-report-")]
+    assert len(posts) == 1  # the same post on two sites is one finding
+    assert (
+        "https://a.example.org/1" in posts[0].detail
+        and "https://b.example.org/2" in posts[0].detail
+    )
+    mismatch = found["companies_house:officer-mismatch"]
+    for f in (*posts, mismatch):
+        assert f.severity == "info" and f.confidence == 0.0
+    assert flippers(report) == []
+    assert "companies_house:registered-active" in found  # the clear stays
+
+
+async def test_young_company_keeps_suspicious_web_findings(
+    genuine_flat_case: Case, make_ctx
+) -> None:
+    case = with_landlord(genuine_flat_case, company_number="15551234")
+    routes = genuine_routes(
+        {
+            ("GET", "/company/15551234"): (200, fixture_json("register", "company_young.json")),
+            ("GET", "/company/15551234/officers"): (200, {"items": []}),
+        }
+    )
+    report = await run_agent(case, make_ctx, routes, search=noisy_search(), llm=scam_verdict_llm())
+    [post] = [f for i, f in by_id(report).items() if i.startswith("companies_house:scam-report-")]
+    assert post.severity == "high" and post.confidence == 0.75
+    assert post in flippers(report)

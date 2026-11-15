@@ -46,7 +46,7 @@ export function RiskGauge({ risk, progress }: { risk: RiskDisplay; progress: num
 
   return (
     <div className="w-[260px] max-w-full shrink-0">
-      <div className="relative h-[232px]" role="img" aria-label={`Risk level: ${risk.label}. ${risk.headline}`}>
+      <div className="relative h-[250px]" role="img" aria-label={`Risk level: ${risk.label}. ${risk.headline}`}>
         <svg width={260} height={200} viewBox="0 0 260 200" className="max-w-full overflow-visible" aria-hidden="true">
           {ZONES.map((zone) => (
             <path key={zone.category} d={arcPath(zone.from, zone.to)} fill="none"
@@ -61,9 +61,9 @@ export function RiskGauge({ risk, progress }: { risk: RiskDisplay; progress: num
           </>}
           {risk.needlePosition === null && <text x={DIAL.cx} y={DIAL.cy + 2} textAnchor="middle" fill={risk.color} fontSize={30} fontWeight={500}>?</text>}
         </svg>
-        <div className="absolute inset-x-2 top-[147px] text-center">
-          <p className="text-[24px] font-semibold leading-[1.15] tracking-[-0.03em]" style={{ color: risk.color }}>{risk.label}</p>
-          <p className="mt-1.5 text-[13px] text-muted">Risk level</p>
+        <div className="absolute inset-x-0 top-[192px] text-center">
+          <p className="text-[22px] font-semibold leading-[1.15] tracking-[-0.03em]" style={{ color: risk.color }}>{risk.label}</p>
+          <p className="mt-1 text-[13px] text-muted">Risk level</p>
         </div>
       </div>
       <div className="px-1">

@@ -16,6 +16,7 @@ from app.agents.companies_house.constants import (
     AGENT_NAME,
     CONF,
     DEAD_STATUSES,
+    ESTABLISHED_AGENCY_MONTHS,
     ESTABLISHED_MONTHS,
     EV_REGISTER,
     MAX_DISQUALIFIED_LOOKUPS,
@@ -220,6 +221,8 @@ def rule_officer_mismatch(
     officers: OfficerList | None,
     landlord_name: str | None,
     person_refs: list[EvidenceRef] | None = None,
+    *,
+    established: bool = False,
 ) -> Finding | None:
     """The named person matches no current officer. Only when we saw every active officer."""
     person = strip_title(landlord_name or "").strip()
@@ -231,6 +234,20 @@ def rule_officer_mismatch(
     if any(person_matches_officer(person, o.name) for o in people):
         return None
     listed = "; ".join(o.name for o in people[:5])
+    if established:  # a large agency's staff are rarely directors: say what we saw, flag nothing
+        return make_finding(
+            "officer-mismatch",
+            title=f"{person} isn't listed as a director of {s.name}",
+            detail=(
+                f"The name you were given ({person}) is not a current officer of {s.name}. For "
+                "a long-established agency this is expected, as most staff are not directors. "
+                f"Current officers: {listed}."
+            ),
+            severity=Severity.INFO,
+            confidence=CONF["informational"],
+            evidence=[ch_ref("officers", listed), *(person_refs or [])],
+            sources=[s.url],
+        )
     return make_finding(
         "officer-mismatch",
         title=f"{person} isn't listed as a director of {s.name}",
@@ -391,6 +408,24 @@ def rule_virtual_office(s: Subject) -> Finding | None:
     )
 
 
+def is_established(s: Subject, today: date) -> bool:
+    """Active, registered for ESTABLISHED_AGENCY_MONTHS or more, clean filings, name agrees.
+
+    Same clean-bill conditions as `registered-active`, with a longer age bar.
+    """
+    p = s.profile
+    created = p.date_of_creation
+    if (p.company_status or "").lower() != "active" or created is None:
+        return False
+    if months_between(created, today) < ESTABLISHED_AGENCY_MONTHS or number_name_mismatch(s):
+        return False
+    if (p.accounts and p.accounts.overdue is True) or (
+        p.confirmation_statement and p.confirmation_statement.overdue is True
+    ):
+        return False
+    return not _is_dormant(p) and (p.company_status_detail or "").lower() not in STRIKE_OFF_DETAILS
+
+
 def rule_registered_active(s: Subject, today: date) -> Finding | None:
     """Clear: active, established, name agrees, filings fine, not dormant, no strike-off."""
     p = s.profile
@@ -441,7 +476,9 @@ def evaluate(
         rule_strike_off(s),
         rule_name_number_mismatch(s),
         rule_young_company(s, today),
-        rule_officer_mismatch(s, officers, landlord_name, person_refs),
+        rule_officer_mismatch(
+            s, officers, landlord_name, person_refs, established=is_established(s, today)
+        ),
         rule_disqualified(s, disqualified or []),
         rule_overdue_filings(s),
         rule_dormant(s),

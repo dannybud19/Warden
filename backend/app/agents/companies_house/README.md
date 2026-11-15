@@ -30,6 +30,18 @@ confidence 0.6 or more flips `landlord_identity`, and a clear's confidence lower
 
 Facts emitted: `company_number` (zero-padded) and `email_domain` only.
 
+### Established agencies: web noise is informational
+
+A company that is `active`, registered for 5 or more years (`ESTABLISHED_AGENCY_MONTHS`), has no
+overdue filings, is not dormant or proposed for strike-off, and matches the name the student was
+given is treated as an established agency. For it only, the individual web snippets
+(`scam-report-*`, `negative-review-*`) and `officer-mismatch` (a branch employee is rarely a
+director) are emitted as `info` findings with confidence 0, worded as "worth reading, not a red
+flag". The check tracker ignores them, so they cannot make `landlord_identity` suspicious. Younger
+or small companies keep the suspicious findings above. Never downgraded: register hard flags,
+`young-company`, `disqualified-director`, Rogue Landlord Checker hits and every other register
+finding. In every case, the same quote found on several URLs is one finding citing all of them.
+
 ## What it never does
 
 - **No hard flag from the web.** Only the register (number 404, or a dead company) sets `hard_flag`.

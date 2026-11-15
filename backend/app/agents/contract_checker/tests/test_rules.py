@@ -145,3 +145,69 @@ def test_no_fee_and_ast_heading_alone_are_not_findings() -> None:
         "contract.txt",
     )
     assert explicit_candidates(doc) == []
+
+
+def test_same_deposit_in_two_clauses_is_one_issue_citing_both() -> None:
+    issues = amount_issues(
+        "1. Rent: £1,450 per month\n2. Deposit: £1,670\n"
+        "3. The tenancy deposit of £1,670 is protected with the DPS."
+    )
+    deposits = [i for i in issues if i.rule_id == RuleId.DEPOSIT]
+    assert len(deposits) == 1
+    assert len({ref.segment_id for ref in deposits[0].evidence}) == 3
+    assert deposits[0].within_cap is True
+
+
+def test_two_different_deposit_amounts_still_give_two_issues() -> None:
+    issues = amount_issues("1. Rent: £1,450 per month\n2. Deposit: £1,670\n3. Deposit: £2,000")
+    assert [i.within_cap for i in issues if i.rule_id == RuleId.DEPOSIT].count(None) == 0
+    assert len([i for i in issues if i.rule_id == RuleId.DEPOSIT]) == 2
+
+
+def test_deposit_over_cap_is_not_within_cap() -> None:
+    issue = amount_issues("1. Rent: £1,300 per month\n2. Deposit: £1,800")[0]
+    assert issue.within_cap is False and issue.status == "confirmed"
+
+
+def _adapted(text: str, **changes):
+    from app.agents.contract_checker.agent import report_findings
+    from app.agents.contract_checker.models import ContractReview
+
+    doc = extract_document(text.encode(), "contract.txt")
+    issues = amount_issues(text, **changes)
+    review = ContractReview(
+        status="partial",
+        context=context(**changes),
+        document_id=doc.id,
+        document_sha256=doc.sha256,
+        issues=issues,
+    )
+    return report_findings(review)
+
+
+def test_deposit_within_cap_with_unknown_scope_is_an_info_note_not_a_concern() -> None:
+    # E2E S4: two clauses stated the same deposit; both came out as "suspicious" concerns.
+    findings = _adapted(
+        "1. Rent: GBP 1450 per calendar month.\n2. Tenancy deposit: GBP 1670.\n"
+        "3. The deposit GBP 1670 is protected in the DPS.",
+        jurisdiction="unknown",
+        tenancy_type="unknown",
+        rent_basis="unknown",
+    )
+    deposits = [f for f in findings if f.id.startswith("contract_checker:deposit_cap:")]
+    assert len(deposits) == 1
+    note = deposits[0]
+    assert note.severity == "info" and note.confidence == 0.0
+    assert note.title == "Deposit is within the legal cap (scope not confirmed)"
+    assert "Confirm that the rented property is in England." in note.detail
+
+
+def test_deposit_over_cap_with_unknown_scope_stays_a_concern() -> None:
+    findings = _adapted(
+        "1. Rent: £1,300 per month\n2. Deposit: £1,800",
+        jurisdiction="unknown",
+        tenancy_type="unknown",
+    )
+    assert [(f.severity, f.title) for f in findings] == [
+        ("low", "Deposit exceeds the calculated cap")
+    ]
