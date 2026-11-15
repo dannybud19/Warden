@@ -112,6 +112,18 @@ async def test_web_search_budget_and_failure(make_ctx) -> None:
     assert search.queries == ["q one"]
 
 
+async def test_web_search_without_linkup_key_fails_before_searching(make_ctx, ch_settings) -> None:
+    search = FakeSearch({"q": [SearchResult(title="t", url="https://u.test", snippet="s")]})
+    ctx = await make_ctx(
+        search=search, settings=ch_settings.model_copy(update={"linkup_api_key": ""})
+    )
+    budget = QueryBudget(limit=1)
+    result = await web_search(ctx, budget, "q one", sleep=no_sleep)
+    assert result.outcome == Outcome.FAILED and result.error == "no API key"
+    assert search.queries == []
+    assert budget.used == 0  # no budget spent on a search that never ran
+
+
 async def test_web_search_failure_is_failed_not_empty(make_ctx) -> None:
     class Down(FakeSearch):
         async def search(self, query, *, depth="standard"):  # type: ignore[override]
