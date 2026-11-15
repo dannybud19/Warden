@@ -226,9 +226,6 @@ export function AgentsRail(props: Props) {
   return (
     <motion.aside
       aria-label="Agents"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
       className="relative flex h-full flex-col rounded-[28px] border border-white bg-[linear-gradient(to_bottom,#d6eff1,#bee4e7)] px-[15px] pb-4 shadow-card [&>*:not(.rail-grow)]:shrink-0"
     >
       {/* compact header: Warden + what's going on */}

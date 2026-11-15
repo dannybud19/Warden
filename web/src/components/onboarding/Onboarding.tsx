@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import * as api from "@/lib/api";
+import { PAYMENT_NOTE } from "@/lib/evidence";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { rememberCase } from "@/lib/homes";
 import { writeLocal } from "@/lib/localStore";
@@ -130,7 +131,7 @@ export default function Onboarding({ mode = "onboarding" }: { mode?: "onboarding
       // Uploads run on after we navigate: the case page shows each agent's check land live.
       const studentName = (profile.name ?? readName()).split(/\s+/)[0] || "student";
       for (const [k, f] of Object.entries(files) as [UploadKey, File][]) {
-        void api.uploadEvidence(c.case_id, { kind: FILE_KIND[k](f), file: f, studentName }).catch(() => {});
+        void api.uploadEvidence(c.case_id, { kind: FILE_KIND[k](f), file: f, studentName, note: k === "payment" ? PAYMENT_NOTE : undefined }).catch(() => {});
       }
       router.push(`/case/${c.case_id}`);
     }

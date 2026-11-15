@@ -86,8 +86,8 @@
       const tick = now => { if (!this.isConnected) return; this._frame(now); requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
     }
-    attributeChangedCallback(n, o, v) {
-      if (n === 'mode') this.$eyes && this.$eyes.classList.toggle('happy', false);
+    attributeChangedCallback(n) {
+      if (n === 'mode' && this.$eyes) this.$eyes.classList.remove('happy');
     }
     look(x = 0, y = 0) { this._tx = Math.max(-1, Math.min(1, x)); this._ty = Math.max(-1, Math.min(1, y)); }
     happy(ms = 1200) { this.$eyes.classList.add('happy'); clearTimeout(this._h); this._h = setTimeout(() => this.$eyes.classList.remove('happy'), ms); }

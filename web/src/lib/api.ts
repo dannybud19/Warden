@@ -74,7 +74,7 @@ export async function getDecision(caseId: string): Promise<Decision | null> {
 }
 
 export async function uploadEvidence(caseId: string, input: UploadInput): Promise<Case> {
-  if (caseId === demo.DEMO_CASE_ID) return demo.upload(input.kind, input.file?.name ?? null);
+  if (caseId === demo.DEMO_CASE_ID) return demo.upload(input.kind, input.file?.name ?? null, input.note ?? null);
   if (USE_MOCK) return mock.getCase();
   const form = new FormData();
   form.append("kind", input.kind);

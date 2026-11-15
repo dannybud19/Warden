@@ -8,12 +8,13 @@ import {
   Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Globe, HelpCircle, Info, KeyRound,
   Mail, MessageSquare, Mic, PoundSterling, Share, Trash2, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
 } from "lucide-react";
-import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
 import type { Mood } from "@/lib/present";
 import { SETTLE, sourceOf, tiles } from "@/lib/dashboard";
 import { currentScore, detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors";
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
+import { PAYMENT_NOTE, addedBySlot, type AddSlot } from "@/lib/evidence";
 import { useRouter } from "next/navigation";
 import { Mascot, SourceLinks, rise } from "./primitives";
 import { PILL } from "./Dashboard";
@@ -100,40 +101,92 @@ function riskOf(c: Case, mood: Mood, flags: number): Risk {
   return { label: "Not checked", color: "#9db0b4", value: score, headline: "Forward what they sent you.", sub: "Chats, emails, the listing link or the contract.", danger: false };
 }
 
-// ---- Gauge (Recharts radial bar) with an animated count-up ----
+// ---- Gauge: a stylised radial gauge. A filled arc shades green → yellow → red up to the score, with the score in the middle ----
+
+const DIAL = { cx: 130, cy: 124, r: 100, width: 22, from: 210, sweep: 240, slices: 120 };
+const STOPS: [number, [number, number, number]][] = [
+  [0, [46, 154, 124]], // green
+  [0.5, [230, 180, 60]], // yellow
+  [1, [224, 106, 82]], // red
+];
+
+function zoneColor(t: number): string {
+  const i = t <= STOPS[1][0] ? 0 : 1;
+  const [t0, c0] = STOPS[i];
+  const [t1, c1] = STOPS[i + 1];
+  const k = (t - t0) / (t1 - t0);
+  const [r, g, b] = c0.map((c, j) => Math.round(c + (c1[j] - c) * k));
+  return `rgb(${r} ${g} ${b})`;
+}
+
+/** Point on the dial for a risk value 0..100 (0 bottom-left, 100 bottom-right). */
+function dialPoint(v: number, r = DIAL.r): [number, number] {
+  const a = ((DIAL.from - (DIAL.sweep * v) / 100) * Math.PI) / 180;
+  return [DIAL.cx + r * Math.cos(a), DIAL.cy - r * Math.sin(a)];
+}
+
+function arcPath(v0: number, v1: number): string {
+  const [x0, y0] = dialPoint(v0);
+  const [x1, y1] = dialPoint(v1);
+  return `M ${x0} ${y0} A ${DIAL.r} ${DIAL.r} 0 0 1 ${x1} ${y1}`;
+}
+
+// The arc is drawn as thin slices so its colour can follow the green → red scale.
+const SLICES = Array.from({ length: DIAL.slices }, (_, i) => {
+  const v0 = (i / DIAL.slices) * 100;
+  const v1 = ((i + 1) / DIAL.slices) * 100;
+  return { v0, v1, d: arcPath(v0, Math.min(100, v1 + 0.3)), color: zoneColor((v0 + v1) / 200) };
+});
+
+/** A tapered needle from the hub to just inside the arc. */
+function needlePath(v: number): string {
+  const [tx, ty] = dialPoint(v, DIAL.r - DIAL.width / 2 - 8);
+  const [lx, ly] = dialPoint(v + 25, 5);
+  const [rx, ry] = dialPoint(v - 25, 5);
+  const [bx, by] = dialPoint(v + 50, 12);
+  return `M ${tx} ${ty} L ${lx} ${ly} L ${bx} ${by} L ${rx} ${ry} Z`;
+}
 
 function RiskGauge({ risk, flags }: { risk: Risk; flags: number }) {
   const mv = useMotionValue(0);
   const shown = useTransform(mv, (v) => Math.round(v));
+  const needle = useTransform(mv, needlePath);
   const [n, setN] = useState(0);
   useEffect(() => shown.on("change", setN), [shown]);
   useEffect(() => {
-    const ctl = animate(mv, risk.value, { duration: 1.2, ease: [0.22, 1, 0.36, 1] });
+    const ctl = animate(mv, risk.value, { duration: 1.4, ease: [0.22, 1, 0.36, 1] });
     return () => ctl.stop();
   }, [mv, risk.value]);
 
+  const [sx, sy] = dialPoint(0);
+  const [ex, ey] = dialPoint(Math.max(n, 0.5));
+  const [hx, hy] = dialPoint(100);
   return (
-    <div className="relative h-[176px] w-[260px] shrink-0" role="img" aria-label={`${risk.label}: risk ${risk.value} out of 100, ${flags} red flags`}>
-      <RadialBarChart
-        width={260}
-        height={260}
-        cx={130}
-        cy={140}
-        innerRadius={96}
-        outerRadius={118}
-        startAngle={200}
-        endAngle={-20}
-        barSize={20}
-        data={[{ value: risk.value, fill: risk.color }]}
-      >
-        <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-        <RadialBar dataKey="value" cornerRadius={12} background={{ fill: TRACK }} isAnimationActive animationDuration={1200} />
-      </RadialBarChart>
-      <div className="absolute inset-x-0 top-[84px] text-center">
-        <p className="text-[28px] font-medium leading-none tracking-[-0.03em]" style={{ color: risk.color }}>{risk.label}</p>
-        <p className="mt-2 text-[13px] text-muted">
-          {flags} red flag{flags === 1 ? "" : "s"} · risk <span className="tabular-nums">{n}</span>/100
+    <div className="relative h-[214px] w-[260px] shrink-0" role="img" aria-label={`${risk.label}: risk ${risk.value} out of 100, ${flags} red flags`}>
+      <svg width={260} height={200} viewBox="0 0 260 200" className="overflow-visible">
+        {/* the full scale, faded as one layer so the slices don't show seams */}
+        <g opacity={0.18}>
+          {SLICES.map((sl) => (
+            <path key={`t${sl.v0}`} d={sl.d} fill="none" stroke={sl.color} strokeWidth={DIAL.width} />
+          ))}
+          <circle cx={hx} cy={hy} r={DIAL.width / 2} fill={zoneColor(1)} />
+        </g>
+        <circle cx={sx} cy={sy} r={DIAL.width / 2} fill={zoneColor(0)} />
+        {/* filled up to the score */}
+        {SLICES.filter((sl) => sl.v0 < n).map((sl) => (
+          <path key={sl.v0} d={sl.v1 > n ? arcPath(sl.v0, n) : sl.d} fill="none" stroke={sl.color} strokeWidth={DIAL.width} />
+        ))}
+        <circle cx={ex} cy={ey} r={DIAL.width / 2} fill={zoneColor(Math.max(n, 0.5) / 100)} />
+        <circle cx={ex} cy={ey} r={5} fill="white" />
+        <motion.path d={needle} fill="#17393e" style={{ filter: "drop-shadow(0 2px 3px rgba(16,40,44,.25))" }} />
+        <circle cx={DIAL.cx} cy={DIAL.cy} r={9} fill="#17393e" />
+        <circle cx={DIAL.cx} cy={DIAL.cy} r={3.5} fill="white" />
+      </svg>
+      <div className="absolute inset-x-0 top-[142px] text-center">
+        <p className="text-[34px] font-semibold leading-none tracking-[-0.04em] tabular-nums" style={{ color: risk.color }}>
+          {n}<span className="text-[14px] font-medium text-muted">/100</span>
         </p>
+        <p className="mt-1.5 text-[16px] font-medium leading-none" style={{ color: risk.color }}>{risk.label}</p>
       </div>
     </div>
   );
@@ -450,11 +503,11 @@ export function IssueList({
 
 // ---- 4. Settle the open checks (with a breakdown donut) ----
 
-function ChecksDonut({ red, green, open }: { red: number; green: number; open: number }) {
+function ChecksDonut({ red, green, open, total }: { red: number; green: number; open: number; total: number }) {
   const data = [
-    { name: "Red flags", value: red, fill: RED },
-    { name: "Verified", value: green, fill: GREEN },
-    { name: "Not proven yet", value: open, fill: TRACK },
+    { name: "Look wrong", value: red, fill: RED },
+    { name: "Check out", value: green, fill: GREEN },
+    { name: "Still to check", value: open, fill: TRACK },
   ].filter((d) => d.value > 0);
   return (
     <div className="relative size-[96px] shrink-0">
@@ -475,7 +528,7 @@ function ChecksDonut({ red, green, open }: { red: number; green: number; open: n
       </PieChart>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-[19px] font-semibold leading-none">{red + green}</span>
-        <span className="text-[10.5px] text-muted">of 8</span>
+        <span className="text-[10.5px] text-muted">of {total}</span>
       </div>
     </div>
   );
@@ -491,29 +544,33 @@ const KIND_NAME: Record<EvidenceKind, string> = {
 };
 
 /** What the student can always add, whatever state the checks are in. */
-const ADDABLE: { kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; formats: string; paste?: string }[] = [
-  { kind: "chat_export", label: "Chats", icon: MessageSquare, accept: ".txt,.zip,image/*", formats: "WhatsApp export (.txt, .zip) or screenshot", paste: "Paste a WhatsApp chat or messages…" },
-  { kind: "email", label: "Emails", icon: Mail, accept: ".eml,.pdf,.txt,image/*", formats: ".eml, PDF, text or screenshot", paste: "Paste the email, including who it's from…" },
-  { kind: "contract", label: "Contract", icon: FileText, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word (.docx), text or photo" },
-  { kind: "video", label: "Viewing video", icon: Video, accept: "video/*", formats: "Any video (MP4, MOV…)" },
-  { kind: "document", label: "Payment details", icon: Banknote, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo" },
-  { kind: "document", label: "Other document", icon: Upload, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo" },
+const ADDABLE: {
+  slot: AddSlot; kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; formats: string; paste?: string; note?: string;
+}[] = [
+  { slot: "chats", kind: "chat_export", label: "Chats", icon: MessageSquare, accept: ".txt,.zip,image/*", formats: "WhatsApp export (.txt, .zip) or screenshot", paste: "Paste a WhatsApp chat or messages…" },
+  { slot: "emails", kind: "email", label: "Emails", icon: Mail, accept: ".eml,.pdf,.txt,image/*", formats: ".eml, PDF, text or screenshot", paste: "Paste the email, including who it's from…" },
+  { slot: "contract", kind: "contract", label: "Contract", icon: FileText, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word (.docx), text or photo" },
+  { slot: "video", kind: "video", label: "Viewing video", icon: Video, accept: "video/*", formats: "Any video (MP4, MOV…)" },
+  { slot: "payment", kind: "document", label: "Payment details", icon: Banknote, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo", note: PAYMENT_NOTE },
+  { slot: "other", kind: "document", label: "Other document", icon: Upload, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo" },
 ];
 
 export function EvidencePanel({
   c, disabled, onUpload, onPaste,
 }: {
   c: Case; disabled: boolean;
-  onUpload: (kind: EvidenceKind, file: File) => void;
+  onUpload: (kind: EvidenceKind, file: File, note?: string) => void;
   onPaste: (kind: EvidenceKind, text: string) => void;
 }) {
   const ts = tiles(c);
+  const total = ts.length;
+  const added = addedBySlot(c);
   const red = ts.filter((t) => t.state === "suspicious").length;
   const green = ts.filter((t) => t.state === "cleared").length;
   const open = ts.filter((t) => t.state === "unverified").length;
   const sent = [...(c.evidence ?? [])].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at));
   const input = useRef<HTMLInputElement>(null);
-  const pending = useRef<EvidenceKind | null>(null);
+  const pending = useRef<(typeof ADDABLE)[number] | null>(null);
   const [pasting, setPasting] = useState<(typeof ADDABLE)[number] | null>(null);
   const [text, setText] = useState("");
 
@@ -523,15 +580,15 @@ export function EvidencePanel({
         <div className="min-w-0 flex-1">
           <h2 className="text-[20px] font-medium tracking-[-0.02em]">Your evidence</h2>
           <p className="mt-1 text-[14.5px] text-muted">
-            {red + green} of 8 checked · add anything new and the right agents run again
+            {red + green} of {total} safety checks done · add anything new and the right agents run again
           </p>
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-ink/70">
-            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: RED }}>!</span>{red} red flag{red === 1 ? "" : "s"}</li>
-            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full text-white" style={{ background: GREEN }}><Check size={10} strokeWidth={3} /></span>{green} verified</li>
-            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full border border-[#c9d6d9] text-[10px] font-bold text-muted">?</span>{open} not proven yet</li>
+            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: RED }}>!</span>{red} look{red === 1 ? "s" : ""} wrong</li>
+            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full text-white" style={{ background: GREEN }}><Check size={10} strokeWidth={3} /></span>{green} check{green === 1 ? "s" : ""} out</li>
+            <li className="flex items-center gap-1.5"><span className="flex size-4 items-center justify-center rounded-full border border-[#c9d6d9] text-[10px] font-bold text-muted">?</span>{open} still to check</li>
           </ul>
         </div>
-        <ChecksDonut red={red} green={green} open={open} />
+        <ChecksDonut red={red} green={green} open={open} total={total} />
       </div>
 
       {sent.length > 0 && (
@@ -541,7 +598,7 @@ export function EvidencePanel({
             return (
               <li key={e.id} className="flex max-w-[260px] items-center gap-2 rounded-full bg-field py-1.5 pl-2 pr-3.5 text-[13px]">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-[#2f6f73]"><Icon size={13} /></span>
-                <span className="truncate">{e.filename ?? `Pasted ${KIND_NAME[e.kind].toLowerCase()}`}</span>
+                <span className="truncate">{e.filename ?? (e.note === PAYMENT_NOTE ? "Pasted payment details" : `Pasted ${KIND_NAME[e.kind].toLowerCase()}`)}</span>
               </li>
             );
           })}
@@ -550,19 +607,32 @@ export function EvidencePanel({
 
       <p className="mt-6 text-[13px] font-medium text-ink/70">Add more</p>
       <ul className="mt-2 grid grid-cols-3 gap-3">
-        {ADDABLE.map((a, i) => (
+        {ADDABLE.map((a, i) => {
+          const count = added[a.slot] ?? 0;
+          return (
           <motion.li
             key={a.label}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.04 }}
             whileHover={{ y: -2 }}
-            className="flex items-center gap-3 rounded-[16px] bg-field p-3"
+            className={`relative flex items-center gap-3 rounded-[16px] p-3 ${count ? "bg-[#e9f6f1] ring-1 ring-[#bfe3d5]" : "bg-field"}`}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[#2f6f73] shadow-tab"><a.icon size={17} strokeWidth={1.8} /></span>
+            <span className="relative flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[#2f6f73] shadow-tab">
+              <a.icon size={17} strokeWidth={1.8} />
+              {count > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex size-[18px] items-center justify-center rounded-full text-white ring-2 ring-[#e9f6f1]" style={{ background: GREEN }}>
+                  <Check size={11} strokeWidth={3} />
+                </span>
+              )}
+            </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14px]">{a.label}</span>
-              <span className="block truncate text-[11.5px] text-muted" title={a.formats}>{a.formats}</span>
+              {count > 0 ? (
+                <span className="block truncate text-[11.5px] font-medium text-[#1f7a60]">{count} added</span>
+              ) : (
+                <span className="block truncate text-[11.5px] text-muted" title={a.formats}>{a.formats}</span>
+              )}
             </span>
             {a.paste && (
               <button
@@ -577,9 +647,9 @@ export function EvidencePanel({
             <button
               type="button"
               disabled={disabled}
-              aria-label={`Upload ${a.label.toLowerCase()}`}
+              aria-label={`${count ? "Add more" : "Upload"} ${a.label.toLowerCase()}`}
               onClick={() => {
-                pending.current = a.kind;
+                pending.current = a;
                 if (input.current) {
                   input.current.accept = a.accept;
                   input.current.click();
@@ -587,10 +657,11 @@ export function EvidencePanel({
               }}
               className="shrink-0 cursor-pointer rounded-full border border-line bg-white px-3 py-1 text-[12.5px] font-medium disabled:opacity-50"
             >
-              Add
+              {count ? "Add more" : "Add"}
             </button>
           </motion.li>
-        ))}
+          );
+        })}
       </ul>
 
       <AnimatePresence>
@@ -636,7 +707,7 @@ export function EvidencePanel({
         hidden
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f && pending.current) onUpload(pending.current, f);
+          if (f && pending.current) onUpload(pending.current.kind, f, pending.current.note);
           e.target.value = "";
         }}
       />

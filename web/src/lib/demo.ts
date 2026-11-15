@@ -143,14 +143,14 @@ export function reply(input: ReplyInput): Case {
   return current;
 }
 
-export function upload(kind: EvidenceKind, filename: string | null): Case {
+export function upload(kind: EvidenceKind, filename: string | null, note: string | null = null): Case {
   current = {
     ...current,
     evidence: [
       ...current.evidence,
       {
         id: `ev_${current.evidence.length + 1}`, kind, uploaded_at: new Date().toISOString(), filename,
-        file_url: null, extracted_text: null, note: null,
+        file_url: null, extracted_text: null, note,
       } as Case["evidence"][number],
     ],
   };

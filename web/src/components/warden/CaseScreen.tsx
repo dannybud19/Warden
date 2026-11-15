@@ -46,7 +46,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     [upload],
   );
   const onUpload = useCallback(
-    (kind: EvidenceKind, file: File) => void upload({ kind, file, studentName: studentName() }),
+    (kind: EvidenceKind, file: File, note?: string) => void upload({ kind, file, note, studentName: studentName() }),
     [upload],
   );
 
