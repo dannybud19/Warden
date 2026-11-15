@@ -1,13 +1,21 @@
 """Screenshot and document images to text (vision model, one call per image)."""
 
+import asyncio
 import json
+import re
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.contracts import Message
-from app.core.llm import LLMClient
+from app.core.ids import new_id
+from app.core.llm import LLMClient, _extract_json
+from app.core.logging import get_logger
+from app.intake import images, whatsapp
+
+log = get_logger("intake")
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 CHAT_PROMPT = "chat_screenshot.md"
@@ -69,13 +77,145 @@ def render_prompt(name: str, schema: type[BaseModel]) -> str:
     return template.replace("{schema}", json.dumps(schema.model_json_schema()))
 
 
+_CHANNELS: dict[str, Literal["whatsapp", "email", "sms", "platform", "other"]] = {
+    "whatsapp": "whatsapp",
+    "imessage": "sms",
+    "sms": "sms",
+    "email": "email",
+    "spareroom": "platform",
+    "openrent": "platform",
+    "facebook": "platform",
+    "instagram": "platform",
+}
+# UK day-first "15/11/2026 14:02" (comma optional, seconds optional) or ISO "2026-11-15 14:02".
+_UK_TIME = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?")
+_ISO_TIME = re.compile(r"(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?")
+
+
+def _parse_sent_at(shown: str | None) -> datetime | None:
+    """A UTC datetime only for a full date and time that reads one way; else None."""
+    text = (shown or "").strip().strip("[]()").strip()
+    if match := _UK_TIME.fullmatch(text):
+        day, month, year, hour, minute, second = match.groups()
+    elif match := _ISO_TIME.fullmatch(text):
+        year, month, day, hour, minute, second = match.groups()
+    else:
+        return None
+    try:
+        return datetime(
+            int(year), int(month), int(day), int(hour), int(minute), int(second or 0), tzinfo=UTC
+        )
+    except ValueError:
+        return None
+
+
+async def _ask(llm: LLMClient, image: bytes, prompt: str) -> str:
+    """One vision call under the timeout; failures become OCRError (never the raw text)."""
+    try:
+        return await asyncio.wait_for(llm.describe_image(image, prompt), VISION_TIMEOUT_S)
+    except TimeoutError as exc:
+        raise OCRError(TIMEOUT) from exc
+    except Exception as exc:
+        log.warning("vision call failed: %s", type(exc).__name__)
+        raise OCRError(LLM_ERROR) from exc
+
+
+async def _read_model[M: BaseModel](image: bytes, llm: LLMClient, prompt: str, model: type[M]) -> M:
+    """Check the image, ask the vision model, parse JSON; one retry on an invalid reply."""
+    try:
+        images.check(image)
+    except images.ImageError as exc:
+        raise OCRError(exc.reason) from exc
+    raw = await _ask(llm, image, prompt)
+    try:
+        return model.model_validate_json(_extract_json(raw))
+    except (ValidationError, ValueError) as exc:
+        reason = str(exc).splitlines()[0][:200] if str(exc) else type(exc).__name__
+        retry_prompt = f"{prompt}\n\nYour previous reply was invalid: {reason}"
+    raw = await _ask(llm, image, retry_prompt)
+    try:
+        return model.model_validate_json(_extract_json(raw))
+    except (ValidationError, ValueError) as exc:
+        log.warning("vision reply invalid twice: %s", type(exc).__name__)
+        raise OCRError(LLM_ERROR) from exc
+
+
+def _senders(
+    read: ChatRead, student_name: str | None
+) -> list[Literal["student", "agent", "unknown"]]:
+    """The sender of each line: a matched name first, then group rules, then bubble side."""
+    names = sorted({ln.name.strip() for ln in read.lines if ln.name and ln.name.strip()})
+    matched = whatsapp.student_senders(names, student_name)
+    group = len(names) >= 2 and not matched
+    side_rule: dict[str, Literal["student", "agent", "unknown"]] = {
+        "right": "student",
+        "left": "agent",
+        "unknown": "unknown",
+    }
+    result: list[Literal["student", "agent", "unknown"]] = []
+    for line in read.lines:
+        name = line.name.strip() if line.name else ""
+        if name and name in matched:
+            result.append("student")
+        elif name and matched:
+            result.append("agent")
+        elif name and group:
+            result.append("unknown")
+        elif not name and group:
+            result.append("student" if line.side == "right" else "unknown")
+        else:
+            result.append(side_rule[line.side])
+    return result
+
+
+def _label(line: ChatLine, sender: str, other_party: str | None) -> str:
+    if sender == "student":
+        return "You"
+    if line.name and line.name.strip():
+        return line.name.strip()
+    if sender == "agent":
+        return (other_party or "").strip() or "Agent"
+    return "Unknown"
+
+
 async def read_chat(
     image: bytes, llm: LLMClient, student_name: str | None, evidence_id: str
 ) -> tuple[str, list[Message]]:
     """Transcript text and Messages from one chat screenshot. Raises OCRError."""
-    raise NotImplementedError("WS C: read_chat")
+    read = await _read_model(image, llm, render_prompt(CHAT_PROMPT, ChatRead), ChatRead)
+    if not read.is_chat:
+        raise OCRError(NOT_A_CHAT)
+    if read.unreadable or not any(ln.text.strip() for ln in read.lines):
+        raise OCRError(UNREADABLE)
+    channel = _CHANNELS.get(read.app, "other")
+    senders = _senders(read, student_name)
+    transcript: list[str] = []
+    messages: list[Message] = []
+    for line, sender in zip(read.lines, senders, strict=True):
+        text = line.text.strip()
+        if not text:
+            continue
+        shown = (line.time or "").strip()
+        prefix = f"[{shown}] " if shown else ""
+        transcript.append(f"{prefix}{_label(line, sender, read.other_party)}: {text}")
+        messages.append(
+            Message(
+                id=new_id("msg"),
+                evidence_id=evidence_id,
+                sender=sender,
+                sent_at=_parse_sent_at(line.time),
+                channel=channel,
+                text=text,
+            )
+        )
+    return "\n".join(transcript), messages
 
 
 async def read_document(image: bytes, llm: LLMClient) -> str:
     """Verbatim text of a photographed or screenshotted document. Raises OCRError."""
-    raise NotImplementedError("WS C: read_document")
+    read = await _read_model(image, llm, render_prompt(DOCUMENT_PROMPT, DocumentRead), DocumentRead)
+    if not read.is_document:
+        raise OCRError(NOT_A_DOCUMENT)
+    if read.unreadable or not read.text.strip():
+        raise OCRError(UNREADABLE)
+    return read.text.strip()

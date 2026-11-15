@@ -43,4 +43,9 @@ def is_image(data: bytes) -> bool:
 
 def check(data: bytes) -> None:
     """Raise ImageError unless the vision model can take `data` (format and size)."""
-    raise NotImplementedError("WS C: images.check")
+    if not data:
+        raise ImageError(EMPTY)
+    if kind_of(data) in ("heic", "tiff", "other"):
+        raise ImageError(UNSUPPORTED)
+    if len(data) > MAX_IMAGE_BYTES:
+        raise ImageError(TOO_BIG)
