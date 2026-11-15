@@ -371,6 +371,14 @@ class CaseService:
                 # Log the error type only: messages can echo the student's words.
                 self.ctx.log.warning("debrief parse failed: %s", type(exc).__name__)
                 transcript = conversation.ParseResult()
+            if transcript.used_fallback:
+                # NOTE: keywords guess which step a reply answers. A whole call is a story, not
+                # a reply to one step, so that guess is not applied: the transcript, the
+                # recorded answers and the agents' reading of it are kept, the guess is not.
+                transcript = conversation.ParseResult(
+                    field_updates=transcript.field_updates,
+                    invalid_fields=transcript.invalid_fields,
+                )
             readings.append((transcript, text, True))
 
         async with self._locks[case_id]:

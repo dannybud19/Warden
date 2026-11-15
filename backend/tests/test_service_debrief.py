@@ -319,35 +319,37 @@ class DownLLM(FakeLLM):
         raise ConnectionError("llm is down: private words here")
 
 
-async def test_when_the_llm_is_down_the_call_is_saved_and_keywords_answer_the_one_open_step(
+async def test_when_the_llm_is_down_keywords_answer_no_step_but_recorded_answers_apply(
     ctx: AgentContext, bus: EventBus, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     down_ctx = dataclasses.replace(ctx, llm=DownLLM())
     service = CaseService(InMemoryCaseRepo(), bus, [EmptyAgent()], down_ctx, load_weights())
-    case = Case(
-        case_id="case_one",
-        created_at=T0,
-        actions=[
-            Action(
-                id="act_viewing",
-                check_id=CheckId.IN_PERSON_VIEWING,
-                kind=ActionKind.QUESTION,
-                text="Can you view it in person?",
-            )
-        ],
-    )
-    await service.repo.create(case)
+    steps = [
+        Action(id=f"act_{check.value}", check_id=check, kind=ActionKind.QUESTION, text="Ask them?")
+        for check in (CheckId.IN_PERSON_VIEWING, CheckId.PAYMENT_SAFETY)
+    ]
+    await service.repo.create(Case(case_id="case_down", created_at=T0, actions=steps))
     keep_notes(service, monkeypatch)
+    recorded = CallAnswer("act_in_person_viewing", "No, they refused to show me.")
 
     result = await service.debrief(
-        "case_one", call(line("student", "No, they refused to show me."))
+        "case_down",
+        call(
+            line("student", "No, they refused to show me and want money first."),
+            answers=(recorded,),
+        ),
     )
 
+    by_id = {a.id: a for a in result.actions}
+    # The recorded answer applies (its own keyword reading targets that one step) ...
+    viewing = by_id["act_in_person_viewing"]
+    assert viewing.status == ActionStatus.DONE and viewing.outcome == "flags"
+    # ... but the keyword guess over the whole call answers no other step.
+    assert by_id["act_payment_safety"].status == ActionStatus.OPEN
     assert any(e.kind == EvidenceKind.CALL_RECORDING for e in result.evidence)
     assert [m.channel for m in result.messages] == ["call"]
-    assert result.chat[0].text == "No, they refused to show me."
-    viewing = result.actions[0]
-    assert viewing.status == ActionStatus.DONE and viewing.outcome == "flags"
+    assert result.chat[0].text == "No, they refused to show me and want money first."
+    assert "unmatched" not in note_kinds(service, "case_down")
 
 
 async def test_the_same_note_from_two_readings_reaches_the_round_message_once(
