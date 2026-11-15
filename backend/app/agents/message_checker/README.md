@@ -13,7 +13,8 @@ The full list of flags, with check, severity and confidence for each, is in `red
   early, changing identity, refusing details, no checks needed.
 - **Payment hard-flag candidates:** an actual request for an untraceable payment; explicit payment
   before viewing, including "no viewing until you pay". The orchestrator asks the student to confirm
-  the quoted demand before using it to close the case. No/unsure keeps it open for clarification.
+  the quoted demand before using it to close the case. No/unsure keeps the concern on record (not
+  cleared) and is asked only once per piece of evidence, so the conversation moves on.
 - Denied payment methods, a student's ordinary prepaid debit card, and payment explicitly due only
   after a viewing are not pre-viewing/untraceable-payment demands. A separate positive demand still
   counts even when another clause offers reassurance.
