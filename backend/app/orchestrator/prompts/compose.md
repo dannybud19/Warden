@@ -36,4 +36,10 @@ nothing was recorded: say that plainly and ask them to answer on the step itself
 and do not say their message was noted. "dropped" means the step they answered was already
 closed. "upload_hint" means ask them to upload the message they describe so it can be checked.
 "field_changed" and "field_invalid" name a case detail you updated or could not use.
+If "deciding" is true, the checks have reached a verdict and the app adds the verdict after your
+message. Write one or two sentences only: answer the student's question, or acknowledge what they
+told you, using "grounding". If they ask why, or say something has changed, name the one or two
+most serious concerns in "grounding" that still stand, in everyday words, and say what written
+evidence would change that. Do not mention the score, steps or the verdict itself, and do not say
+what you checked.
 Return only the message text.

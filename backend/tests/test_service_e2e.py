@@ -14,7 +14,12 @@ from app.contracts import (
 )
 from app.orchestrator.checks import initial_checks
 from app.orchestrator.events import EventBus
-from app.orchestrator.service import CaseNotFoundError, CaseService, Upload
+from app.orchestrator.service import (
+    VERDICT_STANDS_TEXT,
+    CaseNotFoundError,
+    CaseService,
+    Upload,
+)
 from tests.conftest import add_evidence_and_settle, reply_and_settle
 
 MakeService = Callable[[list | None], CaseService]
@@ -110,6 +115,25 @@ async def test_a_decided_case_takes_more_work_and_decides_again(
     assert case.decision.verdict == "likely_scam"
     assert len(case.evidence) == 2
     assert case.chat[-1].role == "orchestrator"
+
+
+async def test_messages_after_a_verdict_are_not_answered_with_the_same_text(
+    make_service: MakeService, fake_agency_case: Case
+) -> None:
+    """Each message to a decided case is answered, and the verdict is not repeated word for
+    word (before: the same verdict summary came back for every message)."""
+    service = make_service(None)
+    case = await _open(service, fake_agency_case)
+    case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
+    case = await reply_and_settle(service, case.case_id, "why is this still suspicious")
+    first = case.chat[-1].text
+    assert case.decision is not None and case.decision.summary in first
+    case = await reply_and_settle(service, case.case_id, "is this working")
+    second = case.chat[-1].text
+    assert case.status == "decided" and case.chat[-1].role == "orchestrator"
+    assert case.decision is not None
+    assert VERDICT_STANDS_TEXT in second
+    assert case.decision.summary not in second and second != first
 
 
 async def test_unknown_case(make_service: MakeService) -> None:

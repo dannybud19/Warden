@@ -47,7 +47,7 @@ from app.orchestrator import (
     payment_confirmation,
     rounds,
 )
-from app.orchestrator.composer import RoundNote
+from app.orchestrator.composer import RoundInput, RoundNote
 from app.orchestrator.events import EventBus
 from app.orchestrator.runner import run_agents
 from app.storage.repository import CaseRepository, InitialUpload
@@ -121,6 +121,9 @@ class CaseNotFoundError(Exception):
 
 
 STILL_OPEN_TEXT = "You can still add files, paste messages or ask me anything: I will check again."
+VERDICT_STANDS_TEXT = "My verdict stays the same for now."
+NOTED_TEXT = "I've noted that."
+VERDICT_MEMORY_TURNS = 8  # how far back a verdict counts as already told
 
 
 class CaseClosedError(Exception):
@@ -644,7 +647,10 @@ class CaseService:
                 )
             return await self._decide(case)
 
-    async def _decide(self, case: Case) -> Case:
+    async def _decide(self, case: Case, reply: str | None = None) -> Case:
+        """Decide and tell the student. `reply` (not None when the student's message led to this
+        round) is the answer to what they said: it goes first, and a verdict they were already
+        told is not repeated word for word, so the chat never looks stuck on one message."""
         if case.case_id in self._queued or any(
             u.state == "pending" for u in await self.repo.get_uploads(case.case_id)
         ):
@@ -656,8 +662,16 @@ class CaseService:
         # The student spoke last (an answer, a question, a call): tell them the outcome in the
         # chat too, so a verdict never looks like a chat that stopped replying.
         said = None
-        if case.chat and case.chat[-1].role == "student":
-            said = _say(case, f"{case.decision.summary} {STILL_OPEN_TEXT}")
+        summary = case.decision.summary
+        if reply is not None:
+            told = any(
+                t.role == "orchestrator" and summary in t.text
+                for t in case.chat[-VERDICT_MEMORY_TURNS:]
+            )
+            tail = VERDICT_STANDS_TEXT if told else f"{summary} {STILL_OPEN_TEXT}"
+            said = _say(case, f"{reply or NOTED_TEXT} {tail}")
+        elif case.chat and case.chat[-1].role == "student":
+            said = _say(case, f"{summary} {STILL_OPEN_TEXT}")
         await self.repo.save(case)
         if said:
             await self._emit(case.case_id, said)  # `decision_made` stays the last event
@@ -799,12 +813,38 @@ class CaseService:
                 events.append(_say(case, recap))
             await self.repo.save(case)
             await self._emit_all(case_id, events)
-            if decision.hard_flags(case):
+            hard = bool(decision.hard_flags(case))
+            if hard and not notes:
                 return await self._decide(case)
-            confirming = bool(payment_confirmation.awaiting(case))
+            confirming = not hard and bool(payment_confirmation.awaiting(case))
             if confirming:
                 # A payment hard flag needs the student's explicit yes before it can decide.
                 case = await self._confirm_payment(case)
+
+        def verdict_input() -> RoundInput:
+            """The round as the composer sees it when a verdict follows its message."""
+            return rounds.round_input(
+                score_before=score_before,
+                score_after=result,
+                states_before=states_before,
+                checks_after=case.checks,
+                new_reports=new_reports,
+                fresh=[],
+                actions=case.actions,
+                recap_sent=recap is not None,
+                notes=notes,
+                case_grounding=rounds.grounding(case),
+                case_history=rounds.history(case),
+                previous_reports=snapshot.reports,
+                deciding=True,
+            )
+
+        if hard:
+            # The student said something and a hard flag still decides: answer them first.
+            reply = await composer.compose_round(verdict_input(), self.ctx)
+            async with self._locks[case_id]:
+                case = await self._load(case_id, must_be_open=True)
+                return await self._decide(case, reply)
 
         if confirming:
             # No new steps while the confirmation is open, but whatever the student just said
@@ -843,7 +883,8 @@ class CaseService:
         ]
         nothing_open = not any(a.status == ActionStatus.OPEN for a in case.actions)
         if proposals is not None and not fresh and nothing_open:
-            return await self._decide_if_still_done(case_id)
+            reply = await composer.compose_round(verdict_input(), self.ctx) if notes else None
+            return await self._decide_if_still_done(case_id, reply)
         inp = rounds.round_input(
             score_before=score_before,
             score_after=result,
@@ -871,10 +912,10 @@ class CaseService:
             await self._emit_all(case_id, events)
             return case
 
-    async def _decide_if_still_done(self, case_id: str) -> Case:
+    async def _decide_if_still_done(self, case_id: str, reply: str | None = None) -> Case:
         """Decide, unless a reply reopened work while the consultant was thinking."""
         async with self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
             if any(a.status == ActionStatus.OPEN for a in case.actions):
                 return case  # cannot happen today (replies only close actions); kept for safety
-            return await self._decide(case)
+            return await self._decide(case, reply)
