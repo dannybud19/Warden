@@ -22,8 +22,18 @@ not mention the score: just answer. Mention new steps only when "new_actions" is
 Never repeat a sentence you already said in "history" ("you" turns). When a note has kind
 "question", skip the acknowledgement below and just answer.
 If the last "history" turn is the student telling you something (not a question), start with one
-short sentence that acknowledges it in your own words and says honestly what it changes: a promise
-or plan in chat is noted but does not clear a check by itself; the viewing actually happening, or
-written evidence, can. For example: "Thanks, good that they dropped the upfront payment. I've kept
-the earlier request on record until the viewing happens."
+short sentence that acknowledges what they actually said, in your own words. Notes of kind
+"answered" say how their reply was recorded for a step (confirmed by them, noted as a concern,
+skipped, or noted without changing anything yet): stay consistent with that and never contradict
+it. Only when they describe a plan or a promise that has not happened yet, add that it is noted
+but does not clear a check until it happens or there is written evidence. Never say that about
+something that already happened, such as a viewing they attended.
+"checked" lists what was read this round and what it found: say it in one short sentence in
+everyday words (for example "I read the contract and nothing was flagged in it"). Never claim
+anything beyond those lines. If "not_run" is empty, never say that something could not be checked.
+Other note kinds: "unmatched" means you could not tell which step their message was about, so
+nothing was recorded: say that plainly and ask them to answer on the step itself or to rephrase,
+and do not say their message was noted. "dropped" means the step they answered was already
+closed. "upload_hint" means ask them to upload the message they describe so it can be checked.
+"field_changed" and "field_invalid" name a case detail you updated or could not use.
 Return only the message text.

@@ -1,11 +1,24 @@
 import json
 from dataclasses import replace
+from datetime import UTC, datetime
 
 import pytest
 
-from app.aggregators.consultant.consultant import load_library, propose_actions
+from app.aggregators.consultant.consultant import (
+    already_answered,
+    load_library,
+    propose_actions,
+)
 from app.aggregators.scoring.scoring import load_weights, score
-from app.contracts import ActionStatus, Case, CheckId, CheckState
+from app.contracts import (
+    ActionStatus,
+    Case,
+    CheckId,
+    CheckState,
+    Evidence,
+    EvidenceKind,
+    Landlord,
+)
 from app.core.agent import AgentContext
 from app.core.llm import FakeLLM
 from app.core.settings import Settings
@@ -169,8 +182,26 @@ async def test_returns_empty_when_the_library_is_used_up(
             a.model_copy(update={"status": statuses[i % 3], "outcome": "neutral"})
             for i, a in enumerate(proposed)
         ]
-    assert len(case.actions) == len(load_library())
+    assert len(case.actions) == len(load_library()) - len(already_answered(case))
     assert len({a.id for a in case.actions}) == len(case.actions)
+
+
+async def test_never_asks_for_what_the_case_already_has(
+    fake_agency_case: Case, real: AgentContext
+) -> None:
+    """A contract that is uploaded and a company number that is known are not asked for."""
+    contract = Evidence(id="ev_c", kind=EvidenceKind.CONTRACT, uploaded_at=datetime.now(UTC))
+    landlord = Landlord(name="Mark", company_number="01234567")
+    case = _case(fake_agency_case).model_copy(
+        update={"evidence": [*fake_agency_case.evidence, contract], "landlord": landlord}
+    )
+    assert already_answered(case) == {"act_contract_received", "act_company_number"}
+    result = score(case.checks, load_weights())
+    asked: set[str] = set()
+    while proposed := await propose_actions(case, result, real):
+        asked |= {a.id for a in proposed}
+        case.actions += [a.model_copy(update={"status": ActionStatus.SKIPPED}) for a in proposed]
+    assert asked and not asked & already_answered(case)
 
 
 async def test_llm_rewords_the_lead_but_never_the_question(

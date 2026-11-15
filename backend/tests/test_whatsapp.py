@@ -70,3 +70,15 @@ def test_ambiguous_first_name_is_not_guessed() -> None:
 def test_placeholder_name_matches_nobody() -> None:
     text = _chat("Sam: Can I view it?", "Mark: Pay first.")
     assert [m.sender for m in parse_export(text, "ev", "student")] == ["agent", "agent"]
+
+
+def test_twelve_hour_clock_exports() -> None:
+    """Phones on a 12-hour clock write "2:05:00 pm" (iOS uses a narrow no-break space)."""
+    ios = "[12/11/2026, 6:02:11 PM] Sam: Hi\n[12/11/2026, 12:05:00 am] Mark Evans: Pay first."
+    messages = parse_export(ios, "ev", "Sam")
+    assert [m.sender for m in messages] == ["student", "agent"]
+    assert messages[0].sent_at == datetime(2026, 11, 12, 18, 2, 11, tzinfo=UTC)
+    assert messages[1].sent_at == datetime(2026, 11, 12, 0, 5, tzinfo=UTC)
+    android = "12/11/2026, 9:20 pm - Mark Evans: Send the deposit today."
+    sent = parse_export(android, "ev", "Sam")[0].sent_at
+    assert sent == datetime(2026, 11, 12, 21, 20, tzinfo=UTC)

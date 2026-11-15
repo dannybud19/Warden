@@ -12,7 +12,15 @@ import yaml
 
 from app.aggregators.consultant.models import LibraryAction, RewordOutput
 from app.aggregators.consultant.stub import stub_actions
-from app.contracts import Action, ActionStatus, Case, CheckId, CheckState, ScoreResult
+from app.contracts import (
+    Action,
+    ActionStatus,
+    Case,
+    CheckId,
+    CheckState,
+    EvidenceKind,
+    ScoreResult,
+)
 from app.core.agent import AgentContext
 
 NAME = "consultant"  # `AGENT_MODE_CONSULTANT=real` switches the library version on
@@ -37,6 +45,17 @@ def reword_prompt() -> str:
     return (Path(__file__).parent / "prompts" / "reword.md").read_text(encoding="utf-8")
 
 
+def already_answered(case: Case) -> set[str]:
+    """Library actions the case itself already answers, so asking would make no sense: the
+    contract once one is uploaded, the company number once the case has one."""
+    have: set[str] = set()
+    if any(e.kind == EvidenceKind.CONTRACT for e in case.evidence):
+        have.add("act_contract_received")
+    if case.landlord and (case.landlord.company_number or "").strip():
+        have.add("act_company_number")
+    return have
+
+
 def select_candidates(
     case: Case, score: ScoreResult, library: tuple[LibraryAction, ...], max_actions: int
 ) -> list[LibraryAction]:
@@ -44,9 +63,10 @@ def select_candidates(
 
     A check is worth asking about only while it is UNVERIFIED: a cleared check is settled, and a
     suspicious one cannot be cleared by an answer. One action per check per round, never one the
-    student has already been given, and nothing new for a check that still has an open action.
+    student has already been given or the case already answers, and nothing new for a check that
+    still has an open action.
     """
-    given = {a.id for a in case.actions}
+    given = {a.id for a in case.actions} | already_answered(case)
     waiting = {a.check_id for a in case.actions if a.status == ActionStatus.OPEN}
     unverified = {c.id for c in case.checks if c.state == CheckState.UNVERIFIED}
 
