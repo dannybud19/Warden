@@ -950,3 +950,95 @@ def test_the_absence_phrase_appears_nowhere_in_the_modules_code_or_prompts() -> 
     for path in AGENT_DIR.rglob("*"):
         if path.is_file() and "tests" not in path.parts and path.suffix in {".py", ".md"}:
             assert phrase not in path.read_text().lower(), path
+
+
+# --- duplicate quotes and established agencies ------------------------------------------------
+
+BIG_QUOTE = "Its a scam. The agent lied to me about the price."
+
+
+def big_agency(created: str = "1982-03-01") -> ResolvedCompany:
+    company = make_company("BIGGATE LETTINGS LIMITED", "01680058", "Biggate Lettings")
+    company.profile = company.profile.model_copy(
+        update={"company_status": "active", "date_of_creation": date.fromisoformat(created)}
+    )
+    return company
+
+
+def repost_search() -> FakeSearch:
+    """Two sites carry the same post, so Linkup returns it twice under different URLs."""
+    snippet = f"Posted 3 May: {BIG_QUOTE} Do not rent here."
+    return FakeSearch(
+        {
+            "scam OR fraud": [
+                SearchResult(
+                    title="Biggate review", url="https://a.example.org/1", snippet=snippet
+                ),
+                SearchResult(
+                    title="Biggate review", url="https://b.example.org/2", snippet=snippet
+                ),
+            ]
+        }
+    )
+
+
+def two_scam_verdicts() -> FakeLLM:
+    return verdicts(verdict(0, "scam_report", BIG_QUOTE), verdict(1, "scam_report", BIG_QUOTE))
+
+
+async def test_same_quote_from_two_urls_is_one_finding_citing_both(
+    make_ctx, genuine_flat_case
+) -> None:
+    result = await run_rep(
+        make_ctx,
+        genuine_flat_case,
+        big_agency("2025-06-01"),
+        search=repost_search(),
+        llm=two_scam_verdicts(),
+    )
+    [finding] = by_prefix(result, "scam-report-")
+    assert "Source: https://a.example.org/1" in finding.detail
+    assert "Source: https://b.example.org/2" in finding.detail
+
+
+async def test_young_company_keeps_the_suspicious_scam_report(make_ctx, genuine_flat_case) -> None:
+    result = await run_rep(
+        make_ctx,
+        genuine_flat_case,
+        big_agency("2025-06-01"),  # about 17 months old
+        search=repost_search(),
+        llm=two_scam_verdicts(),
+    )
+    [finding] = by_prefix(result, "scam-report-")
+    assert finding.severity == "high" and finding.confidence == 0.75
+    assert finding.supports == "suspicious"
+
+
+async def test_established_company_gets_informational_web_findings(
+    make_ctx, genuine_flat_case
+) -> None:
+    llm = verdicts(
+        verdict(0, "scam_report", BIG_QUOTE),
+        verdict(1, "negative_review", "Do not rent here."),
+    )
+    result = await run_rep(
+        make_ctx, genuine_flat_case, big_agency(), search=repost_search(), llm=llm
+    )
+    noisy = by_prefix(result, "scam-report-") + by_prefix(result, "negative-review-")
+    assert noisy
+    for f in noisy:
+        assert f.severity == "info" and f.confidence == 0.0 and f.hard_flag is False
+        assert f.evidence[0].evidence_id == EV_WEB and "Source: https://" in f.detail
+        assert "red flag" in f.detail
+
+
+async def test_rogue_checker_hit_is_not_downgraded_for_an_established_company(
+    make_ctx, genuine_flat_case
+) -> None:
+    company = big_agency()
+    html = page_html([entry_html("BIGGATE LETTINGS LIMITED", "01680058")])
+    result = await run_rep(
+        make_ctx, genuine_flat_case, company, router=rogue_ok(html), llm=verdicts()
+    )
+    [finding] = by_prefix(result, "rogue-checker")
+    assert finding.severity == "high" and finding.confidence == 0.9

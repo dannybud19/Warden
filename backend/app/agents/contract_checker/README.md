@@ -105,6 +105,12 @@ these to whole-check clears: the current orchestrator would otherwise mark all o
 `deposit_protection` cleared solely because an amount meets a cap. Agree finer clearing
 semantics with the orchestrator owner before that integration.
 
+A deposit or holding deposit that the arithmetic shows is within its cap is reported as an
+`info` finding with confidence 0 ("Deposit is within the legal cap (scope not confirmed)"),
+even when scope doubts (jurisdiction, tenancy type, rent basis) keep the detailed issue
+`conditional`. It is a note, never a concern, and cannot move a check. One amount stated in
+several clauses gives one issue citing every clause (`Issue.within_cap` marks amount checks).
+
 The stub still replays `fixtures/reports/contract_checker.json`, with quotes checked against
 `fake_agency.json`. Set `AGENT_MODE_CONTRACT_CHECKER=real` to use the real compatibility
 adapter in the app. Multiple contract versions need explicit selection; persistent history

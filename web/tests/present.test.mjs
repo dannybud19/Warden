@@ -168,3 +168,43 @@ test("action badges distinguish clear, flag, skip and open outcomes", () => {
   assert.equal(actionCardStatus({ ...payment, status: "impossible" }), "skipped");
   assert.equal(actionCardStatus(payment), "todo");
 });
+
+// E2E E16 (S4 rerun, case_a387fd1eb068): 8/8 checks cleared and a no_red_flags_remaining verdict,
+// but two low, 0.5-confidence contract notes made the page say "Don't pay yet".
+const { agentRows, redFlags } = load("../src/lib/present.ts");
+const lowNote = {
+  id: "contract_checker:deposit_cap:x", agent: "contract_checker", check_id: "deposit_protection",
+  title: "Deposit is within the amount cap", supports: "suspicious", severity: "low", confidence: 0.5, hard_flag: false,
+};
+const allCleared = (overrides = {}) => makeCase({
+  checks: CHECKS.map((id) => ({ id, state: "cleared" })),
+  decision: { verdict: "no_red_flags_remaining" }, ...overrides,
+});
+
+test("a low-confidence note that cannot move a check does not contradict a cleared case", () => {
+  const c = allCleared({ reports: { contract_checker: { status: "ok", findings: [lowNote] } } });
+  assert.equal(redFlags(c).length, 0);
+  assert.equal(mood(c, false).state, "green");
+  assert.equal(riskDisplay(c, mood(c, false)).category, "no_red_flags");
+  const tile = agentRows(c, {}).find((r) => r.name === "contract_checker");
+  assert.equal(tile.tone, "grey");
+});
+
+test("red flags follow the backend check rule: medium+ at 0.6, or any hard flag", () => {
+  const at = (f) => makeCase({ reports: reports({ ...lowNote, ...f }) });
+  assert.equal(mood(at({ severity: "medium", confidence: 0.6 }), false).state, "amber");
+  assert.equal(mood(at({ severity: "high", confidence: 0.59 }), false).state, "default");
+  assert.equal(mood(at({ severity: "low", confidence: 0.3, hard_flag: true }), false).state, "amber");
+  assert.equal(mood(at({ severity: "low", confidence: 0.9 }), false).state, "default");
+});
+
+test("a red flag still leads its agent tile over cleared findings and notes", () => {
+  const cleared = { ...lowNote, id: "c", supports: "cleared", title: "Landlord named" };
+  const flag = { ...lowNote, id: "f", severity: "high", confidence: 0.9, title: "Deposit exceeds the cap" };
+  const c = makeCase({ reports: { contract_checker: { status: "ok", findings: [lowNote, cleared, flag] } } });
+  const tile = agentRows(c, {}).find((r) => r.name === "contract_checker");
+  assert.equal(tile.line, "Deposit exceeds the cap");
+  assert.equal(tile.tone, "red");
+  const calm = makeCase({ reports: { contract_checker: { status: "ok", findings: [lowNote, cleared] } } });
+  assert.equal(agentRows(calm, {}).find((r) => r.name === "contract_checker").line, "Landlord named");
+});
