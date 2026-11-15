@@ -141,3 +141,44 @@ def test_facts_from_case(fake_agency_case: Case) -> None:
 )
 def test_normalise(key: FactKey, value: str, expected: str) -> None:
     assert normalise(key, value) == expected
+
+
+def _named(case: Case, name: str, company: str | None) -> Case:
+    from app.contracts import Landlord
+
+    landlord = Landlord(name=name, company_name=company)
+    return case.model_copy(update={"landlord": landlord, "listing": None})
+
+
+def _contract_landlord(name: str) -> dict[str, AgentReport]:
+    fact = _fact(FactKey.LANDLORD_NAME, name, "ev_contract", "contract_checker")
+    return {"contract_checker": _report("contract_checker", [fact])}
+
+
+@pytest.mark.parametrize("typed", ["Mira", "mira vale", "Ms Mira Vale", "Vale"])
+def test_a_shorter_form_of_the_same_name_is_not_a_mismatch(
+    fake_agency_case: Case, typed: str
+) -> None:
+    """Students type a first name; contracts print the full one with a title."""
+    case = _named(fake_agency_case, typed, None)
+    assert compare(case, _contract_landlord("Mira Vale")) == []
+
+
+def test_a_different_private_landlord_name_is_still_flagged(fake_agency_case: Case) -> None:
+    case = _named(fake_agency_case, "John Smith", None)
+    findings = compare(case, _contract_landlord("Mira Vale"))
+    assert [f.id for f in findings] == ["crosscheck:landlord_name"]
+
+
+def test_an_agents_name_is_not_compared_with_the_contract_landlord(
+    fake_agency_case: Case,
+) -> None:
+    """With an agency, the name the student typed is the agent ("Agent's name" in the form)."""
+    case = _named(fake_agency_case, "Daniel", "Quickkeys Lettings")
+    assert compare(case, _contract_landlord("Mira Vale")) == []
+    # Two documents that name different landlords still disagree.
+    reports = _contract_landlord("Mira Vale")
+    reports["message_checker"] = _report(
+        "message_checker", [_fact(FactKey.LANDLORD_NAME, "John Smith", "ev_chat")]
+    )
+    assert [f.id for f in compare(case, reports)] == ["crosscheck:landlord_name"]

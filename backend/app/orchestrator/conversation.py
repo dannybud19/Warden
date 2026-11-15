@@ -105,18 +105,21 @@ def confirmation_outcome(text: str) -> Outcome:
     return "flags" if text.strip().lower().rstrip(".! ") == "yes" else "neutral"
 
 
+# NOTE: question words only. Auxiliaries ("can", "did", "will", "is") also open plain answers
+# ("Can't view it, they refused", "Did the viewing", "Will do"), which were then never recorded
+# as answers; a question that opens with one is still caught by its "?".
 _QUESTION_START = re.compile(
-    r"^\s*(?:so\s*,?\s*|and\s+|but\s+|ok(?:ay)?\s*,?\s*)?"
-    r"(?:what|why|how|who|when|where|which|is|are|was|were|do|does|did|can|could|should|"
-    r"would|will|shall|may|might|am)\b",
+    r"^\s*(?:so\s*,?\s*|and\s+|but\s+|ok(?:ay)?\s*,?\s*)*"
+    r"(?:what|why|how|who|when|where|which)\b",
     re.IGNORECASE,
 )
 
 
 def looks_like_question(text: str) -> bool:
     """True when the reply opens with a question to us ("what are the issues?", "is this
-    normal"), so it is never recorded as the answer to an open action. Only the first sentence
-    counts: "yes, the rent is 950. Is that normal?" is an answer first."""
+    normal?"), so it is never recorded as the answer to an open action: the first sentence ends
+    with "?" or starts with a question word. Only the first sentence counts: "yes, the rent is
+    950. Is that normal?" is an answer first."""
     first = re.split(r"(?<=[.!?])\s+", text.strip(), maxsplit=1)[0]
     return first.endswith("?") or bool(_QUESTION_START.match(first))
 
@@ -353,11 +356,29 @@ async def read_reply(
     )
 
 
+MIN_QUOTE_WORDS = 3
+
+
+def _answer_for(update: ActionUpdate, text: str) -> str:
+    """The part of the reply recorded as this action's answer.
+
+    One reply can answer several steps ("yes they sent proof, and no they wouldn't give the
+    company number"); recording the whole sentence on each made a check's reason quote the half
+    about another step. The reader's quote is used when it is a real phrase; a payment
+    confirmation always keeps the whole reply, because only a reply that is exactly "yes"
+    confirms it.
+    """
+    quote = update.quote.strip()
+    if is_payment_confirmation(update.action_id) or len(quote.split()) < MIN_QUOTE_WORDS:
+        return text
+    return quote
+
+
 def apply(actions: list[Action], result: ParseResult, text: str) -> tuple[list[Action], list[str]]:
     """Return (new action list, ids dropped because no longer open). Does not mutate `actions`.
 
-    Each update whose action is still OPEN gets its status, outcome, `answer=text` and
-    `answer_evidence_ids`.
+    Each update whose action is still OPEN gets its status, outcome, its answer (the part of
+    the reply that is about this action, see `_answer_for`) and `answer_evidence_ids`.
     """
     new_actions = [a.model_copy(deep=True) for a in actions]
     by_id = {a.id: a for a in new_actions}
@@ -369,6 +390,6 @@ def apply(actions: list[Action], result: ParseResult, text: str) -> tuple[list[A
             continue
         target.status = ActionStatus(update.status)
         target.outcome = update.outcome
-        target.answer = text
+        target.answer = _answer_for(update, text)
         target.answer_evidence_ids = list(update.evidence_ids)
     return new_actions, dropped

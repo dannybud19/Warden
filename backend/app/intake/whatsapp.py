@@ -6,12 +6,16 @@ from datetime import UTC, datetime
 from app.contracts import Message
 from app.core.ids import new_id
 
-_IOS = re.compile(r"^\[(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{2}(?::\d{2})?)\] ([^:]+): (.*)$")
-_ANDROID = re.compile(r"^(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{2}) - ([^:]+): (.*)$")
+# Phones set to a 12-hour clock add "am"/"pm" (after a plain or narrow no-break space).
+_AMPM = r"(?:[ \u00a0\u202f]?([AaPp])\.?[Mm]\.?)?"
+_IOS = re.compile(
+    r"^\[(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{2}(?::\d{2})?)" + _AMPM + r"\] ([^:]+): (.*)$"
+)
+_ANDROID = re.compile(r"^(\d{1,2}/\d{1,2}/\d{2,4}), (\d{1,2}:\d{2})" + _AMPM + r" - ([^:]+): (.*)$")
 # A timestamp header with no "Sender:" part is a system line (encryption notice, group events).
 _HEADER_ONLY = re.compile(
-    r"^(?:\[\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}(?::\d{2})?\]|"
-    r"\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2} -) "
+    r"^(?:\[\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}(?::\d{2})?" + _AMPM + r"\]|"
+    r"\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}" + _AMPM + r" -) "
 )
 _SYSTEM_PHRASES = (
     "end-to-end encrypted",
@@ -24,10 +28,12 @@ _SYSTEM_PHRASES = (
 _INVISIBLE = dict.fromkeys(map(ord, "‎‏‪‫‬﻿"))
 
 
-def _parse_time(date_str: str, time_str: str) -> datetime | None:
+def _parse_time(date_str: str, time_str: str, meridiem: str | None = None) -> datetime | None:
     day, month, year = (int(p) for p in date_str.split("/"))
     year += 2000 if year < 100 else 0
     parts = [int(p) for p in time_str.split(":")]
+    if meridiem:
+        parts[0] = parts[0] % 12 + (12 if meridiem.lower() == "p" else 0)
     try:
         # NOTE: exports carry no timezone; stored as UTC.
         return datetime(year, month, day, *parts, tzinfo=UTC)
@@ -66,7 +72,7 @@ def parse_export(text: str, evidence_id: str, student_name: str | None) -> list[
         line = raw.rstrip()
         match = _IOS.match(line) or _ANDROID.match(line)
         if match:
-            date_str, time_str, name, body = match.groups()
+            date_str, time_str, meridiem, name, body = match.groups()
             if any(phrase in line.lower() for phrase in _SYSTEM_PHRASES):
                 open_message = False
                 continue
@@ -76,7 +82,7 @@ def parse_export(text: str, evidence_id: str, student_name: str | None) -> list[
                     id=new_id("msg"),
                     evidence_id=evidence_id,
                     sender="agent",  # settled below, once every name in the chat is known
-                    sent_at=_parse_time(date_str, time_str),
+                    sent_at=_parse_time(date_str, time_str, meridiem),
                     channel="whatsapp",
                     text=body,
                 )

@@ -217,3 +217,44 @@ async def test_a_word_file_sent_as_a_screenshot_is_read_not_decoded_as_bytes() -
     assert extracted.error is None
     assert "£850 per month" in (extracted.text or "")
     assert "PK" not in (extracted.text or "")
+
+
+async def test_a_screenshot_with_bank_details_is_stored_masked_without_the_raw_file(
+    tmp_path: Path,
+) -> None:
+    bank = "Bank transfer, sort code 12-34-56, account 00001234."
+    llm = _llm(chat=_chat(("left", bank), ("right", "Can I view first?")))
+    case = await ingest(
+        _case(),
+        EvidenceKind.CHAT_SCREENSHOT,
+        "chat.png",
+        PNG,
+        "sort code 12-34-56",
+        "Sam",
+        uploads_dir=tmp_path,
+        llm=llm,
+    )
+    evidence = case.evidence[-1]
+    stored = [evidence.extracted_text or "", evidence.note or "", *(m.text for m in case.messages)]
+    for text in stored:
+        assert "12-34-56" not in text
+        assert "00001234" not in text
+    assert "sort code **-**-56, account ****1234" in case.messages[0].text
+    assert "sort code **-**-56, account ****1234" in (evidence.extracted_text or "")
+    assert evidence.file_url is None  # text was read, so the image itself is not written
+
+
+async def test_a_failed_read_keeps_the_raw_file_for_later(tmp_path: Path) -> None:
+    llm = _llm(chat=json.dumps({"is_chat": False}))
+    case = await ingest(
+        _case(),
+        EvidenceKind.CHAT_SCREENSHOT,
+        "cat.png",
+        PNG,
+        None,
+        "Sam",
+        uploads_dir=tmp_path,
+        llm=llm,
+    )
+    assert case.evidence[-1].extracted_text is None
+    assert case.evidence[-1].file_url

@@ -6,7 +6,7 @@ from it. It works in two steps, so the slow part never holds the case lock:
 | Step | What it does | Lock |
 | --- | --- | --- |
 | `extract(kind, filename, data, student_name, llm) -> Extracted` | Reads the bytes: text, messages, or an `error` reason. Needs no case | None |
-| `attach(case, kind, filename, data, note, extracted)` | Stores the file, adds the Evidence and its messages (deduped) to the case | Caller holds the case lock |
+| `attach(case, kind, filename, data, note, extracted)` | Adds the Evidence and its messages (deduped) to the case; stores the raw file only when there is no text; masks the note | Caller holds the case lock |
 | `ingest(...)` | Old one-call API (`extract` then `attach`); `llm=None` by default | Caller decides |
 
 `CaseService.add_evidence` calls `extract` first (no lock), then takes the lock only to reload the
@@ -56,7 +56,9 @@ on invalid JSON, 40 s timeout per call.
 - Formats: PNG, JPEG, WebP, GIF. HEIC/HEIF, TIFF and anything else is refused with a message.
 - Size: 5 MB per image (vision APIs reject larger). Zip exports: the chat text must be under 5 MB
   uncompressed; media files in the zip are ignored.
-- Text from images is stored exactly as transcribed. Masking, once merged, applies to it too.
+- Text from images is stored as transcribed, with bank and card numbers masked (`redact.mask_sensitive`
+  runs at the end of `extract`, on the text and every message, so dedupe compares masked text). The
+  raw file is kept only when no text was extracted (a failed read, video), so it can be retried later.
 
 ## Failures
 

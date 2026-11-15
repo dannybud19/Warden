@@ -17,7 +17,7 @@ from app.contracts import (
 )
 
 POSTCODE_RE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECASE)
-NAME_NOISE = {"ltd", "limited", "lettings", "plc", "llp"}
+NAME_NOISE = {"ltd", "limited", "lettings", "plc", "llp", "mr", "mrs", "ms", "miss", "dr"}
 
 # key -> (label, check, severity)
 RULES: dict[FactKey, tuple[str, CheckId, Severity]] = {
@@ -110,6 +110,36 @@ def _comparable(fact: Fact) -> bool:
     return fact.key != FactKey.ADDRESS or POSTCODE_RE.search(fact.value) is not None
 
 
+def _is_agent_name(case: Case, fact: Fact) -> bool:
+    """The name the student typed, when the home is let through an agency.
+
+    The add-home form asks for the "Agent's name" next to the agency, so that name is a member
+    of staff, not the landlord. Comparing it with the landlord a contract names flagged every
+    agency let where the two are different people.
+    """
+    landlord = case.landlord
+    return (
+        fact.key == FactKey.LANDLORD_NAME
+        and fact.agent == "case"
+        and landlord is not None
+        and bool((landlord.company_name or "").strip())
+    )
+
+
+def distinct_values(key: FactKey, facts: list[Fact]) -> int:
+    """How many different things the facts say. A name written shorter ("Mira", "Ms Mira Vale")
+    is the same person as the full name, so names count as one when one's words are all in the
+    other's."""
+    values = {normalise(key, f.value) for f in facts}
+    if key != FactKey.LANDLORD_NAME:
+        return len(values)
+    people: list[set[str]] = []
+    for words in sorted((set(v.split()) for v in values if v), key=len, reverse=True):
+        if not any(words <= person for person in people):
+            people.append(words)
+    return len(people)
+
+
 def _contract_ids(case: Case) -> set[str]:
     return {e.id for e in case.evidence if e.kind == EvidenceKind.CONTRACT}
 
@@ -133,8 +163,10 @@ def compare(case: Case, reports: dict[str, AgentReport]) -> list[Finding]:
 
     findings: list[Finding] = []
     for key, (label, check_id, severity) in RULES.items():
-        keyed = [f for f in facts if f.key == key and _comparable(f)]
-        if len({normalise(key, f.value) for f in keyed}) < 2:
+        keyed = [
+            f for f in facts if f.key == key and _comparable(f) and not _is_agent_name(case, f)
+        ]
+        if distinct_values(key, keyed) < 2:
             continue
         hard = key == FactKey.ADDRESS and _address_is_hard_flag(case, keyed)
         findings.append(

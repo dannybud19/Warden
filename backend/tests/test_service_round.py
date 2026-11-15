@@ -492,3 +492,43 @@ async def test_a_question_is_answered_while_a_payment_confirmation_waits(
     (message,) = _messages(_drain(queue))
     assert "I can't answer that from your case yet." in message  # FakeLLM: the honest template
     assert case.status == "open"
+
+
+def test_steps_for_a_cleared_check_are_retired_but_never_a_payment_confirmation() -> None:
+    """ "Ask to view in person" stays open for nobody once the chat shows the viewing happened."""
+    from datetime import UTC, datetime
+
+    from app.contracts import Action, ActionKind, Evidence
+    from app.orchestrator.checks import initial_checks
+
+    def action(id_: str, check: CheckId) -> Action:
+        return Action(id=id_, check_id=check, kind=ActionKind.QUESTION, text="?")
+
+    checks = [
+        c.model_copy(update={"state": CheckState.CLEARED})
+        if c.id in (CheckId.IN_PERSON_VIEWING, CheckId.PAYMENT_SAFETY)
+        else c
+        for c in initial_checks()
+    ]
+    case = Case(
+        case_id="c",
+        created_at=datetime.now(UTC),
+        checks=checks,
+        actions=[
+            action("act_viewing", CheckId.IN_PERSON_VIEWING),
+            action("act_proof_of_ownership", CheckId.RIGHT_TO_LET),
+            action("act_confirm_payment_abc_1", CheckId.PAYMENT_SAFETY),
+            action("act_contract_received", CheckId.CONTRACT_CONSISTENCY),
+        ],
+        evidence=[Evidence(id="ev_c", kind=EvidenceKind.CONTRACT, uploaded_at=datetime.now(UTC))],
+    )
+    retired = service_module._retire_settled(case)  # noqa: SLF001
+    assert [a.status for a in retired] == [
+        ActionStatus.SKIPPED,
+        ActionStatus.OPEN,
+        ActionStatus.OPEN,
+        ActionStatus.DONE,  # the contract is uploaded: the step asking for it is done
+    ]
+    assert retired[3].outcome == "neutral"
+    assert retired[0].answer == service_module.RETIRED_ANSWER
+    assert retired[0].outcome == "neutral"

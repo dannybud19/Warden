@@ -20,7 +20,7 @@ from app.contracts import (
     Severity,
 )
 from app.orchestrator.checks import SEVERITY_RANK
-from app.orchestrator.composer import CheckMove, RoundInput, RoundNote
+from app.orchestrator.composer import CheckMove, RoundInput, RoundNote, validate_recap
 from app.orchestrator.conversation import ParseResult
 
 # A flagged answer about money: ask for the message itself so an agent can quote it (decision 19).
@@ -51,9 +51,37 @@ def label(check_id: CheckId) -> str:
     return check_id.value.replace("_", " ")
 
 
-def reply_notes(result: ParseResult, dropped: list[str], text: str) -> list[RoundNote]:
-    """What the next round message should say about this reply."""
+# How a recorded answer reads to the composer, so its acknowledgement matches what was stored.
+RECORDED: dict[str, str] = {
+    "clears": "you confirmed it, counted in your favour",
+    "flags": "noted as a concern",
+    "neutral": "noted, it changes nothing yet",
+}
+
+# What each agent reads, in the student's words (`checked_lines`).
+READS: dict[str, str] = {
+    "message_checker": "your messages",
+    "emotion_classifier": "the tone of your messages",
+    "contract_checker": "the contract",
+    "companies_house": "the agency's company record",
+}
+MAX_CHECKED_TITLES = 2
+
+
+def reply_notes(
+    result: ParseResult,
+    dropped: list[str],
+    text: str,
+    checks: Mapping[str, CheckId] | None = None,
+) -> list[RoundNote]:
+    """What the next round message should say about this reply. `checks` maps an action id to
+    its check, so an answered step can be named ("in person viewing step: ...")."""
     notes: list[RoundNote] = []
+    for update in result.updates:
+        if update.action_id in dropped or not checks or update.action_id not in checks:
+            continue
+        how = "skipped" if update.status != "done" else RECORDED[update.outcome]
+        notes.append(RoundNote(kind="answered", text=f"{label(checks[update.action_id])}: {how}"))
     if result.unmatched:
         notes.append(RoundNote(kind="unmatched"))
     if dropped:
@@ -84,6 +112,42 @@ def not_run(reports: Mapping[str, AgentReport]) -> list[str]:
             out.append(f"{report.agent} did not finish")
         out.extend(f.title for f in report.findings if NOT_RUN_MARKER in f.id)
     return out
+
+
+def checked_lines(
+    new_reports: Mapping[str, AgentReport], previous: Mapping[str, AgentReport]
+) -> list[str]:
+    """What was read this round and what it found, e.g. "the contract: nothing flagged".
+
+    Without this a contract upload that changes no check gave the student no feedback at all.
+    Only agents whose findings changed since their last report are listed, so a rerun that finds
+    the same things is not announced again. Titles the message may not repeat are left out.
+    """
+    medium = SEVERITY_RANK[Severity.MEDIUM]
+    lines: list[str] = []
+    for name, source in READS.items():
+        report = new_reports.get(name)
+        if report is None or report.status != AgentStatus.OK:
+            continue
+        before = previous.get(name)
+        known = (
+            {f.id for f in before.findings} if before and before.status == AgentStatus.OK else None
+        )
+        if known == {f.id for f in report.findings}:
+            continue
+        concerns = [
+            f.title
+            for f in report.findings
+            if f.supports == "suspicious"
+            and SEVERITY_RANK[f.severity] >= medium
+            and not validate_recap(f.title)
+        ]
+        if concerns:
+            found = "flagged: " + "; ".join(concerns[:MAX_CHECKED_TITLES])
+        else:
+            found = "nothing flagged"
+        lines.append(f"{source}: {found}")
+    return lines
 
 
 def changed_recap(previous: str | None, current: str | None) -> str | None:
@@ -148,6 +212,7 @@ def round_input(
     notes: list[RoundNote],
     case_grounding: list[str] | None = None,
     case_history: list[str] | None = None,
+    previous_reports: Mapping[str, AgentReport] | None = None,
 ) -> RoundInput:
     """Everything the composer needs about one analysis. `actions` already includes `fresh`.
 
@@ -160,6 +225,7 @@ def round_input(
         score_after=round(score_after.score),
         moved=tuple(moved_checks(states_before, checks_after)),
         not_run=tuple(not_run(new_reports)),
+        checked=tuple(checked_lines(new_reports, previous_reports or {})),
         new_actions=len(fresh),
         open_actions=sum(a.status == ActionStatus.OPEN for a in actions),
         recap_sent=recap_sent,

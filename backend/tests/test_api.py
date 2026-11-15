@@ -122,7 +122,9 @@ def test_file_upload_and_validation(client: TestClient) -> None:
     ok = client.post(url, data={"kind": "email"}, files={"file": ("mail.txt", b"Dear Sam")})
     assert ok.status_code == 200
     assert ok.json()["messages"][0]["channel"] == "email"
-    assert ok.json()["evidence"][0]["file_url"].endswith("_mail.txt")
+    evidence = ok.json()["evidence"][0]
+    assert evidence["filename"] == "mail.txt"
+    assert evidence.get("file_url") is None  # text was extracted, so the raw file is not kept
     _settle(client)
 
 
@@ -284,3 +286,15 @@ def test_listing_preview_in_stub_mode_makes_no_request(client: TestClient) -> No
     ).json()
     assert body["status"] == "skipped" and body["platform"] == "Rightmove"
     assert body["message"] is None and body["rent_pcm"] is None
+
+
+def test_a_blank_reply_is_rejected_but_a_skip_needs_no_text() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from app.api.schemas import ReplyRequest
+
+    for blank in ("", "   \n"):
+        with pytest.raises(ValidationError):
+            ReplyRequest(text=blank)
+    assert ReplyRequest(text="", action_id="a1", status="skipped").status == "skipped"

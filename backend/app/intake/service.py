@@ -15,7 +15,8 @@ from app.contracts import Case, Evidence, EvidenceKind, Message
 from app.core.ids import new_id
 from app.core.llm import LLMClient
 from app.core.logging import get_logger
-from app.intake import audio, docx, images, ocr, pdf, whatsapp, zip_export
+from app.intake import audio, docx, images, ocr, pdf, transcript, whatsapp, zip_export
+from app.intake.redact import mask_sensitive
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / ".uploads"  # backend/.uploads, gitignored
 
@@ -59,8 +60,11 @@ async def _chat_text(
     else:
         text = _decode(data)
     messages = whatsapp.parse_export(text, evidence_id, student_name)
+    if not messages:
+        # A chat pasted without export timestamps ("Name: message" lines).
+        messages = transcript.parse_transcript(text, evidence_id, student_name)
     if not messages and text.strip():
-        # NOTE: not a WhatsApp export: keep the whole text as one message.
+        # NOTE: not a chat we can split: keep the whole text as one message.
         messages = [_single_message(text, evidence_id, "other", "unknown")]
     return text, messages
 
@@ -171,7 +175,18 @@ async def extract(
     except NotImplementedError as exc:
         log.warning("no extractor for %s yet (%s): stored without text", kind.value, exc)
         return Extracted(evidence_id, None, [])
-    return Extracted(evidence_id, text, messages)
+    return _masked(Extracted(evidence_id, text, messages))
+
+
+def _masked(extracted: Extracted) -> Extracted:
+    """Bank and card numbers masked in the text and every message (OCR output included), so
+    dedupe compares masked text and nothing unmasked is stored."""
+    return Extracted(
+        extracted.evidence_id,
+        mask_sensitive(extracted.text) if extracted.text is not None else None,
+        [m.model_copy(update={"text": mask_sensitive(m.text)}) for m in extracted.messages],
+        extracted.error,
+    )
 
 
 def _normalised(text: str) -> str:
@@ -204,10 +219,14 @@ async def attach(
     *,
     uploads_dir: Path | None = None,
 ) -> Case:
-    """Store the file and return the Case with the new Evidence and its (deduped) Messages."""
+    """Return the Case with the new Evidence and its (deduped) Messages.
+
+    The raw file is stored only when no text was extracted (a failed read, video, or a kind with
+    no extractor yet), so it can be processed later; extracted text is already masked.
+    """
     kind = _stored_kind(kind, data)
     file_url = None
-    if filename:
+    if filename and extracted.text is None:
         file_url = await _store(
             case.case_id, extracted.evidence_id, filename, data, uploads_dir or UPLOADS_DIR
         )
@@ -218,7 +237,7 @@ async def attach(
         filename=filename,
         file_url=file_url,
         extracted_text=extracted.text,
-        note=note,
+        note=mask_sensitive(note) if note else note,
     )
     messages = _dedupe(case, kind, extracted.messages)
     return case.model_copy(
@@ -240,6 +259,10 @@ async def ingest(
     uploads_dir: Path | None = None,
     llm: LLMClient | None = None,
 ) -> Case:
-    """Create the Evidence, extract its text and Messages, and return the updated Case."""
+    """Create the Evidence, extract its text and Messages, and return the updated Case.
+
+    Text is masked (`redact.mask_sensitive`) in `extract`, so no full bank or card number reaches
+    the case, the agents or the LLM. The raw file is kept only when no text could be extracted.
+    """
     extracted = await extract(kind, filename, data, student_name, llm)
     return await attach(case, kind, filename, data, note, extracted, uploads_dir=uploads_dir)
