@@ -1,4 +1,4 @@
-"""Agents with empty reports: the consultant drives the loop to a decision."""
+"""Agents with empty reports: the consultant drives the loop until nothing is left to ask."""
 
 from collections.abc import Callable
 
@@ -19,7 +19,7 @@ def _oldest_open(case: Case) -> str:
     return next(a.id for a in case.actions if a.status == ActionStatus.OPEN)
 
 
-async def test_actions_proposed_replies_then_decision(
+async def test_actions_proposed_replies_then_a_live_assessment_that_stays_open(
     make_service: MakeService, fake_agency_case: Case, bus: EventBus
 ) -> None:
     service = make_service([EmptyAgent()])
@@ -50,8 +50,11 @@ async def test_actions_proposed_replies_then_decision(
 
     assert [a.id for a in case.actions][-1] == "act_deposit_scheme"
     assert all(a.status == ActionStatus.DONE for a in case.actions)
-    assert case.status == "decided"
+    assert case.status == "open"  # nothing left to ask is not an ending
     assert case.decision is not None and case.decision.verdict == Verdict.NOT_VERIFIED
+    last = case.chat[-1].text
+    assert "nothing more to ask" in last and "Still unverified: right to let" in last
+    assert "verdict" not in last.lower() and "decided" not in last.lower()
     assert scores == sorted(scores, reverse=True) and scores[-1] == 58.0
     states = {c.id.value: c.state for c in case.checks}
     assert states["right_to_let"] == CheckState.UNVERIFIED
@@ -60,8 +63,8 @@ async def test_actions_proposed_replies_then_decision(
     types = []
     while not queue.empty():
         types.append(queue.get_nowait().type)
-    assert types.count("actions_proposed") == 2 and types[-1] == "decision_made"
-    assert "orchestrator_message" in types
+    assert types.count("actions_proposed") == 2 and types[-1] == "orchestrator_message"
+    assert types.count("decision_made") == types.count("score_updated")  # one per round
 
 
 async def test_a_flagging_reply_makes_the_check_suspicious(
@@ -95,7 +98,7 @@ async def test_reply_with_no_open_actions_still_settles(
         case = await reply_and_settle(
             service, case.case_id, "unclear answer", action_id=_oldest_open(case)
         )
-    assert case.status == "decided"
+    assert case.status == "open" and case.decision is not None
     assert all(a.outcome == "neutral" for a in case.actions)
 
 

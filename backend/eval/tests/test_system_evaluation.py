@@ -216,12 +216,13 @@ async def test_case_service_distinguishes_open_pending_from_hard_flag_verdict(mo
         decided_case, decided_entry, decided_bundle, settings, FakeLLM()
     )
 
-    assert pending["outcome"] == "pending"
+    # A home never closes: both are graded live, and only the confirmed hard flag is a scam.
+    assert pending["outcome"] == "not_verified"
     assert pending["result_case"]["status"] == "open"
-    assert pending["result_case"]["decision"] is None
+    assert pending["result_case"]["decision"]["verdict"] == "not_verified"
     assert pending["result_case"]["actions"]
     assert decided["outcome"] == "likely_scam"
-    assert decided["result_case"]["status"] == "decided"
+    assert decided["result_case"]["status"] == "open"
     assert decided["result_case"]["decision"]["verdict"] == "likely_scam"
 
 

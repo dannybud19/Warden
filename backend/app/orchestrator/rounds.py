@@ -208,13 +208,21 @@ def round_input(
     case_grounding: list[str] | None = None,
     case_history: list[str] | None = None,
     previous_reports: Mapping[str, AgentReport] | None = None,
+    nothing_left: bool = False,
 ) -> RoundInput:
     """Everything the composer needs about one analysis. `actions` already includes `fresh`.
 
     `case_grounding` is sent only when a note carries a student question; `case_history` is
-    always sent, so the message can acknowledge what the student just told us.
+    always sent, so the message can acknowledge what the student just told us. With
+    `nothing_left`, the checks that are not cleared are listed so the message can name them.
     """
     asked = any(n.kind == "question" for n in notes)
+    checks_after = list(checks_after)
+    unverified = (
+        tuple(label(c.id) for c in checks_after if c.state != CheckState.CLEARED)
+        if nothing_left
+        else ()
+    )
     return RoundInput(
         score_before=round(score_before.score) if score_before else None,
         score_after=round(score_after.score),
@@ -227,4 +235,6 @@ def round_input(
         notes=tuple(notes),
         grounding=tuple(case_grounding or []) if asked else (),
         history=tuple(case_history or []),
+        nothing_left=nothing_left,
+        unverified=unverified,
     )

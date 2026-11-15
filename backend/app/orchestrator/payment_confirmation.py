@@ -1,4 +1,4 @@
-"""Require a targeted student confirmation before a payment hard flag closes a case."""
+"""Require a targeted student confirmation before a payment hard flag counts in the assessment."""
 
 import hashlib
 import json
@@ -53,7 +53,7 @@ def confirmed(case: Case, finding: Finding) -> bool:
 def pending(case: Case) -> list[Finding]:
     """Unconfirmed payment concerns, including ones denied, skipped or answered uncertainly.
 
-    They never decide the case on their own (`decision.hard_flags` needs a confirmed one)."""
+    They never count as a hard flag on their own (`decision.hard_flags` needs a confirmed one)."""
     return [finding for finding in payment_flags(case) if not confirmed(case, finding)]
 
 
@@ -69,8 +69,8 @@ def answered(case: Case, finding: Finding) -> bool:
 def awaiting(case: Case) -> list[Finding]:
     """Pending concerns the student has not answered yet: only these hold up the next steps.
 
-    A no, unsure, longer answer or skip keeps the concern (payment safety stays suspicious and
-    the case cannot close on it) but is not asked again, so the conversation moves on instead
+    A no, unsure, longer answer or skip keeps the concern (payment safety stays suspicious, but
+    it is not a hard flag) but is not asked again, so the conversation moves on instead
     of repeating the same question. More evidence for the same finding is not asked again; a
     different finding is.
     """
@@ -87,7 +87,7 @@ def _question_text(finding: Finding) -> str:
         ask = "Are they requiring payment under the conditions described in this warning?"
     quotes = " / ".join(f"“{ref.quote}”" for ref in finding.evidence)
     return (
-        "Please confirm this payment concern before we reach a decision. "
+        "Please confirm this payment concern. "
         f"{finding.title}: {quotes} {ask} Reply yes, no, or unsure."
     )
 

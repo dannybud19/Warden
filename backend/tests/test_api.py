@@ -66,7 +66,7 @@ def test_open_get_and_missing(client: TestClient) -> None:
     assert client.post("/cases/case_nope/messages", json={"text": "hi"}).status_code == 404
 
 
-def test_pasted_text_reply_and_decision_flow(client: TestClient) -> None:
+def test_pasted_text_reply_and_live_assessment_flow(client: TestClient) -> None:
     client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
     case_id = _open(client)
 
@@ -90,23 +90,28 @@ def test_pasted_text_reply_and_decision_flow(client: TestClient) -> None:
         )
         assert response.status_code == 200
         _settle(client)
-    assert client.get(f"/cases/{case_id}").json()["status"] == "decided"
+    assert client.get(f"/cases/{case_id}").json()["status"] == "open"  # never closes
 
     decision = client.get(f"/cases/{case_id}/decision")
     assert decision.status_code == 200 and decision.json()["verdict"] == "not_verified"
 
 
-def test_decided_case_returns_409(client: TestClient) -> None:
-    case_id = _open(client)  # default stubs: the hard flags close the case on first upload
+def test_a_likely_scam_case_still_accepts_uploads_and_replies(client: TestClient) -> None:
+    case_id = _open(client)  # default stubs: hard flags, so the first upload reads likely_scam
     client.post(
         f"/cases/{case_id}/evidence",
         data={"kind": "chat_export", "text": CHAT, "student_name": "Sam"},
     )
     _settle(client)
     assert client.get(f"/cases/{case_id}").json()["decision"]["verdict"] == "likely_scam"
+    rounds = len(client.get(f"/cases/{case_id}").json()["score_history"])
     again = client.post(f"/cases/{case_id}/evidence", data={"kind": "email", "text": "hello"})
-    assert again.status_code == 409
-    assert client.post(f"/cases/{case_id}/messages", json={"text": "yes"}).status_code == 409
+    assert again.status_code == 200
+    _settle(client)
+    assert client.post(f"/cases/{case_id}/messages", json={"text": "yes"}).status_code == 200
+    _settle(client)
+    body = client.get(f"/cases/{case_id}").json()
+    assert body["status"] == "open" and len(body["score_history"]) == rounds + 2
 
 
 def test_file_upload_and_validation(client: TestClient) -> None:
@@ -243,14 +248,15 @@ async def test_an_unreachable_mongo_fails_at_startup(
     repo.close()
 
 
-def test_decide_route_closes_the_case_once(client: TestClient) -> None:
+def test_decide_route_returns_the_live_assessment_and_closes_nothing(client: TestClient) -> None:
     client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
     case_id = _open(client)
     response = client.post(f"/cases/{case_id}/decide")
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "decided" and body["decision"]["verdict"] == "not_verified"
-    assert client.post(f"/cases/{case_id}/decide").status_code == 409
+    assert body["status"] == "open" and body["decision"]["verdict"] == "not_verified"
+    assert client.post(f"/cases/{case_id}/decide").status_code == 200  # any number of times
+    assert client.get(f"/cases/{case_id}/decision").json()["verdict"] == "not_verified"
     assert client.post("/cases/case_nope/decide").status_code == 404
 
 

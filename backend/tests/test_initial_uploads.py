@@ -1,4 +1,5 @@
-"""Initial attachments cannot be overtaken by a final decision, even after interruption."""
+"""Initial attachments stay retryable or skippable, even after interruption, while every round
+grades the case live (there is no final decision for them to hold back)."""
 
 import asyncio
 from collections.abc import Callable
@@ -20,6 +21,7 @@ from app.contracts import (
     Landlord,
     Severity,
     StudentContext,
+    Verdict,
 )
 from app.core.agent import AgentContext, BaseAgent, Need
 from app.core.llm import FakeLLM
@@ -40,7 +42,7 @@ def upload(item: InitialUpload, data: bytes, *, retry: bool = False) -> Upload:
     return Upload(item.kind, data, item.filename, item.note, "Sam", item.request_id, retry)
 
 
-async def test_company_hard_flag_waits_for_every_initial_file_and_explicit_skip(
+async def test_a_failed_initial_file_stays_pending_while_the_case_is_graded(
     make_service: MakeService,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -55,9 +57,8 @@ async def test_company_hard_flag_waits_for_every_initial_file_and_explicit_skip(
         initial_uploads=[first, second],
     )
     await service.wait_idle()
-    assert (await service.get_case(case.case_id)).status == "open"
-    with pytest.raises(UploadConflictError, match="Initial attachments"):
-        await service.decide(case.case_id)
+    graded = await service.get_case(case.case_id)
+    assert graded.status == "open" and graded.decision is not None  # assessed, not held
 
     await service.accept_evidence(case.case_id, upload(first, good))
     await service.wait_idle()
@@ -66,19 +67,17 @@ async def test_company_hard_flag_waits_for_every_initial_file_and_explicit_skip(
     manifest = await service.get_uploads(case.case_id)
     assert [u.state for u in manifest] == ["accepted", "pending"]
     assert manifest[1].read_error and manifest[1].evidence_id == failed.evidence_id
-    await service.wait_idle()
-    assert (await service.get_case(case.case_id)).decision is None
 
     await service.skip_upload(case.case_id, second.request_id)
     await service.wait_idle()
     final = await service.get_case(case.case_id)
-    assert final.status == "decided" and len(final.evidence) == 2
+    assert final.status == "open" and len(final.evidence) == 2
     assert [u.state for u in await service.get_uploads(case.case_id)] == ["accepted", "skipped"]
-    # Lost skip response is idempotent even after the decision.
+    # A lost skip response is idempotent.
     assert (await service.skip_upload(case.case_id, second.request_id))[1].state == "skipped"
 
 
-async def test_hold_survives_service_restart_and_reselection_finishes_upload(
+async def test_pending_upload_survives_service_restart_and_reselection_finishes_it(
     make_service: MakeService,
 ) -> None:
     service = make_service([EmptyAgent()])
@@ -87,12 +86,11 @@ async def test_hold_survives_service_restart_and_reselection_finishes_upload(
     case = await service.open_case(StudentContext(), initial_uploads=[item])
     restarted = CaseService(service.repo, service.bus, service.agents, service.ctx, service.weights)
     assert (await restarted.get_uploads(case.case_id))[0].state == "pending"
-    with pytest.raises(UploadConflictError):
-        await restarted.decide(case.case_id)
+    assert (await restarted.decide(case.case_id)).status == "open"  # an assessment, no lock
     await restarted.accept_evidence(case.case_id, upload(item, data))
     await restarted.wait_idle()
     assert (await restarted.get_uploads(case.case_id))[0].state == "accepted"
-    assert (await restarted.decide(case.case_id)).status == "decided"
+    assert len((await restarted.get_case(case.case_id)).evidence) == 1
 
 
 async def test_ocr_retry_replaces_failed_read_without_duplicate_evidence_or_messages(
@@ -162,7 +160,7 @@ class ChangingAgent(BaseAgent):
         return self.report(case, findings=findings)
 
 
-async def test_last_upload_waits_for_fresh_analysis_before_allowing_final_decision(
+async def test_an_upload_during_a_round_is_graded_by_a_fresh_round(
     make_service: MakeService,
 ) -> None:
     agent = ChangingAgent()
@@ -177,7 +175,11 @@ async def test_last_upload_waits_for_fresh_analysis_before_allowing_final_decisi
     await service.wait_idle()
     final = await service.get_case(case.case_id)
     assert agent.runs == 2 and final.reports[agent.name].findings == []
+    assert final.decision is not None and final.decision.verdict != Verdict.LIKELY_SCAM
+    assessments = []
     while not events.empty():
         event = events.get_nowait()
         if isinstance(event, DecisionMade):
-            assert event.decision.verdict != "likely_scam"
+            assessments.append(event.decision.verdict)
+    # The first round saw one file (a hard flag); the second, on both, clears it.
+    assert assessments[-1] != Verdict.LIKELY_SCAM

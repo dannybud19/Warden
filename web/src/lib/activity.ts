@@ -58,6 +58,7 @@ export function activityFromCase(c: Case, home: Home): Activity[] {
     });
   }
   if (c.decision) {
+    // The live assessment: redone after every input, never final.
     out.push({
       id: `${c.case_id}:decision`, caseId: c.case_id, agent: "warden", status: "done",
       line: VERDICT_LABELS[c.decision.verdict], tone: c.decision.verdict === "likely_scam" ? "red" : c.decision.verdict === "not_verified" ? "amber" : "green",

@@ -101,12 +101,14 @@ def test_a_debrief_answers_an_open_action_and_drops_unknown_ones_without_a_422(
     _settle(client)
 
 
-def test_a_debrief_for_a_decided_case_is_409(client: TestClient) -> None:
+def test_a_debrief_after_an_assessment_is_accepted(client: TestClient) -> None:
     case_id = _open(client)
     assert client.post(f"/cases/{case_id}/decide").status_code == 200
     response = client.post(f"/cases/{case_id}/debrief", json={"lines": LINES})
-    assert response.status_code == 409
-    assert Case.model_validate(client.get(f"/cases/{case_id}").json()).evidence == []
+    assert response.status_code == 200
+    _settle(client)
+    case = Case.model_validate(client.get(f"/cases/{case_id}").json())
+    assert case.status == "open" and len(case.evidence) == 1
 
 
 def test_a_debrief_for_an_unknown_case_is_404(client: TestClient) -> None:

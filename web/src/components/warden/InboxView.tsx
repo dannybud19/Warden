@@ -20,7 +20,7 @@ const KIND = {
   question: { label: "Needs you", cls: "bg-[#fcebe7] text-[#9a3a27]" },
   flag: { label: "Red flag", cls: "bg-[#fbf2df] text-[#7a5410]" },
   good: { label: "Looks fine", cls: "bg-[#e0f4ec] text-[#1f6e58]" },
-  verdict: { label: "Verdict", cls: "bg-mint text-[#0f6d74]" },
+  verdict: { label: "Assessment", cls: "bg-mint text-[#0f6d74]" },
 } as const;
 
 function toMessages(items: Activity[]): Message[] {
@@ -29,7 +29,7 @@ function toMessages(items: Activity[]): Message[] {
     const name = AGENT_PROFILE[i.agent]?.name ?? i.agent;
     if (i.status === "needs_you") out.push({ id: i.id, kind: "question", title: "Warden has a question for you", body: i.line, item: i });
     else if (i.status !== "done") continue;
-    else if (i.agent === "warden") out.push({ id: i.id, kind: "verdict", title: "Warden made a call", body: i.line, item: i });
+    else if (i.agent === "warden") out.push({ id: i.id, kind: "verdict", title: "Warden updated his assessment", body: i.line, item: i });
     else if (i.tone === "red" || i.tone === "amber") out.push({ id: i.id, kind: "flag", title: `${name} found a red flag`, body: i.line, item: i });
     else if (i.tone === "green") out.push({ id: i.id, kind: "good", title: `${name} checked something`, body: i.line, item: i });
   }

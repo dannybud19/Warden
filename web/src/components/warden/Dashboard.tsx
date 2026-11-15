@@ -159,7 +159,7 @@ export function AnswerCard({ c, mood, caseId }: { c: Case; mood: Mood; caseId: s
           <Image src={danger ? "/warden/obj-magnifier.png" : "/warden/obj-shield.png"} alt="" fill sizes="84px" className="object-contain" />
         </motion.div>
         <div className="min-w-0 flex-1 pt-1">
-          <p className="text-[13px] text-muted">Verdict</p>
+          <p className="text-[13px] text-muted">Right now</p>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={mood.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
               <h2 className="text-[26px] font-light leading-[1.25] tracking-[-0.03em]">{mood.title}</h2>

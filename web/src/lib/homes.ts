@@ -3,7 +3,7 @@ import type { Case } from "./types";
 import { allFindings, isRedFlag, openActions } from "./selectors";
 import { DEMO_CASE_ID } from "./demo";
 
-/** How a home reads at a glance. Verdicts map 1:1; "checking" means no verdict yet. */
+/** How a home reads at a glance: the live assessment maps 1:1; "checking" means no round has run yet. */
 export type HomeStatus = "likely_scam" | "not_verified" | "proceed_with_care" | "no_red_flags_remaining" | "checking";
 
 export interface HomeStatusMeta {

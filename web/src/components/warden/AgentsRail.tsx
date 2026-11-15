@@ -206,7 +206,6 @@ type Props = {
   /** Warden is working on an answer to the student's last message. */
   thinking?: boolean;
   canReply: boolean;
-  closed: boolean;
   onAsk: (q: Suggestion) => void;
   onSend: (text: string) => void;
   onUpload: (kind: EvidenceKind, file: File) => void;
@@ -323,7 +322,7 @@ function ChatDrawer({ onClose, children, threads }: { onClose: () => void; child
 
 /** The conversation: history that fills the space, suggestions, and the message box or call bar. */
 function ChatPane({
-  chat, busy, thinking = false, canReply, closed, onAsk, onSend, onUpload, threads, callContext, onCallLine, callCase, onCallDebrief, onExpand, roomy = false,
+  chat, busy, thinking = false, canReply, onAsk, onSend, onUpload, threads, callContext, onCallLine, callCase, onCallDebrief, onExpand, roomy = false,
 }: Props & { onExpand?: () => void; roomy?: boolean }) {
   const [text, setText] = useState("");
   const [inCall, setInCall] = useState(false);
@@ -444,13 +443,12 @@ function ChatPane({
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={!canReply || busy}
-              placeholder={closed ? "Warden has finished checking this home." : canReply ? "Ask Warden, or forward the agent's reply…" : "Nothing to answer right now."}
+              placeholder={canReply ? "Ask Warden, or forward the agent's reply…" : "Nothing to answer right now."}
               autoComplete="off"
               className="absolute left-4 right-4 top-3.5 bg-transparent text-[13.5px] leading-[1.4] outline-none placeholder:text-hint disabled:cursor-not-allowed"
             />
             <motion.button
               type="button"
-              disabled={closed || busy}
               onClick={() => file.current?.click()}
               whileTap={{ scale: 0.95 }}
               className="absolute left-4 top-[56px] cursor-pointer rounded-full border border-line bg-white py-1 pl-[9px] pr-2.5 text-[11.5px] font-medium leading-[normal] disabled:cursor-not-allowed disabled:opacity-50"
@@ -460,11 +458,11 @@ function ChatPane({
             <input
               ref={file}
               type="file"
+              multiple
               hidden
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onUpload(kindOf(f), f);
-                e.target.value = "";
+                for (const f of Array.from(e.currentTarget.files ?? [])) onUpload(kindOf(f), f);
+                e.currentTarget.value = ""; // the same file can be picked again
               }}
             />
             {callContext && (

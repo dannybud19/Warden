@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, PhoneOff, X } from "lucide-react";
 import { WardenOrb, type OrbMode } from "./WardenOrb";
-import { ApiError, type DebriefAnswer, type DebriefInput, type DebriefLine } from "@/lib/api";
+import type { DebriefAnswer, DebriefInput, DebriefLine } from "@/lib/api";
 import { formatQuestions, isOpenAction, openQuestions } from "@/lib/callQuestions";
 import type { Case } from "@/lib/types";
 
@@ -24,8 +24,8 @@ type Props = {
   context: CallContext;
   /** Each spoken line, so it lands in this home's chat history. */
   onLine: (role: "student" | "orchestrator", text: string) => void;
-  /** Sends the finished call to the orchestrator once, after hang-up. Rejects with ApiError
-   * (409 when the home was decided during the call). */
+  /** Sends the finished call to the orchestrator once, after hang-up. A home never closes, so
+   * it is accepted at any time; a failed save offers a retry. */
   onDebrief: (payload: DebriefInput) => Promise<void>;
   onEnd: () => void;
 };
@@ -39,7 +39,7 @@ export function CaseCall(props: Props) {
   );
 }
 
-type Phase = "call" | "checking" | "notice" | "retry";
+type Phase = "call" | "checking" | "retry";
 
 function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   const [error, setError] = useState<string | null>(null);
@@ -83,12 +83,11 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
         answers: [...answersRef.current.values()],
       });
       propsRef.current.onEnd();
-    } catch (e) {
-      const decided = e instanceof ApiError && e.status === 409;
-      setNotice(decided ? "This home already has a verdict." : "I couldn't save the call. Try again?");
+    } catch {
+      setNotice("I couldn't save the call. Try again?");
       // A failed save can be sent again (the lines and answers are still in the refs).
-      if (!decided) debriefed.current = false;
-      setPhase(decided ? "notice" : "retry");
+      debriefed.current = false;
+      setPhase("retry");
     }
   }, []);
 
@@ -184,7 +183,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
 
   const busy = phase === "checking";
   const mode: OrbMode =
-    error || phase === "notice" || phase === "retry"
+    error || phase === "retry"
       ? "idle"
       : phase === "checking" || status !== "connected"
         ? "thinking"
@@ -194,7 +193,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   const label =
     phase === "checking"
       ? "Checking what you told me…"
-      : phase === "notice" || phase === "retry"
+      : phase === "retry"
         ? (notice ?? "")
         : (error ?? (status === "connected" ? (isSpeaking ? "Warden is talking" : "Listening…") : "Calling Warden…"));
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -207,7 +206,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
         <WardenOrb size={60} mode={mode} levelRef={levelRef} micRef={micRef} />
       </div>
       <div className="min-w-0 flex-1" role="status" aria-live="polite">
-        <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "notice" || phase === "retry" ? "text-[#a8402b]" : ""}`}>{label}</p>
+        <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "retry" ? "text-[#a8402b]" : ""}`}>{label}</p>
         <p className="text-[12px] tabular-nums text-muted">{sub}</p>
       </div>
       {!error && phase === "call" && (
@@ -231,7 +230,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
           Try again
         </button>
       )}
-      {phase === "notice" || phase === "retry" ? (
+      {phase === "retry" ? (
         <button
           type="button"
           onClick={() => {

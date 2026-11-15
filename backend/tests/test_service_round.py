@@ -29,11 +29,13 @@ from app.contracts import (
     Severity,
     StreamEvent,
     StudentContext,
+    Verdict,
 )
 from app.core.agent import AgentContext, BaseAgent, Need
 from app.core.llm import FakeLLM
 from app.core.settings import Settings
 from app.orchestrator import conversation
+from app.orchestrator import decision as decision_module
 from app.orchestrator import service as service_module
 from app.orchestrator.composer import compose_prompt
 from app.orchestrator.conversation import parse_prompt
@@ -116,6 +118,7 @@ async def test_recap_comes_after_the_score_and_is_sent_once(
     events = _drain(queue)
     assert _round_events(events) == [
         "score_updated",
+        "decision_made",  # the live assessment, every round
         "orchestrator_message",  # the recap
         "actions_proposed",
         "orchestrator_message",  # the round message
@@ -133,7 +136,7 @@ async def test_recap_comes_after_the_score_and_is_sent_once(
     assert RENT_RECAP not in _messages(_drain(queue))
 
 
-async def test_address_hard_flag_sends_the_recap_then_decides(
+async def test_address_hard_flag_sends_the_recap_and_a_live_likely_scam(
     make_service: MakeService, bus: EventBus
 ) -> None:
     service = make_service([ContractAddressAgent()])
@@ -143,9 +146,18 @@ async def test_address_hard_flag_sends_the_recap_then_decides(
     contract = Upload(EvidenceKind.CONTRACT, b"Tenancy agreement for 9 Other Road, E1 6AN")
     case = await add_evidence_and_settle(service, case.case_id, contract)
     events = _drain(queue)
-    assert _round_events(events) == ["score_updated", "orchestrator_message", "decision_made"]
-    assert _messages(events) == ["Two sources disagree on the address. Check these before you pay."]
-    assert case.status == "decided"
+    assert _round_events(events)[:4] == [
+        "score_updated",
+        "decision_made",
+        "orchestrator_message",  # the recap
+        "orchestrator_message",  # the assessment moved to likely scam
+    ]
+    recap, assessment, *_ = _messages(events)
+    assert recap == "Two sources disagree on the address. Check these before you pay."
+    assert assessment.startswith(decision_module.ASSESSMENT_PREFIX)
+    assert "keep adding" in assessment
+    assert case.status == "open"
+    assert case.decision is not None and case.decision.verdict == Verdict.LIKELY_SCAM
 
 
 async def test_round_message_when_no_new_steps_but_some_are_open(
@@ -160,7 +172,7 @@ async def test_round_message_when_no_new_steps_but_some_are_open(
     monkeypatch.setattr(service_module, "propose_actions", nothing_new)
     await add_evidence_and_settle(service, case.case_id, EMAIL)
     events = _drain(queue)
-    assert _round_events(events) == ["score_updated", "orchestrator_message"]
+    assert _round_events(events) == ["score_updated", "decision_made", "orchestrator_message"]
     assert _messages(events) == ["Your risk score is 100/100. 3 steps are still open below."]
 
 
@@ -313,7 +325,7 @@ async def test_a_failing_cross_checker_keeps_the_rules_and_the_previous_recap(
     assert RENT_RECAP not in _messages(_drain(queue))
 
 
-async def test_a_failing_cross_checker_still_lets_the_address_hard_flag_decide(
+async def test_a_failing_cross_checker_still_lets_the_address_hard_flag_count(
     make_service: MakeService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def broken(*_: object) -> AgentReport:
@@ -324,7 +336,8 @@ async def test_a_failing_cross_checker_still_lets_the_address_hard_flag_decide(
     case = await service.open_case(StudentContext(), LISTING, None)
     contract = Upload(EvidenceKind.CONTRACT, b"Tenancy agreement for 9 Other Road, E1 6AN")
     case = await add_evidence_and_settle(service, case.case_id, contract)
-    assert case.status == "decided"
+    assert case.status == "open"
+    assert case.decision is not None and case.decision.verdict == Verdict.LIKELY_SCAM
 
 
 async def test_a_recap_that_breaks_the_rules_is_not_relayed(
@@ -438,9 +451,9 @@ async def test_decide_waits_for_the_running_analysis(make_service: MakeService) 
     await asyncio.sleep(0.02)
     assert not decision.done()  # the agency check is still running
     gate.go = True
-    decided = await decision
-    assert decided.status == "decided"
-    assert "gate" in decided.reports  # the decision saw the finished analysis
+    assessed = await decision
+    assert assessed.status == "open" and assessed.decision is not None
+    assert "gate" in assessed.reports  # the assessment saw the finished analysis
     await service.wait_idle()
 
 

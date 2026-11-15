@@ -9,7 +9,7 @@ instead of a numeric risk estimate:
 | --- | --- | --- |
 | Unknown risk | Important checks remain unverified, with no supported concern yet | Neutral grey; no directional needle |
 | Concerns found | Suspicious checks/findings, a flagged answer, payment confirmation, or `proceed_with_care` | Amber |
-| High risk | The final verdict is `likely_scam` | Red; takes precedence over progress |
+| High risk | The live assessment is `likely_scam` | Red; takes precedence over progress |
 | No red flags remaining | All eight checks are cleared and no warning takes precedence | Green; never a guarantee |
 
 The separate **Verification progress** bar below the dial is `1 - current_score / 100`, displayed as
@@ -59,10 +59,10 @@ progress metadata, never file bytes. The server recognises the same retry identi
 response does not duplicate evidence. Audio/video are labelled saved without claiming media analysis.
 
 New case sends an initial attachment manifest before checks start. Any unfinished or unreadable initial
-file keeps the case open until a successful retry or **Continue without this file**. The server manifest
+file stays pending (retryable) until a successful retry or **Continue without this file**. The server manifest
 restores progress after a reload or on another device; Mongo keeps it across server restarts. Skipping
 does not clear a check. The case page polls this status to recover lost responses. Add/Paste controls
-explain when an upload/reply is running or a final decision has closed the case.
+are never disabled (files are queued; several can be picked at once), and a home never closes.
 
 Email PDFs now use text extraction and OCR for scanned pages. Install the backend's updated lockfile
 (`cd backend && uv sync`) and restart the API before testing. Limits and the offline verification results

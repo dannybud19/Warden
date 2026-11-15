@@ -41,15 +41,17 @@ def test_receipt_identifies_readable_email_and_retry_does_not_duplicate_it(
     client.portal.call(client.app.state.service.wait_idle)  # type: ignore[attr-defined]
     assert client.post(f"/cases/{case_id}/decide").status_code == 200
 
-    # A lost response must be recoverable even if analysis decided the case before Retry.
+    # A lost response must be recoverable even after the case was assessed.
     form["student_name"] = "student"  # a reloaded browser need not recover the old profile name
     retried = client.post(endpoint, data=form, files=files)
     assert retried.status_code == 200
     assert retried.json()["evidence_id"] == saved["evidence_id"]
     assert len(retried.json()["case"]["evidence"]) == 1
     assert len(retried.json()["case"]["messages"]) == 1
-    form["request_id"] = str(uuid4())
-    assert client.post(endpoint, data=form, files=files).status_code == 409
+    form["request_id"] = str(uuid4())  # a new upload of the same file is new evidence, not a 409
+    fresh = client.post(endpoint, data=form, files=files)
+    assert fresh.status_code == 200 and fresh.json()["evidence_id"] != saved["evidence_id"]
+    client.portal.call(client.app.state.service.wait_idle)  # type: ignore[attr-defined]
 
 
 def test_unreadable_receipt_is_saved_and_is_not_a_successful_read(client: TestClient) -> None:
@@ -96,7 +98,7 @@ def test_receipt_is_opt_in_and_malformed_retry_ids_are_rejected(client: TestClie
     assert invalid.status_code == 422
 
 
-def test_initial_manifest_blocks_decision_until_files_are_uploaded_or_explicitly_skipped(
+def test_initial_manifest_tracks_files_until_uploaded_or_explicitly_skipped(
     client: TestClient,
 ) -> None:
     request_id, skipped_id = str(uuid4()), str(uuid4())
@@ -109,8 +111,8 @@ def test_initial_manifest_blocks_decision_until_files_are_uploaded_or_explicitly
         "pending",
         "pending",
     ]
-    blocked = client.post(f"/cases/{case_id}/decide")
-    assert blocked.status_code == 409 and "Continue without this file" in blocked.json()["detail"]
+    assessed = client.post(f"/cases/{case_id}/decide")  # an assessment, never blocked
+    assert assessed.status_code == 200 and assessed.json()["status"] == "open"
     accepted = client.post(
         f"/cases/{case_id}/evidence?include_receipt=true",
         data={"kind": "email", "request_id": request_id},
@@ -120,12 +122,11 @@ def test_initial_manifest_blocks_decision_until_files_are_uploaded_or_explicitly
     assert client.portal
     client.portal.call(client.app.state.service.wait_idle)  # type: ignore[attr-defined]
     assert client.get(f"/cases/{case_id}").json()["status"] == "open"
-    assert client.post(f"/cases/{case_id}/decide").status_code == 409
     skipped = client.post(f"/cases/{case_id}/uploads/{skipped_id}/skip")
     assert skipped.status_code == 200
     assert [u["state"] for u in skipped.json()] == ["accepted", "skipped"]
     client.portal.call(client.app.state.service.wait_idle)  # type: ignore[attr-defined]
-    assert client.post(f"/cases/{case_id}/decide").json()["status"] == "decided"
+    assert client.post(f"/cases/{case_id}/decide").json()["status"] == "open"
     assert client.post(f"/cases/{case_id}/uploads/{skipped_id}/skip").status_code == 200
 
 

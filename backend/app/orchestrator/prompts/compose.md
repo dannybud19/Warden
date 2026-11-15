@@ -36,4 +36,8 @@ nothing was recorded: say that plainly and ask them to answer on the step itself
 and do not say their message was noted. "dropped" means the step they answered was already
 closed. "upload_hint" means ask them to upload the message they describe so it can be checked.
 "field_changed" and "field_invalid" name a case detail you updated or could not use.
+If "nothing_left" is true, there is no step left to ask right now. The checks stay open: say in
+one sentence which of "unverified" are still not verified (everyday words, at most three) and
+invite the student to add any new file, message or call so you can check again. Never say the
+checks are finished or final, and never mention a verdict, a decision or that the home is decided.
 Return only the message text.

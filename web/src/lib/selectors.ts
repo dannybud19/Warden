@@ -60,10 +60,6 @@ export function closedActions(c: Case): Action[] {
   return (c.actions ?? []).filter((a) => (a.status ?? "open") !== "open");
 }
 
-export function isDecided(c: Case): boolean {
-  return c.status === "decided";
-}
-
 const SOURCE_LINE = /^\s*Source:\s*(https?:\/\/\S+)\s*$/i;
 
 /** Web pages a finding cites, read from "Source: <url>" lines in its detail (Companies House, Linkup). */
