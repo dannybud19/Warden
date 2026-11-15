@@ -82,6 +82,7 @@ _READ_FAILURES = {
     images.TOO_BIG: "That image is too large. Please upload a smaller screenshot (under 5 MB).",
     images.EMPTY: "That file looks empty. Please try uploading it again.",
     ocr.TIMEOUT: "Reading that image took too long. Please try again in a moment.",
+    ocr.LLM_ERROR: "I couldn't read that image right now. Please try again in a moment.",
     ocr.ZIP: 'Couldn\'t find the chat text in that zip. Export the chat again "Without media".',
 }
 _UNREADABLE_DOCUMENT = (
@@ -94,7 +95,7 @@ def failure_message(kind: EvidenceKind, reason: str) -> str:
     """The student-facing message for an upload that could not be read (any reason)."""
     if reason == ocr.UNREADABLE and kind not in _CHAT_KINDS:
         return _UNREADABLE_DOCUMENT
-    return _READ_FAILURES.get(reason, _READ_FAILURES[ocr.TIMEOUT])
+    return _READ_FAILURES.get(reason, _READ_FAILURES[ocr.LLM_ERROR])
 
 
 RETIRED_ANSWER = "No longer needed: your evidence already covers this."

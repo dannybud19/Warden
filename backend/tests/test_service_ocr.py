@@ -18,6 +18,7 @@ from app.contracts import (
 from app.core.agent import AgentContext
 from app.core.ids import new_id
 from app.core.llm import FakeLLM
+from app.intake import ocr
 from app.intake import service as intake_service
 from app.intake.service import Extracted
 from app.orchestrator import service as service_module
@@ -248,11 +249,12 @@ def test_failure_messages_follow_appendix_c() -> None:
         "too_big": "That image is too large. Please upload a smaller screenshot (under 5 MB).",
         "empty": "That file looks empty. Please try uploading it again.",
         "timeout": "Reading that image took too long. Please try again in a moment.",
+        "llm_error": "I couldn't read that image right now. Please try again in a moment.",
         "zip": 'Couldn\'t find the chat text in that zip. Export the chat again "Without media".',
     }
     for reason, text in expected.items():
         assert failure_message(chat, reason) == text
-    assert failure_message(chat, "llm_error") == expected["timeout"]
+    assert failure_message(chat, "something new") == expected["llm_error"]  # never "too long"
     document = failure_message(EvidenceKind.CONTRACT, "unreadable")
     assert document != expected["unreadable"]
     assert "photo" in document
@@ -273,3 +275,29 @@ async def test_an_empty_or_corrupt_file_gets_a_message_and_no_analysis(
         assert stored.evidence[-1].extracted_text is None
         assert expected in stored.chat[-1].text
     assert (await service.get_case(case.case_id)).messages == []
+
+
+async def test_a_provider_error_and_a_timeout_get_different_messages(
+    make_service: MakeService, ctx: AgentContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def provider_down(image: bytes, prompt: str) -> str:
+        raise RuntimeError("503 from the provider")
+
+    async def too_slow(image: bytes, prompt: str) -> str:
+        await asyncio.sleep(1)
+        return CHAT_JSON
+
+    monkeypatch.setattr(ocr, "VISION_TIMEOUT_S", 0.01)
+    service = make_service([EmptyAgent()])
+    case = await service.open_case(StudentContext())
+    for describe, expected in (
+        (provider_down, "I couldn't read that image right now. Please try again in a moment."),
+        (too_slow, "Reading that image took too long. Please try again in a moment."),
+    ):
+        monkeypatch.setattr(ctx.llm, "describe_image", describe)
+        stored = await service.add_evidence(
+            case.case_id, Upload(EvidenceKind.CHAT_SCREENSHOT, PNG, "chat.png")
+        )
+        assert stored.chat[-1].text == expected
+        assert stored.evidence[-1].extracted_text is None
+        assert not service._tasks  # nothing new to read: no analysis

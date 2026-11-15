@@ -75,7 +75,8 @@ no messages, no analysis is started (nothing new to read), and the orchestrator 
 | `unsupported` | I can't open that image type. Please upload a PNG or JPG screenshot. |
 | `too_big` | That image is too large. Please upload a smaller screenshot (under 5 MB). |
 | `empty` | That file looks empty. Please try uploading it again. |
-| `timeout`, `llm_error` | Reading that image took too long. Please try again in a moment. |
+| `timeout` | Reading that image took too long. Please try again in a moment. |
+| `llm_error` (provider error, or an invalid reply twice) | I couldn't read that image right now. Please try again in a moment. |
 | `zip` | Couldn't find the chat text in that zip. Export the chat again "Without media". |
 
 ## Run it alone
