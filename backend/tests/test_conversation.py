@@ -702,6 +702,16 @@ def test_sync_parse_is_the_keyword_reading() -> None:
         ("I saw it on Saturday", False),
         ("Island Gardens is the station", False),
         ("yes, the rent is 950. Is that normal?", False),
+        # Auxiliaries and contractions open answers, not questions (Danny, follow-up on #13).
+        ("Can't view it, they refused", False),
+        ("Did the viewing", False),
+        ("Will do", False),
+        ("won't let me see it", False),
+        ("Don't have it yet", False),
+        ("is this normal", False),
+        ("Can I pay by card?", True),
+        ("what's wrong with it", True),
+        ("ok so which checks are left", True),
     ],
 )
 def test_looks_like_question(text: str, expected: bool) -> None:
