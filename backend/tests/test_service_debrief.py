@@ -347,6 +347,28 @@ async def test_when_the_llm_is_down_the_call_is_saved_and_keywords_answer_the_on
     assert viewing.status == ActionStatus.DONE and viewing.outcome == "flags"
 
 
+async def test_the_same_note_from_two_readings_reaches_the_round_message_once(
+    ctx: AgentContext, bus: EventBus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    down_ctx = dataclasses.replace(ctx, llm=DownLLM())
+    service = CaseService(InMemoryCaseRepo(), bus, [EmptyAgent()], down_ctx, load_weights())
+    steps = [
+        Action(id=f"act_{check.value}", check_id=check, kind=ActionKind.QUESTION, text="Ask?")
+        for check in (CheckId.PAYMENT_SAFETY, CheckId.IN_PERSON_VIEWING)
+    ]
+    await service.repo.create(Case(case_id="case_two", created_at=T0, actions=steps))
+    keep_notes(service, monkeypatch)
+    answers = tuple(
+        CallAnswer(a.id, "No, they refused: they want the deposit before I pay") for a in steps
+    )
+
+    await service.debrief("case_two", call(line("student", "Hello."), answers=answers))
+
+    kinds = note_kinds(service, "case_two")
+    assert kinds.count("upload_hint") == 1
+    assert kinds.count("answered") == 3  # one per step, plus the call summary
+
+
 async def test_a_parser_crash_still_saves_the_call_and_never_raises(
     make_service: MakeService, monkeypatch: pytest.MonkeyPatch
 ) -> None:

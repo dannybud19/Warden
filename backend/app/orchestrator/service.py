@@ -351,9 +351,11 @@ class CaseService:
                 notes.append(RoundNote(kind="dropped"))  # once, not per action
             event = _say(case, debrief.THANKS_TEXT)
             await self.repo.save(case)
-            self._notes[case_id].extend(
-                [*notes, *changed_fields, debrief.summary_note(applied, len(changed_fields))]
-            )
+            # NOTE: one call gives several readings; the same note from two of them (e.g. two
+            # upload hints) must not become the same sentence twice in the round message.
+            summary = debrief.summary_note(applied, len(changed_fields))
+            all_notes = [*notes, *changed_fields, summary]
+            self._notes[case_id].extend(dict.fromkeys(all_notes))
         # Only the thanks message: the browser already showed the call's own lines.
         await self._emit(case_id, event)
         self._schedule(case_id)
