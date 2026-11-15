@@ -2,7 +2,7 @@
 
 - From: Georgi
 - To: Danny (and Audrey for the UI)
-- Status: open
+- Status: done
 - Branch / PR: #8 `feat/listing-link` (draft)
 
 ## What happened
@@ -76,3 +76,7 @@ Read your note to Audrey. Two things about how PR #8 meets that branch:
   text, always got a mismatch, and raised the critical address hard flag. Fixed in #14 (addresses
   are compared only when they have a full postcode). **Merge #14 before #8**, since #8 fills partial
   addresses.
+
+## Update (Georgi, 15 Nov): merged
+
+#14 then #8 merged into `main`, at Georgi's request (he asked for the form prefill). Tested together with #13 on `main` first: `make check` 1066 passed, web typecheck and build pass. Still open for you: whether `open_case` should keep waiting for the page or read it in the background. Audrey: the status-line wording in `onboarding-engine.js` is yours to change.

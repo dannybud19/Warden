@@ -2,7 +2,7 @@
 
 - From: Georgi
 - To: Danny (orchestrator), Bill (FYI: payment confirmation)
-- Status: open
+- Status: done
 - Branch / PR: #13 `fix/chat-questions`
 
 ## What happened
@@ -38,3 +38,7 @@ Fixed in #13 (fix-directly stage):
 `make check` on the branch: 1020 passed, 4 skipped. Live: upload synthetic case 01's chat (student
 name Sam), ask "so what are the issues with this property": the confirmation id stays the same and
 the answer names the payment concerns.
+
+## Update (Georgi, 15 Nov): merged
+
+#13 merged into `main` (with #14 and #8, tested together first: 1066 passed).
