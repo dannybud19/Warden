@@ -51,6 +51,13 @@ async def reply(case_id: str, body: ReplyRequest, request: Request) -> Case:
     )
 
 
+def _utc(at: datetime | None) -> datetime | None:
+    """A call time in UTC; a time without a zone is taken as UTC."""
+    if at is None:
+        return None
+    return at.replace(tzinfo=UTC) if at.tzinfo is None else at.astimezone(UTC)
+
+
 @router.post("/cases/{case_id}/debrief")
 async def debrief(case_id: str, body: DebriefRequest, request: Request) -> Case:
     """A voice call ended: save its transcript, apply what it answered, then analyse.
@@ -60,7 +67,7 @@ async def debrief(case_id: str, body: DebriefRequest, request: Request) -> Case:
     """
     now = datetime.now(UTC)
     call = CallDebrief(
-        lines=tuple(CallLine(line.role, line.text, line.at or now) for line in body.lines),
+        lines=tuple(CallLine(line.role, line.text, _utc(line.at) or now) for line in body.lines),
         answers=tuple(CallAnswer(a.action_id, a.answer, a.status) for a in body.answers),
         started_at=body.started_at,
         source=body.source,

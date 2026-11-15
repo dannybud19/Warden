@@ -310,11 +310,17 @@ class CaseService:
             except conversation.InvalidActionError:
                 dropped_ids.append(answer.action_id)
                 continue
+            except Exception as exc:  # noqa: BLE001 - the call must be saved whatever happens
+                self.ctx.log.warning("debrief answer parse failed: %s", type(exc).__name__)
+                continue
             working.actions, _ = conversation.apply(working.actions, result, answer.answer)
             readings.append((result, answer.answer, False))
 
         text = debrief.student_text(call.lines)
-        if text:
+        # NOTE: a call where the student said only a few words ("Yes.") is not read: a bare
+        # answer would target an open payment confirmation, and a stray yes must not confirm a
+        # hard flag. Answers recorded during the call still apply, and the agents still read it.
+        if text and not conversation.is_short_answer(text):
             try:
                 transcript = await conversation.read_reply(
                     working, text, [evidence_id], None, None, self.ctx

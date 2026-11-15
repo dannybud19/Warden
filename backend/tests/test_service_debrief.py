@@ -189,11 +189,14 @@ async def test_a_skipped_explicit_answer_needs_no_reading(
     case = await open_with_three_actions(service)
     keep_notes(service, monkeypatch)
 
+    calls_before = len(fake_llm(ctx).calls)
     answer = CallAnswer("act_payment_method", "I'd rather not say", "skipped")
     result = await service.debrief(case.case_id, call(*FOUR_LINES, answers=(answer,)))
 
     payment = next(a for a in result.actions if a.id == "act_payment_method")
     assert payment.status == ActionStatus.SKIPPED and payment.answer == "I'd rather not say"
+    # One LLM call only, the transcript's, and it no longer sees the skipped step.
+    assert len(fake_llm(ctx).calls) == calls_before + 1
     assert "act_payment_method" not in parsed_actions(fake_llm(ctx))
 
 
@@ -369,6 +372,55 @@ async def test_the_same_note_from_two_readings_reaches_the_round_message_once(
     assert kinds.count("answered") == 3  # one per step, plus the call summary
 
 
+async def test_a_stray_yes_on_the_call_never_confirms_a_payment_concern(
+    make_service: MakeService, ctx: AgentContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = make_service([EmptyAgent()])
+    case = Case(
+        case_id="case_yes",
+        created_at=T0,
+        actions=[
+            Action(
+                id="act_confirm_payment_x_1",
+                check_id=CheckId.PAYMENT_SAFETY,
+                kind=ActionKind.QUESTION,
+                text="Did they ask you to pay before a viewing?",
+            )
+        ],
+    )
+    await service.repo.create(case)
+    keep_notes(service, monkeypatch)
+    calls_before = len(fake_llm(ctx).calls)
+
+    result = await service.debrief("case_yes", call(line("student", "Yes.")))
+
+    assert result.actions[0].status == ActionStatus.OPEN
+    assert len(fake_llm(ctx).calls) == calls_before  # a few words are not read at all
+    assert [m.text for m in result.messages] == ["Yes."]  # but the call is still saved
+
+
+async def test_an_explicit_answer_parse_that_crashes_still_saves_the_call(
+    make_service: MakeService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service = make_service([EmptyAgent()])
+    case = await open_with_three_actions(service)
+    keep_notes(service, monkeypatch)
+    real_read = conversation.read_reply
+
+    async def crash_on_answers(*args: Any, **kwargs: Any) -> conversation.ParseResult:
+        if args[3] is not None:  # an explicit answer targets its action
+            raise RuntimeError("boom")
+        return await real_read(*args, **kwargs)
+
+    monkeypatch.setattr(conversation, "read_reply", crash_on_answers)
+    answer = CallAnswer("act_viewing", "They refused a viewing")
+
+    result = await service.debrief(case.case_id, call(*FOUR_LINES, answers=(answer,)))
+
+    assert any(e.kind == EvidenceKind.CALL_RECORDING for e in result.evidence)
+    assert len([t for t in result.chat if t.text in {ln.text for ln in FOUR_LINES}]) == 4
+
+
 async def test_a_parser_crash_still_saves_the_call_and_never_raises(
     make_service: MakeService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -518,5 +570,7 @@ async def test_a_bank_account_said_on_the_call_is_never_stored_or_sent_to_the_ll
         assert "12345678" not in text and "12-34-56" not in text
     assert "07700 900123" in (call_evidence.extracted_text or "")
     assert any("07700 900123" in m.text for m in result.messages)
-    for sent in fake_llm(ctx).calls:
-        assert "12345678" not in sent["user"] and "12-34-56" not in sent["user"]
+    sent_texts = [sent["user"] for sent in fake_llm(ctx).calls]
+    assert any("07700 900123" in t for t in sent_texts)  # the call did reach the LLM
+    for sent in sent_texts:
+        assert "12345678" not in sent and "12-34-56" not in sent

@@ -39,7 +39,7 @@ export function CaseCall(props: Props) {
   );
 }
 
-type Phase = "call" | "checking" | "notice";
+type Phase = "call" | "checking" | "notice" | "retry";
 
 function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   const [error, setError] = useState<string | null>(null);
@@ -83,14 +83,22 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
       });
       propsRef.current.onEnd();
     } catch (e) {
-      setNotice(
-        e instanceof ApiError && e.status === 409
-          ? "This home already has a verdict."
-          : "I couldn't save the call. Your lines are still in the chat.",
-      );
-      setPhase("notice");
+      const decided = e instanceof ApiError && e.status === 409;
+      setNotice(decided ? "This home already has a verdict." : "I couldn't save the call. Try again?");
+      // A failed save can be sent again (the lines and answers are still in the refs).
+      if (!decided) debriefed.current = false;
+      setPhase(decided ? "notice" : "retry");
     }
   }, []);
+
+  // The bar can unmount mid-call (the chat is expanded, or the page changes): debrief what was
+  // said rather than lose it. Only when the student spoke, so a dev double-mount is harmless.
+  useEffect(
+    () => () => {
+      if (!debriefed.current && linesRef.current.some((l) => l.role === "student")) void finish();
+    },
+    [finish],
+  );
 
   const convo = useConversation({
     clientTools: {
@@ -177,7 +185,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   const label =
     phase === "checking"
       ? "Checking what you told me…"
-      : phase === "notice"
+      : phase === "notice" || phase === "retry"
         ? (notice ?? "")
         : (error ?? (status === "connected" ? (isSpeaking ? "Warden is talking" : "Listening…") : "Calling Warden…"));
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -189,7 +197,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
         <WardenOrb size={104} mood={mood} levelRef={levelRef} />
       </div>
       <div className="min-w-0 flex-1" role="status" aria-live="polite">
-        <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "notice" ? "text-[#a8402b]" : ""}`}>{label}</p>
+        <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "notice" || phase === "retry" ? "text-[#a8402b]" : ""}`}>{label}</p>
         <p className="text-[12px] tabular-nums text-muted">{sub}</p>
       </div>
       {!error && phase === "call" && (
@@ -204,10 +212,22 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
           {isMuted ? <MicOff size={17} /> : <Mic size={17} />}
         </button>
       )}
-      {phase === "notice" ? (
+      {phase === "retry" && (
         <button
           type="button"
-          onClick={onEnd}
+          onClick={() => void finish()}
+          className="flex h-10 cursor-pointer items-center justify-center rounded-full bg-teal px-4 text-[13px] font-medium text-white transition hover:brightness-95"
+        >
+          Try again
+        </button>
+      )}
+      {phase === "notice" || phase === "retry" ? (
+        <button
+          type="button"
+          onClick={() => {
+            debriefed.current = true; // closing gives up the save: no resend on unmount
+            onEnd();
+          }}
           aria-label="Close"
           className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-line bg-white text-ink transition hover:bg-field"
         >
