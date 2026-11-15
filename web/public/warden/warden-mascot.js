@@ -341,6 +341,7 @@
 
     // quiet: no melting, hops or stomps; mood changes crossfade in place
     get quiet() { return this.hasAttribute('quiet'); }
+    set quiet(v) { if (v === '' || v === true) this.setAttribute('quiet', ''); else this.removeAttribute('quiet'); }
 
     go(target) {
       if (!['thinking', ...STATES].includes(target)) target = 'default';
