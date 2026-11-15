@@ -23,14 +23,24 @@ export function allFindings(c: Case): Finding[] {
   );
 }
 
-/** A finding that counts against the home: suspicious, and more than an info note. */
+/** Backend rule (orchestrator/checks.py): only these findings can make a check suspicious. */
+const RED_FLAG_SEVERITIES = new Set(["critical", "high", "medium"]);
+const RED_FLAG_MIN_CONFIDENCE = 0.6;
+
+/**
+ * A finding that counts against the home, using the same rule as the backend checks: a hard flag,
+ * or a suspicious finding of medium severity or worse with confidence of at least 0.6. Anything
+ * weaker cannot move a check, so calling it a red flag would contradict the checks and the verdict.
+ */
 export function isRedFlag(f: Finding): boolean {
-  return f.supports === "suspicious" && f.severity !== "info";
+  if (f.supports !== "suspicious") return false;
+  if (f.hard_flag) return true;
+  return RED_FLAG_SEVERITIES.has(f.severity) && (f.confidence ?? 0) >= RED_FLAG_MIN_CONFIDENCE;
 }
 
-/** Info notes such as "Some background checks could not run": shown to the student, never a red flag. */
+/** Notes such as "Some background checks could not run" or a low-confidence concern: shown, never a red flag. */
 export function infoNotes(c: Case): Finding[] {
-  return allFindings(c).filter((f) => f.supports === "suspicious" && f.severity === "info");
+  return allFindings(c).filter((f) => f.supports === "suspicious" && !isRedFlag(f));
 }
 
 export function findingsByCheck(c: Case): Record<CheckId, Finding[]> {
