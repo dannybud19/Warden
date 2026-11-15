@@ -20,14 +20,15 @@ Images are recognised by their magic bytes, never by the filename (`images.kind_
 
 | Kind | Image (PNG, JPEG, WebP, GIF) | Anything else |
 | --- | --- | --- |
-| `chat_screenshot` | `ocr.read_chat`: a transcript in `extracted_text` and one `Message` per bubble | Read as a chat export (students sometimes pick the wrong kind) |
-| `chat_export` | `ocr.read_chat` (a screenshot uploaded as "chats") | WhatsApp `.zip` export: the chat `.txt` inside (`zip_export`); else the WhatsApp `.txt` parser; text that isn't a WhatsApp export becomes one message |
+| `chat_screenshot` | `ocr.read_chat`: a transcript in `extracted_text` and one `Message` per bubble | Read as a chat export, as below (students sometimes pick the wrong kind) |
+| `chat_export` | `ocr.read_chat` (a screenshot uploaded as "chats"); stored as `chat_screenshot` | WhatsApp `.zip` export: the chat `.txt` inside (`zip_export`); a PDF or Word file: its text; else the WhatsApp `.txt` parser. Text that isn't a WhatsApp export becomes one message |
 | `contract`, `document`, `listing` | `ocr.read_document`: the verbatim text, no messages | PDF text, Word `.docx` text, or UTF-8 text |
 | `email` | `ocr.read_document`, then one email message (sender `agent`) on that text | UTF-8 text as one email message |
 | `call_recording` | Unchanged: `audio.transcribe` (stub) | Same |
 | `video` | Unchanged: no text | Same |
 
-With `llm=None` (old callers), an image is stored with no text and a log warning.
+With `llm=None` (old callers), an image is stored with no text and a log warning. An empty file of
+any kind fails with `empty`; a PDF or Word file that can't be parsed fails with `unreadable`.
 
 ### Chat screenshots
 
@@ -48,6 +49,7 @@ on invalid JSON, 40 s timeout per call.
 - Dedupe: a message whose sender and text (lower case, collapsed spaces) already exist from an
   earlier `chat_screenshot` is not added again, so overlapping screenshots don't double-count. The
   transcript of each screenshot keeps everything. Messages from text exports are never deduped.
+  Images uploaded as `chat_export` are stored as `chat_screenshot`, so they are deduped too.
 
 ## Limits
 
@@ -58,7 +60,8 @@ on invalid JSON, 40 s timeout per call.
 
 ## Failures
 
-A failed read never raises and never gives a 500: the evidence is saved with `extracted_text=None` and
+A failed read (of an image, an empty file, or a corrupt PDF, Word file or zip) never raises and
+never gives a 500: the evidence is saved with `extracted_text=None` and
 no messages, no analysis is started (nothing new to read), and the orchestrator tells the student
 (`failure_message` in `orchestrator/service.py`):
 

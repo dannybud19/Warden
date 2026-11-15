@@ -120,6 +120,18 @@ async def _ask(llm: LLMClient, image: bytes, prompt: str) -> str:
         raise OCRError(LLM_ERROR) from exc
 
 
+def _invalid_reply_reason(exc: Exception) -> str:
+    """What was wrong with a reply, for the retry prompt: field paths and messages only (the
+    model's own output, which may hold personal text, is left out)."""
+    if isinstance(exc, ValidationError):
+        parts = [
+            f"{'.'.join(str(p) for p in e['loc']) or 'reply'}: {e['msg']}"
+            for e in exc.errors(include_input=False)[:5]
+        ]
+        return "; ".join(parts)[:300]
+    return type(exc).__name__
+
+
 async def _read_model[M: BaseModel](image: bytes, llm: LLMClient, prompt: str, model: type[M]) -> M:
     """Check the image, ask the vision model, parse JSON; one retry on an invalid reply."""
     try:
@@ -130,7 +142,7 @@ async def _read_model[M: BaseModel](image: bytes, llm: LLMClient, prompt: str, m
     try:
         return model.model_validate_json(_extract_json(raw))
     except (ValidationError, ValueError) as exc:
-        reason = str(exc).splitlines()[0][:200] if str(exc) else type(exc).__name__
+        reason = _invalid_reply_reason(exc)
         retry_prompt = f"{prompt}\n\nYour previous reply was invalid: {reason}"
     raw = await _ask(llm, image, retry_prompt)
     try:

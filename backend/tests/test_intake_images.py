@@ -179,3 +179,41 @@ async def test_old_ingest_signature_still_works_for_text_kinds(tmp_path: Path) -
     assert case.messages[0].text == "Yes it is available."
     email = await ingest(case, EvidenceKind.EMAIL, None, b"Hello there", None, None)
     assert email.messages[-1].channel == "email"
+
+
+async def test_screenshots_uploaded_as_chats_are_stored_and_deduped_as_screenshots(
+    tmp_path: Path,
+) -> None:
+    """The web sends chat images as `chat_export` too: overlaps must still be deduped."""
+    llm = _llm(chat=_chat(("left", "Deposit first please"), ("right", "Can I view?")))
+    case = _case()
+    for _ in range(2):
+        case = await ingest(
+            case, EvidenceKind.CHAT_EXPORT, "c.png", PNG, None, "Sam", uploads_dir=tmp_path, llm=llm
+        )
+    assert [e.kind for e in case.evidence] == [EvidenceKind.CHAT_SCREENSHOT] * 2
+    assert [m.text for m in case.messages] == ["Deposit first please", "Can I view?"]
+    assert case.evidence[1].extracted_text == case.evidence[0].extracted_text  # transcript kept
+
+
+async def test_an_empty_file_is_an_error_for_every_kind() -> None:
+    for kind in EvidenceKind:
+        extracted = await extract(kind, "empty.png", b"", "Sam", FakeLLM())
+        assert (extracted.text, extracted.messages, extracted.error) == (None, [], "empty")
+
+
+async def test_a_corrupt_pdf_or_word_file_is_unreadable_not_a_crash() -> None:
+    corrupt = (b"%PDF-1.7\n garbage", b"PK\x03\x04 not a real docx")
+    for kind in (EvidenceKind.CONTRACT, EvidenceKind.LISTING, EvidenceKind.CHAT_EXPORT):
+        extracted = await extract(kind, "x.pdf", corrupt[0], "Sam", FakeLLM())
+        assert extracted.error == "unreadable"
+        assert (extracted.text, extracted.messages) == (None, [])
+    zip_error = await extract(EvidenceKind.CHAT_EXPORT, "x.zip", corrupt[1], "Sam", FakeLLM())
+    assert zip_error.error == "zip"
+
+
+async def test_a_word_file_sent_as_a_screenshot_is_read_not_decoded_as_bytes() -> None:
+    extracted = await extract(EvidenceKind.CHAT_SCREENSHOT, "t.docx", _docx_bytes(), "Sam", None)
+    assert extracted.error is None
+    assert "£850 per month" in (extracted.text or "")
+    assert "PK" not in (extracted.text or "")

@@ -4,6 +4,7 @@ import asyncio
 import dataclasses
 import json
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
@@ -17,6 +18,7 @@ from app.contracts import (
 from app.core.agent import AgentContext
 from app.core.ids import new_id
 from app.core.llm import FakeLLM
+from app.intake import service as intake_service
 from app.intake.service import Extracted
 from app.orchestrator import service as service_module
 from app.orchestrator.events import EventBus
@@ -24,6 +26,14 @@ from app.orchestrator.service import CaseClosedError, CaseService, Upload, failu
 from tests.conftest import EmptyAgent, settled
 
 MakeService = Callable[[list | None], CaseService]
+
+
+@pytest.fixture(autouse=True)
+def _uploads_in_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Uploads go to a temporary folder, not backend/.uploads."""
+    monkeypatch.setattr(intake_service, "UPLOADS_DIR", tmp_path / ".uploads")
+
+
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 
 
@@ -258,3 +268,20 @@ def test_failure_messages_follow_appendix_c() -> None:
     document = failure_message(EvidenceKind.CONTRACT, "unreadable")
     assert document != expected["unreadable"]
     assert "photo" in document
+
+
+async def test_an_empty_or_corrupt_file_gets_a_message_and_no_analysis(
+    make_service: MakeService,
+) -> None:
+    service = make_service([EmptyAgent()])
+    case = await service.open_case(StudentContext())
+    uploads = [
+        (Upload(EvidenceKind.CHAT_SCREENSHOT, b"", "empty.png"), "That file looks empty."),
+        (Upload(EvidenceKind.CONTRACT, b"%PDF-1.7\n garbage", "c.pdf"), "upload the PDF or Word"),
+    ]
+    for upload, expected in uploads:
+        stored = await service.add_evidence(case.case_id, upload)
+        assert not service._tasks  # nothing new to read: no analysis
+        assert stored.evidence[-1].extracted_text is None
+        assert expected in stored.chat[-1].text
+    assert (await service.get_case(case.case_id)).messages == []

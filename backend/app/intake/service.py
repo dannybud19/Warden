@@ -48,11 +48,13 @@ async def _document_text(data: bytes) -> str:
     return _decode(data)
 
 
-def _chat_text(
+async def _chat_text(
     data: bytes, evidence_id: str, student_name: str | None
 ) -> tuple[str, list[Message]]:
-    """A chat export as text: a WhatsApp .zip or .txt, or any pasted text."""
-    if zip_export.is_zip(data) and not docx.is_docx(data):
+    """A chat export as text: a WhatsApp .zip or .txt, a PDF or Word file, or any pasted text."""
+    if data.startswith(b"%PDF") or docx.is_docx(data):
+        text = await _document_text(data)  # never decode a binary file as chat text
+    elif zip_export.is_zip(data):
         text = zip_export.read_zip_export(data)
     else:
         text = _decode(data)
@@ -121,10 +123,23 @@ async def _extract_parts(
             log.warning("image %s upload with no LLM: stored without text", kind.value)
             return None, []
         return await _read_image(kind, data, evidence_id, student_name, llm)
+    try:
+        return await _read_file(kind, data, evidence_id, student_name)
+    except (ocr.OCRError, NotImplementedError):
+        raise
+    except Exception as exc:  # noqa: BLE001 - a corrupt PDF or Word file must not fail the request
+        log.warning("could not parse %s upload (%s)", kind.value, type(exc).__name__)
+        raise ocr.OCRError(ocr.UNREADABLE) from exc
+
+
+async def _read_file(
+    kind: EvidenceKind, data: bytes, evidence_id: str, student_name: str | None
+) -> tuple[str, list[Message]]:
+    """Text and messages for anything that is not an image (PDF, Word, zip or plain text)."""
     match kind:
         case EvidenceKind.CHAT_EXPORT | EvidenceKind.CHAT_SCREENSHOT:
             # NOTE: text sent as a screenshot is read as a chat export (a wrong pick is common).
-            return _chat_text(data, evidence_id, student_name)
+            return await _chat_text(data, evidence_id, student_name)
         case EvidenceKind.EMAIL:
             text = _decode(data)
             return text, [_single_message(text, evidence_id, "email", "agent")]
@@ -144,6 +159,8 @@ async def extract(
     Never raises for an unreadable image: the reason is returned in `error` instead.
     """
     evidence_id = new_id("ev")
+    if not data:
+        return Extracted(evidence_id, None, [], images.EMPTY)
     try:
         text, messages = await _extract_parts(kind, data, evidence_id, student_name, llm)
     except ocr.OCRError as exc:
@@ -159,6 +176,13 @@ async def extract(
 
 def _normalised(text: str) -> str:
     return " ".join(text.lower().split())
+
+
+def _stored_kind(kind: EvidenceKind, data: bytes) -> EvidenceKind:
+    """An image uploaded as a chat export is stored as a screenshot (the web sends both)."""
+    if kind == EvidenceKind.CHAT_EXPORT and images.is_image(data):
+        return EvidenceKind.CHAT_SCREENSHOT
+    return kind
 
 
 def _dedupe(case: Case, kind: EvidenceKind, messages: list[Message]) -> list[Message]:
@@ -181,6 +205,7 @@ async def attach(
     uploads_dir: Path | None = None,
 ) -> Case:
     """Store the file and return the Case with the new Evidence and its (deduped) Messages."""
+    kind = _stored_kind(kind, data)
     file_url = None
     if filename:
         file_url = await _store(

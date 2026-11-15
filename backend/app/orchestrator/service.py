@@ -32,6 +32,7 @@ from app.contracts import (
 )
 from app.core.agent import AgentContext, BaseAgent
 from app.core.ids import new_id
+from app.intake import images, ocr
 from app.intake.service import attach, extract
 from app.orchestrator import checks as checks_mod
 from app.orchestrator import (
@@ -66,21 +67,21 @@ FAILED_ANALYSIS_TEXT = (
 
 # What the student is told when an upload could not be read (keys: intake OCRError reasons).
 _READ_FAILURES = {
-    "not a chat": (
+    ocr.NOT_A_CHAT: (
         "That image doesn't look like a chat. If it's a document, upload it as a document instead."
     ),
-    "not a document": (
+    ocr.NOT_A_DOCUMENT: (
         "I couldn't find any text in that image. If it's a chat, upload it as messages."
     ),
-    "unreadable": (
+    ocr.UNREADABLE: (
         "I couldn't read that screenshot clearly. Try a sharper screenshot, or export the chat "
         "as text."
     ),
-    "unsupported": "I can't open that image type. Please upload a PNG or JPG screenshot.",
-    "too_big": "That image is too large. Please upload a smaller screenshot (under 5 MB).",
-    "empty": "That file looks empty. Please try uploading it again.",
-    "timeout": "Reading that image took too long. Please try again in a moment.",
-    "zip": 'Couldn\'t find the chat text in that zip. Export the chat again "Without media".',
+    images.UNSUPPORTED: "I can't open that image type. Please upload a PNG or JPG screenshot.",
+    images.TOO_BIG: "That image is too large. Please upload a smaller screenshot (under 5 MB).",
+    images.EMPTY: "That file looks empty. Please try uploading it again.",
+    ocr.TIMEOUT: "Reading that image took too long. Please try again in a moment.",
+    ocr.ZIP: 'Couldn\'t find the chat text in that zip. Export the chat again "Without media".',
 }
 _UNREADABLE_DOCUMENT = (
     "I couldn't read that image clearly. Try a sharper photo, or upload the PDF or Word file."
@@ -90,9 +91,9 @@ _CHAT_KINDS = (EvidenceKind.CHAT_SCREENSHOT, EvidenceKind.CHAT_EXPORT)
 
 def failure_message(kind: EvidenceKind, reason: str) -> str:
     """The student-facing message for an upload that could not be read (any reason)."""
-    if reason == "unreadable" and kind not in _CHAT_KINDS:
+    if reason == ocr.UNREADABLE and kind not in _CHAT_KINDS:
         return _UNREADABLE_DOCUMENT
-    return _READ_FAILURES.get(reason, _READ_FAILURES["timeout"])
+    return _READ_FAILURES.get(reason, _READ_FAILURES[ocr.TIMEOUT])
 
 
 class CaseNotFoundError(Exception):

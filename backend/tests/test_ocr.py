@@ -176,7 +176,12 @@ async def test_o5_invalid_then_valid_retries_once() -> None:
 async def test_o5_schema_invalid_json_also_retries() -> None:
     llm = QueueLLM([json.dumps({"is_chat": "maybe"}), chat([line("left", "Hello")])])
     await read(llm)
-    assert len(vision_calls(llm)) == 2
+    calls = vision_calls(llm)
+    assert len(calls) == 2
+    # The hint names the bad field, and never echoes the model's own reply back.
+    hint = calls[1]["prompt"].split("Your previous reply was invalid:")[1]
+    assert "is_chat" in hint
+    assert "maybe" not in hint
 
 
 async def test_o6_invalid_twice_is_an_error_not_a_crash() -> None:
