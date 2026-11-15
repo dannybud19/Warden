@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, PhoneOff } from "lucide-react";
-import { WardenOrb, type OrbMood } from "../onboarding/WardenOrb";
+import { WardenOrb, type OrbMode } from "./WardenOrb";
 
 /** What Warden knows about this home when the call starts (ElevenLabs dynamic variables). */
 export type CallContext = {
@@ -37,6 +37,7 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const levelRef = useRef(0);
+  const micRef = useRef(0);
   const started = useRef(false);
 
   const convo = useConversation({
@@ -88,7 +89,8 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     let raf = 0;
     const loop = () => {
-      levelRef.current = Math.min(1, (isSpeaking ? getOutputVolume() : getInputVolume()) * 2.4);
+      levelRef.current = Math.min(1, getOutputVolume() * 2.4);
+      micRef.current = Math.min(1, getInputVolume() * 2.4);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -98,14 +100,14 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
     };
   }, [status, isSpeaking, getOutputVolume, getInputVolume]);
 
-  const mood: OrbMood = error ? "idle" : status !== "connected" ? "connecting" : isSpeaking ? "speaking" : "listening";
+  const mode: OrbMode = error ? "idle" : status !== "connected" ? "thinking" : isSpeaking ? "speaking" : "listening";
   const label = error ?? (status === "connected" ? (isSpeaking ? "Warden is talking" : "Listening…") : "Calling Warden…");
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
   return (
     <div className="relative mt-3 flex items-center gap-3 rounded-[20px] bg-white p-3 pr-4 shadow-card">
       <div className="-my-4 -ml-3 shrink-0">
-        <WardenOrb size={104} mood={mood} levelRef={levelRef} />
+        <WardenOrb size={104} mode={mode} levelRef={levelRef} micRef={micRef} />
       </div>
       <div className="min-w-0 flex-1">
         <p className={`text-[13.5px] font-medium leading-[1.3] ${error ? "text-[#a8402b]" : ""}`}>{label}</p>
