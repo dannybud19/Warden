@@ -1,7 +1,9 @@
 """Analysis runs in the background: open_case starts the agency check, requests return at once."""
 
+import _thread
 import asyncio
 import signal
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -141,8 +143,8 @@ async def test_wait_idle_does_not_spin_on_a_finished_task_not_yet_removed(
     yielding. Here the analysis scheduled by an upload (awaited as its own task) finishes before
     the done callback that removes it from `_tasks` has run, and `wait_idle` used to loop forever.
 
-    A spinning loop never reaches an `await` timeout, so the guard is a SIGALRM timer: its handler
-    runs between bytecodes and fails the test instead of hanging the run.
+    A spinning loop never reaches an `await` timeout. A thread timer schedules an interrupt whose
+    handler runs between bytecodes, including on Windows where SIGALRM is unavailable.
     """
     service = make_service([EmptyAgent()])
     case = await service.open_case(StudentContext())
@@ -159,8 +161,10 @@ async def test_wait_idle_does_not_spin_on_a_finished_task_not_yet_removed(
     def timed_out(signum: int, frame: object) -> None:
         raise TimeoutError("wait_idle is spinning")
 
-    previous = signal.signal(signal.SIGALRM, timed_out)
-    signal.setitimer(signal.ITIMER_REAL, 5)
+    previous = signal.signal(signal.SIGINT, timed_out)
+    watchdog = threading.Timer(5, _thread.interrupt_main)
+    watchdog.daemon = True
+    watchdog.start()
     try:
         pending = asyncio.create_task(
             service.add_evidence(case.case_id, Upload(EvidenceKind.EMAIL, b"Hello"))
@@ -172,6 +176,7 @@ async def test_wait_idle_does_not_spin_on_a_finished_task_not_yet_removed(
         await pending
         await service.wait_idle()
     finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous)
+        watchdog.cancel()
+        watchdog.join()
+        signal.signal(signal.SIGINT, previous)
     assert not service._tasks

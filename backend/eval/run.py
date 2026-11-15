@@ -19,7 +19,7 @@ from app.agents.companies_house.agent import CompaniesHouseAgent
 from app.aggregators.scoring.scoring import load_weights, score
 from app.contracts import AgentStatus, Case, CheckState
 from app.core.agent import AgentContext, BaseAgent
-from app.core.llm import LLMClient
+from app.core.llm import AnthropicLLM, LLMClient
 from app.orchestrator.events import EventBus
 from app.orchestrator.registry import AGENT_PAIRS
 from app.orchestrator.service import CaseService
@@ -97,6 +97,8 @@ async def evaluate_case(
             fatal = type(exc).__name__
             logger.exception("CaseService failed: %s", fatal)
             result = await repo.get(case.case_id) or seed
+        finally:
+            await service.shutdown()
     degraded = fatal or any(
         report.status in {AgentStatus.ERROR, AgentStatus.NEEDS_INPUT}
         for report in result.reports.values()
@@ -211,11 +213,11 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("ANTHROPIC_API_KEY is missing from the selected local environment file.")
     selected = manifest.cases[: args.limit] if args.limit else manifest.cases
     signature = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "git_revision": revision(),
         "dataset_sha256": hashlib.sha256((args.dataset / "manifest.json").read_bytes()).hexdigest(),
         "model": settings.llm_model,
-        "agent_max_tokens": 2048,
+        "agent_max_tokens": AnthropicLLM.MAX_TOKENS,
         "rounds": "initial_only",
         "external_services": "controlled_fixtures",
         "label_review": "pending_agent_owner_review",
@@ -236,7 +238,18 @@ async def run(args: argparse.Namespace) -> dict[str, Any]:
                 **signature,
                 "started_at": datetime.now(UTC).isoformat(),
                 "parallel_cases": args.parallel,
-                "unimplemented_capabilities": ["video analysis", "LLM cross-checker"],
+                "pipeline": "Real checkers, LLM cross-checker, scoring, consultant and composer",
+                "not_exercised": [
+                    "Upload extraction and OCR (cases already contain extracted text)",
+                    "Student replies and later analysis rounds",
+                    "Voice calls and debriefs",
+                    "Browser UI and persistent storage",
+                ],
+                "unimplemented_capabilities": [
+                    "Video analysis",
+                    "Uploaded audio transcription",
+                    "Contract revision selection and history",
+                ],
             },
         )
     ledger_lock = args.output / ".running.lock"

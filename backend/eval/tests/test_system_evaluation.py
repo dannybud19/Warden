@@ -29,7 +29,7 @@ from app.contracts import (
     Severity,
 )
 from app.core.agent import AgentContext
-from app.core.llm import FakeLLM
+from app.core.llm import AnthropicLLM, FakeLLM
 from app.orchestrator import checks, conversation, payment_confirmation
 from eval import run as evaluation
 from eval.contract_metering import PRICES, usage_cost
@@ -249,6 +249,21 @@ async def test_agent_prompt_inputs_do_not_contain_eval_labels_or_external_manife
         assert secret not in prompt_text
 
 
+async def test_evaluation_runs_the_llm_crosschecker_through_case_service(monkeypatch) -> None:
+    monkeypatch.setattr(evaluation, "real_agents", lambda _: [])
+    case, entry, bundle = _runtime_case()
+    case.reports = {
+        name: AgentReport(agent=name, version="test", status=AgentStatus.OK, input_hash="test")
+        for name in ("message_checker", "contract_checker")
+    }
+    llm = FakeLLM()
+    result = await evaluation.evaluate_case(case, entry, bundle, _settings(), llm)
+    assert any("You are the Cross-checker for Warden" in c.get("system", "") for c in llm.calls)
+    report = result["result_case"]["reports"]["crosscheck"]
+    assert report["status"] == "ok"
+    assert not any(f["id"] == "crosscheck:not-run" for f in report["findings"])
+
+
 def test_summary_keeps_unknown_out_of_binary_truth_denominators_and_counts_pairs() -> None:
     artifacts = build_dataset()
     manifest = Manifest.model_validate_json(artifacts["manifest.json"])
@@ -309,10 +324,13 @@ def _recorded_llm(tmp_path: Path, provider: Any) -> RecordedLLM:
 
 
 async def test_recorded_llm_journals_scoped_usage_and_unlimited_success(tmp_path: Path) -> None:
+    requested_caps: list[int] = []
+
     class Provider:
         calls = 0
 
-        async def create(self, **_: Any) -> Any:
+        async def create(self, **options: Any) -> Any:
+            requested_caps.append(options["max_tokens"])
             self.calls += 1
             return SimpleNamespace(
                 usage=SimpleNamespace(
@@ -349,6 +367,8 @@ async def test_recorded_llm_journals_scoped_usage_and_unlimited_success(tmp_path
     assert usage["completed_requests"] == 2
     assert usage["cost_usd"] == str(expected_cost)
     assert usage["budget_policy"].startswith("User removed GBP 5 limit")
+    assert await llm.complete("system", "input") == "ready"
+    assert requested_caps == [777, 777, AnthropicLLM.MAX_TOKENS]
 
 
 async def test_recorded_llm_journals_provider_failure_with_unknown_billing(tmp_path: Path) -> None:
@@ -515,6 +535,11 @@ async def test_runner_resume_skips_checkpoint_without_live_calls(
     )
     first = await evaluation.run(args)
     assert calls == 1 and first["cases"] == 1
+    metadata = json.loads((output / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["agent_max_tokens"] == AnthropicLLM.MAX_TOKENS
+    assert "LLM cross-checker" in metadata["pipeline"]
+    assert "LLM cross-checker" not in metadata["unimplemented_capabilities"]
+    assert metadata["not_exercised"]
 
     args.resume = True
     resumed = await evaluation.run(args)

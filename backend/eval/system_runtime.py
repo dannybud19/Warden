@@ -75,7 +75,7 @@ class RecordedLLM(AnthropicLLM):
             "request_id": uuid4().hex,
             "at": datetime.now(UTC).isoformat(),
             "model": selected,
-            "max_tokens": (self._scope.get() or {}).get("max_tokens", 2048),
+            "max_tokens": (self._scope.get() or {}).get("max_tokens", self.MAX_TOKENS),
             **(self._scope.get() or {}),
         }
         await self._record({**call, "event": "started"})

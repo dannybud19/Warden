@@ -194,6 +194,11 @@ records cost without a hard monetary cap. The older contract-only runner retains
 
 `eval.run` explicitly instantiates real agents and the real consultant, injects controlled HTTP/search
 responses, preserves the fixture's assessment date, and stops after the first decision or open questions.
+It now exercises the integrated LLM cross-checker and round composer through the real `CaseService`.
+Agent requests use the production Anthropic output limit (`AnthropicLLM.MAX_TOKENS`, currently 4096);
+optional grading retains its separate 8192-token limit. Metadata records the actual pipeline and limits.
+This remains an initial-round evaluation of extracted text: uploads/OCR, voice, replies, later rounds,
+the browser and persistent storage need separate integration checks.
 It never supplies labels or follow-up answers to the agents. Video is skipped when absent. It records
 the whole resulting Case, logs, external-request provenance, latency, token usage and list-price cost.
 `system_fixtures.py` adapts declared register sources to the newly merged Companies House client; missing
