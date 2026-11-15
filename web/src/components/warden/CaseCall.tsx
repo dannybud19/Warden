@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, PhoneOff, X } from "lucide-react";
-import { WardenOrb, type OrbMood } from "../onboarding/WardenOrb";
+import { WardenOrb, type OrbMode } from "./WardenOrb";
 import { ApiError, type DebriefAnswer, type DebriefInput, type DebriefLine } from "@/lib/api";
 import { formatQuestions, isOpenAction, openQuestions } from "@/lib/callQuestions";
 import type { Case } from "@/lib/types";
@@ -47,6 +47,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   const [phase, setPhase] = useState<Phase>("call");
   const [notice, setNotice] = useState<string | null>(null);
   const levelRef = useRef(0);
+  const micRef = useRef(0);
   const started = useRef(false);
 
   // The latest case and callbacks, so the client tools and onDisconnect never read stale props.
@@ -170,7 +171,8 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     let raf = 0;
     const loop = () => {
-      levelRef.current = Math.min(1, (isSpeaking ? getOutputVolume() : getInputVolume()) * 2.4);
+      levelRef.current = Math.min(1, getOutputVolume() * 2.4);
+      micRef.current = Math.min(1, getInputVolume() * 2.4);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -181,7 +183,14 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   }, [status, isSpeaking, getOutputVolume, getInputVolume]);
 
   const busy = phase === "checking";
-  const mood: OrbMood = error || phase !== "call" ? "idle" : status !== "connected" ? "connecting" : isSpeaking ? "speaking" : "listening";
+  const mode: OrbMode =
+    error || phase === "notice" || phase === "retry"
+      ? "idle"
+      : phase === "checking" || status !== "connected"
+        ? "thinking"
+        : isSpeaking
+          ? "speaking"
+          : "listening";
   const label =
     phase === "checking"
       ? "Checking what you told me…"
@@ -194,7 +203,7 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   return (
     <div className="relative mt-3 flex items-center gap-3 rounded-[20px] bg-white p-3 pr-4 shadow-card">
       <div className="-my-4 -ml-3 shrink-0">
-        <WardenOrb size={104} mood={mood} levelRef={levelRef} />
+        <WardenOrb size={104} mode={mode} levelRef={levelRef} micRef={micRef} />
       </div>
       <div className="min-w-0 flex-1" role="status" aria-live="polite">
         <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "notice" || phase === "retry" ? "text-[#a8402b]" : ""}`}>{label}</p>
