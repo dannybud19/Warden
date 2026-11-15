@@ -224,7 +224,9 @@ Verdict rules (`decision.py`):
 
 Hard flags (a finding with `hard_flag=true` can close the case as `likely_scam`): payment before a viewing
 or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
-liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
+liquidated company, and a contract address that does not match the listing (from the rule crosscheck when both
+addresses have a full postcode, or from the Cross-checker's LLM when it is certain the listing and the contract
+name different homes, with both quotes verified). Only the register can hard-flag
 the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
 hard flag.
 

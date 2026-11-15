@@ -11,14 +11,14 @@ import time
 from app.aggregators.crosschecker import llm_pass, sources, stub, validate
 from app.aggregators.crosschecker.constants import AGENT
 from app.aggregators.crosschecker.rule_recap import recap
-from app.contracts import AgentReport, AgentStatus, Case, Finding
+from app.contracts import AgentReport, AgentStatus, Case, EvidenceKind, Finding
 from app.core.agent import AgentContext
 
 __all__ = ["LLM_TIMEOUT_S", "MIN_INPUTS", "NAME", "VERSION", "recap", "review"]
 
 NAME = AGENT
-VERSION = "1.0.0"
-MIN_INPUTS = 2  # fewer OK reports than this leaves nothing to compare
+VERSION = "1.1.0"  # 1.1: certain listing-vs-contract address mismatches are hard flags
+MIN_INPUTS = 2  # fewer sides than this (`_sides`) leaves nothing to compare
 # NOTE: below the orchestrator's 30 s deadline around `review`, so our own fallback (with the
 # not-run finding) wins over its generic one.
 LLM_TIMEOUT_S = 25.0
@@ -50,7 +50,7 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
     # report or LLM call that fails for now does not make them (and the recap) disappear.
     carried = _verified_before(previous)
 
-    if len(inputs) < MIN_INPUTS:
+    if _sides(case, len(inputs)) < MIN_INPUTS:
         summary = previous.summary if previous and carried else recap(rules)
         return report(rules + carried, summary, digest)
 
@@ -72,7 +72,8 @@ async def review(case: Case, rule_findings: list[Finding], ctx: AgentContext) ->
         # Empty input hash, so the next analysis retries.
         return report([*rules, *carried, validate.not_run_finding(reason)], summary, "")
 
-    found, kept = validate.to_findings(output, srcs, rules, log=ctx.log)
+    kinds = {evidence.id: evidence.kind for evidence in case.evidence}
+    found, kept = validate.to_findings(output, srcs, rules, evidence_kinds=kinds, log=ctx.log)
     summary = validate.clean_recap(output.recap, kept, rules) if kept else recap(rules)
     return report(rules + found, summary, digest)
 
@@ -82,3 +83,24 @@ def _verified_before(previous: AgentReport | None) -> list[Finding]:
     if previous is None or previous.version != VERSION:
         return []
     return [f for f in previous.findings if validate.is_llm_finding(f)]
+
+
+def _sides(case: Case, ok_reports: int) -> int:
+    """How many independent sides can be compared: each OK report, what the student entered about
+    the listing or landlord, and each uploaded listing.
+
+    A listing and a contract alone give one OK report (the contract checker), yet the contract
+    must still be compared with the listing: that is how a contract for another home is caught.
+    """
+    entered = any(
+        value not in (None, "")
+        for model in (case.listing, case.landlord)
+        if model is not None
+        for value in model.model_dump().values()
+    )
+    listings = sum(
+        1
+        for evidence in case.evidence
+        if evidence.kind == EvidenceKind.LISTING and (evidence.extracted_text or "").strip()
+    )
+    return ok_reports + int(entered) + listings

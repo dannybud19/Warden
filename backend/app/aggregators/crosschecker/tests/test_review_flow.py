@@ -386,7 +386,10 @@ async def test_x8_fewer_than_two_ok_reports_skip_the_llm(
     failed = utilities.reports["message_checker"].model_copy(
         update={"status": AgentStatus.ERROR, "error": "boom"}
     )
-    case = with_reports(utilities, message_checker=failed)
+    # One OK report and nothing the student entered: nothing to compare it with.
+    case = with_reports(utilities, message_checker=failed).model_copy(
+        update={"listing": None, "landlord": None}
+    )
     rules = (
         [rule("rent_pcm", "Rent", [("listing", "950"), ("ev_contract", "900")])]
         if with_rule
@@ -400,6 +403,18 @@ async def test_x8_fewer_than_two_ok_reports_skip_the_llm(
     assert report.summary == recap(rules)
     assert (report.summary is None) is (not with_rule)
     assert report.input_hash != ""
+
+
+async def test_x8_one_ok_report_and_the_listing_still_call_the_llm(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    """A listing and a contract alone: only the contract checker reports, and the contract must
+    still be compared with what the student entered about the listing."""
+    failed = utilities.reports["message_checker"].model_copy(update={"status": AgentStatus.SKIPPED})
+    case = with_reports(utilities, message_checker=failed)
+    llm = llm_reply()
+    await review(case, [], real(ctx, llm))
+    assert len(llm.calls) == 1
 
 
 async def test_x9_unchanged_inputs_reuse_the_previous_result(
@@ -537,10 +552,10 @@ async def test_x13_own_previous_report_is_not_an_input(utilities: Case, ctx: Age
         "contract_checker": utilities.reports["contract_checker"],
         "crosscheck": _previous_with_text("ZEBRA"),
     }
-    case = utilities.model_copy(update={"reports": reports})
+    case = utilities.model_copy(update={"reports": reports, "listing": None, "landlord": None})
     llm = llm_reply()
     await review(case, [], real(ctx, llm))
-    assert llm.calls == []  # one other OK report only: nothing to compare
+    assert llm.calls == []  # one other OK report only and nothing entered: nothing to compare
 
 
 async def test_x13_own_previous_report_is_not_a_source(utilities: Case, ctx: AgentContext) -> None:
@@ -674,7 +689,9 @@ async def test_a_report_failing_for_now_keeps_the_disagreements_already_verified
 ) -> None:
     first = await _first_run(utilities, ctx)
     failed = utilities.reports["message_checker"].model_copy(update={"status": AgentStatus.ERROR})
-    case = with_reports(utilities, crosscheck=first, message_checker=failed)
+    case = with_reports(utilities, crosscheck=first, message_checker=failed).model_copy(
+        update={"listing": None, "landlord": None}
+    )
     llm = llm_reply()
     report = await review(case, [], real(ctx, llm))
 

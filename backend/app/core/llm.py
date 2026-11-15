@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import random
 from typing import Any, Protocol, TypeVar
 
 import anthropic
@@ -106,18 +107,28 @@ class OpenAICompatibleLLM:
     """
 
     MAX_TOKENS = 8192  # roomy: some models spend output tokens on reasoning first
-    RETRY_STATUSES = (429, 500, 502, 503)
-    ATTEMPTS = 3
+    RETRY_STATUSES = (429, 500, 502, 503, 504, 529)
+    OVERLOADED = (503, 529)  # "the model is experiencing high demand": another model may not be
+    ATTEMPTS = 5
+    FALLBACK_AFTER = 2  # overloaded answers from the main model before the fallback is tried
     TIMEOUT_RETRIES = 1  # with the default 20 s timeout, two attempts fit an agent's 45 s
-    retry_delay_s = 2.0
+    retry_delay_s = 1.0  # first wait; doubles each retry, capped at MAX_DELAY_S, with jitter
+    MAX_DELAY_S = 4.0
 
     def __init__(self, settings: Settings, http: httpx.AsyncClient) -> None:
         self._http = http
         self._url = settings.llm_base_url.rstrip("/") + "/chat/completions"
         self._headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
         self._model = settings.llm_model
+        self._fallback = settings.llm_fallback_model
         self._reasoning_effort = settings.llm_reasoning_effort
         self._timeout = settings.llm_timeout_s
+
+    def _backoff(self, attempt: int) -> float:
+        """Seconds to wait before retry `attempt + 1`: exponential, capped, with jitter, so agents
+        that were refused together (they run in parallel) do not all retry at the same moment."""
+        delay = min(self.retry_delay_s * 2 ** (attempt - 1), self.MAX_DELAY_S)
+        return delay * random.uniform(0.5, 1.5)  # noqa: S311 - timing jitter, not security
 
     def _pick_model(self, model: str | None) -> str:
         # An agent may ask for a specific Claude model; that id means nothing to another provider.
@@ -140,8 +151,10 @@ class OpenAICompatibleLLM:
         if self._reasoning_effort:
             body["reasoning_effort"] = self._reasoning_effort
         response: httpx.Response | None = None
-        timeouts = 0
+        timeouts = overloaded = 0
         for attempt in range(1, self.ATTEMPTS + 1):
+            if self._fallback and overloaded >= self.FALLBACK_AFTER:
+                body["model"] = self._fallback
             try:
                 response = await self._http.post(
                     self._url, json=body, headers=self._headers, timeout=self._timeout
@@ -154,7 +167,8 @@ class OpenAICompatibleLLM:
                 continue
             if response.status_code not in self.RETRY_STATUSES or attempt == self.ATTEMPTS:
                 break
-            await asyncio.sleep(self.retry_delay_s * attempt)  # free tiers rate-limit by the minute
+            overloaded += response.status_code in self.OVERLOADED
+            await asyncio.sleep(self._backoff(attempt))
         assert response is not None
         response.raise_for_status()
         choices = response.json().get("choices") or []

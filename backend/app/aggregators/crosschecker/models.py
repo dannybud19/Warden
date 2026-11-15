@@ -17,6 +17,10 @@ class Inconsistency(BaseModel):
     topic: str  # short noun phrase, e.g. "utilities", "deposit amount", "who to pay"
     check_id: CheckId  # one of the 8; usually contract_consistency, payment topics payment_safety
     severity: Literal["low", "medium", "high"]
+    # "certain": the two sides cannot describe the same thing (a different postcode district or
+    # street, an amount that differs beyond rounding). Only a certain listing-vs-contract address
+    # disagreement becomes a hard flag (`validate`).
+    certainty: Literal["certain", "likely", "possible"] = "likely"
     a: Side
     b: Side
     why_it_matters: str  # <= 160 chars, no verdict words

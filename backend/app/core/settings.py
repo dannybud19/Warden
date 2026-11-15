@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # per attempt, for openai_compatible; two attempts stay under an agent's 45 s limit
     llm_timeout_s: float = 20.0
     llm_model: str = "claude-sonnet-5-5"
+    # openai_compatible only: the model tried after the main one has been overloaded (503/529)
+    # twice in a row, e.g. "gemini-3.1-flash-lite". Unset: the main model is retried throughout.
+    llm_fallback_model: str = ""
     linkup_api_key: str = ""
     companies_house_api_key: str = ""
     storage: Literal["memory", "mongo"] = "memory"

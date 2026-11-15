@@ -3,14 +3,22 @@
 import logging
 import re
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import MappingProxyType
 
 from app.aggregators.crosschecker.constants import AGENT, ID_PREFIX, NOT_RUN_ID, RULE_IDS
 from app.aggregators.crosschecker.models import Inconsistency, ReviewOutput, Side
 from app.aggregators.crosschecker.rule_recap import rule_topics
 from app.aggregators.crosschecker.sources import STUDENT, Source, quotable
-from app.contracts import Category, CheckId, EvidenceRef, FactKey, Finding, Severity
+from app.contracts import (
+    Category,
+    CheckId,
+    EvidenceKind,
+    EvidenceRef,
+    FactKey,
+    Finding,
+    Severity,
+)
 
 MAX_KEPT = 5  # V7
 MIN_QUOTE_CHARS = 3  # V3
@@ -19,6 +27,8 @@ SLUG_MAX_CHARS = 40
 COLLISION_SUFFIX = "-2"  # keeps an LLM id off a rule finding's or the not-run finding's id
 CONF_VERIFIED = 0.7  # both quotes verified: enough to flip a check at medium severity or above
 CONF_STUDENT = 0.5  # one side is what the student typed, which is often approximate
+CONF_HARD = 0.9  # a certain listing-vs-contract address mismatch, as sure as the old rule finding
+LISTING_SOURCE = "listing"  # evidence id of what the student entered (or we read) about the listing
 MAX_RECAP_WORDS = 80
 RECAP_TEMPLATE = (
     "A few details don't match between your documents: {topics}. "
@@ -73,6 +83,7 @@ _SOURCE_IDS = r"S\d{1,3}(?:\s*(?:,|;|&|and)\s*S\d{1,3})*"
 _PAREN_IDS = re.compile(rf"\s*[(\[]\s*(?:(?i:sources?)\s+)?{_SOURCE_IDS}\s*[)\]]")
 _BARE_ID = re.compile(r"(?:(?i:sources?)\s+)?\bS\d{1,3}(?:['\u2019]s)?\b(?!\s*\d[A-Z]{2}\b)")
 _SPACE_BEFORE_PUNCT = re.compile(r"\s+([,.;:!?])")
+_POSTCODE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECASE)
 _PAYMENT_WORDS = re.compile(r"\b(?:pay|paying|payment|payments|bank|transfer|transfers)\b")
 
 
@@ -122,6 +133,7 @@ class _Verified:
     quote_a: str  # cleaned quote, verified against source_a
     quote_b: str
     finding_id: str
+    hard_flag: bool = False
 
 
 def to_findings(
@@ -129,9 +141,15 @@ def to_findings(
     sources: list[Source],
     rule_findings: list[Finding],
     *,
+    evidence_kinds: Mapping[str, EvidenceKind] | None = None,
     log: logging.Logger | None = None,
 ) -> tuple[list[Finding], list[Inconsistency]]:
-    """The consistency findings for the inconsistencies that pass V1 to V7, and those kept."""
+    """The consistency findings for the inconsistencies that pass V1 to V7, and those kept.
+
+    `evidence_kinds` (evidence id -> kind) lets a certain address disagreement between the listing
+    and a contract become a hard flag; without it no LLM finding is ever hard.
+    """
+    kinds = evidence_kinds or {}
     by_id = {source.id: source for source in sources}
     rules = [finding for finding in rule_findings if finding.id in RULE_IDS]
     verified: list[_Verified] = []
@@ -145,6 +163,8 @@ def to_findings(
             reason = f"V7: already kept {MAX_KEPT}"
         else:
             _log_payment_check(result, log)
+            if _is_address_hard_flag(result, kinds):
+                result = replace(result, hard_flag=True)
             verified.append(result)
             continue
         if log:
@@ -353,6 +373,40 @@ def _log_payment_check(verified: _Verified, log: logging.Logger | None) -> None:
         )
 
 
+def _is_address_hard_flag(verified: _Verified, kinds: Mapping[str, EvidenceKind]) -> bool:
+    """A certain disagreement about the property address between the listing and a contract.
+
+    The same hard flag the rule crosscheck raises, but the LLM decides that the two addresses are
+    different homes, so a listing with only a postcode district ("W12") or no postcode at all is
+    still compared. Both quotes are already verified in their sources. Identical full postcodes
+    on both sides overrule the LLM: that is the same home.
+    """
+    inconsistency = verified.inconsistency
+    if inconsistency.certainty != "certain":
+        return False
+    if not _RULE_FAMILIES[FactKey.ADDRESS.value].search(normalise(inconsistency.topic)):
+        return False
+    roles = {_role(verified.source_a, kinds), _role(verified.source_b, kinds)}
+    if roles != {"listing", "contract"}:
+        return False
+    postcodes = [_full_postcode(q) for q in (verified.quote_a, verified.quote_b)]
+    return not (postcodes[0] and postcodes[0] == postcodes[1])
+
+
+def _role(source: Source, kinds: Mapping[str, EvidenceKind]) -> str | None:
+    """'listing' or 'contract' when the source's quote comes from one, else None."""
+    kind = kinds.get(source.evidence_id)
+    if source.evidence_id == LISTING_SOURCE or kind == EvidenceKind.LISTING:
+        return "listing"
+    return "contract" if kind == EvidenceKind.CONTRACT else None
+
+
+def _full_postcode(text: str) -> str | None:
+    """The first full UK postcode in `text`, upper case without spaces."""
+    match = _POSTCODE.search(text)
+    return re.sub(r"\s", "", match.group(0)).upper() if match else None
+
+
 def _finding(verified: _Verified, sources: list[Source]) -> Finding:
     """The consistency finding for one verified inconsistency (plan section 10)."""
     inconsistency = verified.inconsistency
@@ -376,21 +430,27 @@ def _finding(verified: _Verified, sources: list[Source]) -> Finding:
     if lines:
         detail += "\n" + "\n".join(lines)
     student_side = STUDENT in (a.agent, b.agent)
+    if verified.hard_flag:
+        check_id, severity, confidence = CheckId.CONTRACT_CONSISTENCY, Severity.CRITICAL, CONF_HARD
+    else:
+        check_id = inconsistency.check_id
+        severity = _SEVERITIES.get(inconsistency.severity, Severity.HIGH)
+        confidence = CONF_STUDENT if student_side else CONF_VERIFIED
     return Finding(
         id=verified.finding_id,
         agent=AGENT,
-        check_id=inconsistency.check_id,
+        check_id=check_id,
         title=title,
         detail=detail,
         category=Category.CONSISTENCY,
-        severity=_SEVERITIES.get(inconsistency.severity, Severity.HIGH),
-        confidence=CONF_STUDENT if student_side else CONF_VERIFIED,
+        severity=severity,
+        confidence=confidence,
         evidence=[
             EvidenceRef(evidence_id=a.evidence_id, quote=verified.quote_a),
             EvidenceRef(evidence_id=b.evidence_id, quote=verified.quote_b),
         ],
         supports="suspicious",
-        hard_flag=False,
+        hard_flag=verified.hard_flag,
     )
 
 

@@ -72,10 +72,10 @@ async def test_rate_limit_is_retried_then_raised() -> None:
     assert await llm.complete("s", "u") == "ok" and len(seen) == 2
 
     seen.clear()
-    llm = _llm([httpx.Response(429)] * 3, seen)
+    llm = _llm([httpx.Response(429)] * OpenAICompatibleLLM.ATTEMPTS, seen)
     with pytest.raises(httpx.HTTPStatusError):
         await llm.complete("s", "u")
-    assert len(seen) == 3
+    assert len(seen) == OpenAICompatibleLLM.ATTEMPTS
 
 
 async def test_claude_model_overrides_are_ignored_and_effort_is_optional() -> None:
@@ -144,3 +144,38 @@ async def test_a_timeout_then_an_answer_succeeds() -> None:
         return reply
 
     assert await _with_handler(flaky).complete("system", "user") == "hello"
+
+
+def _models(seen: list[httpx.Request]) -> list[str]:
+    return [json.loads(r.content)["model"] for r in seen]
+
+
+async def test_overloaded_model_switches_to_the_fallback() -> None:
+    seen: list[httpx.Request] = []
+    replies = [httpx.Response(503), httpx.Response(503), _ok("ok")]
+    llm = _llm(replies, seen, llm_fallback_model="gemini-backup")
+    assert await llm.complete("s", "u") == "ok"
+    assert _models(seen) == ["gemini-x", "gemini-x", "gemini-backup"]
+
+
+async def test_one_overload_or_a_rate_limit_keeps_the_main_model() -> None:
+    seen: list[httpx.Request] = []
+    replies = [httpx.Response(503), httpx.Response(429), httpx.Response(429), _ok("ok")]
+    llm = _llm(replies, seen, llm_fallback_model="gemini-backup")
+    assert await llm.complete("s", "u") == "ok"
+    assert _models(seen) == ["gemini-x"] * 4
+
+
+async def test_without_a_fallback_the_main_model_is_retried() -> None:
+    seen: list[httpx.Request] = []
+    llm = _llm([httpx.Response(503)] * 3 + [_ok("ok")], seen)
+    assert await llm.complete("s", "u") == "ok"
+    assert _models(seen) == ["gemini-x"] * 4
+
+
+def test_backoff_doubles_is_capped_and_jittered() -> None:
+    llm = OpenAICompatibleLLM(_settings(), httpx.AsyncClient())
+    for attempt, base in ((1, 1.0), (2, 2.0), (3, 4.0), (4, 4.0)):
+        delays = {llm._backoff(attempt) for _ in range(20)}  # noqa: SLF001
+        assert all(0.5 * base <= d <= 1.5 * base for d in delays)
+        assert len(delays) > 1
