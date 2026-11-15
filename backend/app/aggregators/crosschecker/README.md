@@ -76,7 +76,8 @@ characters; findings, quotes, facts and student fields are never trimmed.
 
 The recap is at most 80 words in whole sentences. It is replaced by the template ("A few details
 don't match between your documents: ... Before paying anything, ask the agent to confirm the correct
-terms in writing.") if it is empty, uses a verdict or legal word (safe, scam, fraud, legit,
+terms in writing.") if it is empty, still names an internal source id such as "S7's" (references
+like "(S36)" are stripped first, and the same ids are stripped from finding titles and details), uses a verdict or legal word (safe, scam, fraud, legit,
 guarantee, illegal, sue, lawyer, genuine, fake, and their inflections), or mentions a topic that is
 neither a kept disagreement nor a rule finding. The orchestrator decides whether to send it: only
 when it is non-empty and different from the previous one.

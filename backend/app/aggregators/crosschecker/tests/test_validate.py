@@ -1,6 +1,7 @@
 """Quote checks V1 to V7, finding format and recap cleaning (plan section 10)."""
 
 import logging
+import re
 from typing import Literal
 
 import pytest
@@ -20,6 +21,7 @@ from app.aggregators.crosschecker.validate import (
     not_run_finding,
     original_span,
     slug,
+    strip_source_ids,
     template_recap,
     to_findings,
 )
@@ -425,6 +427,61 @@ def test_clean_recap_strips_and_collapses_whitespace() -> None:
     messy = "  The contract charges £60   a month for utilities,\n but your messages\tsay all "
     messy += "bills are included. Ask the agent to confirm in writing.  "
     assert clean_recap(messy, [UTILITIES], []) == GOOD_RECAP
+
+
+def test_clean_recap_strips_a_parenthesised_source_id() -> None:
+    recap = (
+        "The contract charges £60 a month for utilities (S36), but your messages say all bills "
+        "are included. Ask the agent to confirm in writing."
+    )
+    assert clean_recap(recap, [UTILITIES], []) == GOOD_RECAP
+
+
+def test_clean_recap_strips_several_source_ids() -> None:
+    recap = (
+        "The contract charges £60 a month for utilities (S3, S12), but your messages say all "
+        "bills are included (sources S4 and S9). Ask the agent to confirm in writing."
+    )
+    assert clean_recap(recap, [UTILITIES], []) == GOOD_RECAP
+
+
+@pytest.mark.parametrize("bare", ["S7's messages say all bills are included", "S4 says bills"])
+def test_clean_recap_bare_source_id_uses_template(bare: str) -> None:
+    recap = f"The contract charges £60 a month for utilities, but {bare}. Ask the agent."
+    assert clean_recap(recap, [UTILITIES], []) == _template("utilities")
+
+
+@pytest.mark.parametrize("postcode", ["SW4 6HP", "S1 2AB", "S10 2AB"])
+def test_clean_recap_keeps_postcodes(postcode: str) -> None:
+    recap = f"The utilities at {postcode} cost £60 a month, but bills are included. Ask the agent."
+    assert clean_recap(recap, [UTILITIES], []) == " ".join(recap.split())
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("pay by transfer (S36) today", "pay by transfer today"),
+        ("it says so (S3, S12).", "it says so."),
+        ("they differ (sources S3 and S4), so ask", "they differ, so ask"),
+        ("from S7's message", "from message"),
+        ("see source S4 for more", "see for more"),
+        ("the flat at SW4 6HP", "the flat at SW4 6HP"),
+        ("the flat at S1 2AB", "the flat at S1 2AB"),
+        ("no ids here", "no ids here"),
+    ],
+)
+def test_strip_source_ids(text: str, expected: str) -> None:
+    assert strip_source_ids(text) == expected
+
+
+def test_finding_text_drops_source_ids() -> None:
+    inc = _inc(
+        topic="Utilities (S2)",
+        claims=("charges £60 a month for utilities (S2).", "says bills are included (S3)"),
+        why="S2 and S3 disagree (S2, S3).",
+    )
+    finding = _run(inc)[0]
+    assert not re.search(r"\bS\d+\b", finding.title + finding.detail)
 
 
 def test_clean_recap_empty_uses_template() -> None:
