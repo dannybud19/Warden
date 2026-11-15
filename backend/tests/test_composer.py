@@ -295,6 +295,7 @@ async def test_compose_sends_prompt_and_payload(ctx: AgentContext) -> None:
         "score_after": 82,
         "moved": [{"check": "landlord identity", "before": "unverified", "after": "cleared"}],
         "not_run": [],
+        "checked": [],
         "new_actions": 2,
         "open_actions": 3,
         "recap_sent": False,
@@ -335,3 +336,21 @@ async def test_compose_timeout_uses_template(
 
 async def test_compose_fake_llm_default_json_uses_template(ctx: AgentContext) -> None:
     assert await compose_round(BASE, ctx) == template(BASE)
+
+
+def test_drop_repeats_removes_only_sentences_we_already_said() -> None:
+    history = (
+        "student: how is my deposit protected?",
+        "you: I cannot tell from the case yet how your deposit is protected.",
+        "student: they never gave me the company number",
+    )
+    text = "Thanks for telling me. I cannot tell from the case yet how your deposit is protected!"
+    assert composer.drop_repeats(text, history) == "Thanks for telling me."
+    assert composer.drop_repeats("They never gave me the company number.", history) != ""
+    assert composer.drop_repeats(text, ()) == text
+
+
+async def test_a_message_that_only_repeats_falls_back_to_the_template(ctx: AgentContext) -> None:
+    said = "Two steps are still open below."
+    inp = replace(BASE, history=(f"you: {said}",))
+    assert await compose_round(inp, with_llm(ctx, FakeLLM(default=said))) == template(inp)

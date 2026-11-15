@@ -9,7 +9,7 @@ from typing import Literal
 from app.contracts import Case, Evidence, EvidenceKind, Message
 from app.core.ids import new_id
 from app.core.logging import get_logger
-from app.intake import audio, docx, ocr, pdf, whatsapp
+from app.intake import audio, docx, ocr, pdf, transcript, whatsapp
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / ".uploads"  # backend/.uploads, gitignored
 
@@ -64,8 +64,11 @@ async def _extract(
             case EvidenceKind.CHAT_EXPORT:
                 text = _decode(data)
                 messages = whatsapp.parse_export(text, evidence_id, student_name)
+                if not messages:
+                    # A chat pasted without export timestamps ("Name: message" lines).
+                    messages = transcript.parse_transcript(text, evidence_id, student_name)
                 if not messages and text.strip():
-                    # NOTE: not a WhatsApp export: keep the whole text as one message.
+                    # NOTE: not a chat we can split: keep the whole text as one message.
                     messages = [_single_message(text, evidence_id, "other", "unknown")]
                 return text, messages
             case EvidenceKind.EMAIL:
