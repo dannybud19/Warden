@@ -37,18 +37,6 @@ def _uploads_in_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 
 
-async def idle(service: CaseService) -> None:
-    """`wait_idle`, after one loop turn.
-
-    NOTE: on Python 3.12 `asyncio.gather` on tasks that are already done returns without
-    yielding, so `wait_idle` spins forever if a background analysis finished but its done
-    callback (which removes it from `_tasks`) has not run yet. That happens when the upload ran
-    in its own task, as here. One `sleep(0)` lets the callback run first.
-    """
-    await asyncio.sleep(0)
-    await service.wait_idle()
-
-
 async def test_case_lock_is_not_held_while_the_upload_is_read(
     make_service: MakeService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -76,7 +64,7 @@ async def test_case_lock_is_not_held_while_the_upload_is_read(
     assert replied.chat[-1].text == "I'm still looking"
     release.set()
     stored = await asyncio.wait_for(upload, 1)
-    await idle(service)
+    await service.wait_idle()
     assert lock_held_during_read == [False]
     assert stored.evidence[-1].extracted_text == "[14:02] Agent: hello"
     assert any(t.text == "I'm still looking" for t in stored.chat)  # the reply was not lost
@@ -219,7 +207,7 @@ async def test_lock_is_not_held_during_the_real_read_path(
     assert replied.chat[-1].text == "Still looking"
     llm.release.set()
     stored = await asyncio.wait_for(upload, 1)
-    await idle(service)
+    await service.wait_idle()
     assert len(stored.messages) == 2
     assert any(t.text == "Still looking" for t in stored.chat)
 
@@ -239,7 +227,7 @@ async def test_case_decided_while_the_image_is_read_rejects_the_upload(
 
     with pytest.raises(CaseClosedError):
         await asyncio.wait_for(upload, 1)
-    await idle(service)
+    await service.wait_idle()
     stored = await service.get_case(case.case_id)
     assert stored.evidence == []
     assert stored.messages == []

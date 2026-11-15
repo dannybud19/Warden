@@ -321,6 +321,9 @@ class CaseService:
         """Wait for every background analysis to finish (tests and graceful shutdown)."""
         while self._tasks:
             await asyncio.gather(*list(self._tasks), return_exceptions=True)
+            # NOTE: gather returns without yielding when every task is already done, so give the
+            # loop a turn to run their done callbacks (which remove them); else this could spin.
+            await asyncio.sleep(0)
 
     async def shutdown(self) -> None:
         """Cancel background analyses that are still running (app shutdown)."""
