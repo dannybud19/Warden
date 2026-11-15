@@ -1,6 +1,6 @@
 import type { Case, CheckId, CheckState, EvidenceKind, Finding } from "./types";
 import { CHECK_ORDER } from "./labels";
-import { allFindings, openActions } from "./selectors";
+import { allFindings, isRedFlag, openActions } from "./selectors";
 import { SEVERITY_ORDER } from "./selectors";
 
 // Presentation for the one-home dashboard (left side): the check map, the story strip and the decision.
@@ -128,7 +128,7 @@ export interface Step {
 
 function effect(c: Case, agents: string[]): { result: string; tone: StepTone } {
   const fs = agents.flatMap((a) => c.reports?.[a]?.findings ?? []);
-  const flags = fs.filter((f) => f.supports === "suspicious");
+  const flags = fs.filter(isRedFlag);
   const cleared = fs.filter((f) => f.supports === "cleared").length;
   if (flags.length) {
     const hard = flags.some((f) => f.hard_flag || f.severity === "critical" || f.severity === "high");
