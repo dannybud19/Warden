@@ -14,7 +14,7 @@ from app.contracts import (
 )
 from app.orchestrator.checks import initial_checks
 from app.orchestrator.events import EventBus
-from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService, Upload
+from app.orchestrator.service import CaseNotFoundError, CaseService, Upload
 from tests.conftest import add_evidence_and_settle, reply_and_settle
 
 MakeService = Callable[[list | None], CaseService]
@@ -93,16 +93,23 @@ async def test_contract_address_mismatch_is_a_crosscheck_hard_flag(
     assert "crosscheck:address" in case.decision.finding_ids
 
 
-async def test_a_decided_case_rejects_more_work(
+async def test_a_decided_case_takes_more_work_and_decides_again(
     make_service: MakeService, fake_agency_case: Case
 ) -> None:
     service = make_service(None)
     case = await _open(service, fake_agency_case)
     case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
-    with pytest.raises(CaseClosedError):
-        await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
-    with pytest.raises(CaseClosedError):
-        await reply_and_settle(service, case.case_id, "yes")
+    assert case.status == "decided"
+    await service.add_evidence(
+        case.case_id, Upload(EvidenceKind.EMAIL, b"Hello, the flat is still free.", "mail.txt")
+    )
+    await service.wait_idle()
+    case = await reply_and_settle(service, case.case_id, "why is that?")
+    # The hard flags are still in the reports, so the reopened case is decided again.
+    assert case.status == "decided" and case.decision is not None
+    assert case.decision.verdict == "likely_scam"
+    assert len(case.evidence) == 2
+    assert case.chat[-1].role == "orchestrator"
 
 
 async def test_unknown_case(make_service: MakeService) -> None:

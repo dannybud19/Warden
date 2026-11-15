@@ -120,6 +120,9 @@ class CaseNotFoundError(Exception):
     """No case with this id (HTTP 404)."""
 
 
+STILL_OPEN_TEXT = "You can still add files, paste messages or ask me anything: I will check again."
+
+
 class CaseClosedError(Exception):
     """The case is already decided (HTTP 409)."""
 
@@ -258,6 +261,16 @@ class CaseService:
             raise CaseClosedError(case_id)
         return case
 
+    async def _load_for_input(self, case_id: str) -> Case:
+        """Load a case the student is adding to. A decided case is reopened (in memory; the
+        caller saves it): a verdict never locks the student out, and whatever they add is
+        analysed and decided again. Hard flags stay in the reports, so they still decide."""
+        case = await self._load(case_id)
+        if case.status == "decided":
+            case.status = "open"
+            case.decision = None
+        return case
+
     async def _emit(self, case_id: str, event: StreamEvent) -> None:
         await self.bus.publish(case_id, event)
 
@@ -328,7 +341,8 @@ class CaseService:
             if item.state != "pending":
                 return uploads  # idempotent after a lost response or completed upload
             if case.status == "decided":
-                raise CaseClosedError(case_id)
+                case.status = "open"  # reopened: the next analysis decides again
+                case.decision = None
             item.state = "skipped"
             # Skipping records no clear: unreadable evidence remains visible as unreadable.
             await self.repo.save(case, uploads=uploads)
@@ -367,8 +381,6 @@ class CaseService:
         previous = _existing_upload(case, evidence_id)
         if previous and (not upload.retry_read or not previous.read_error):
             return previous
-        if case.status == "decided":
-            raise CaseClosedError(case_id)
         await self._upload_manifest(case_id, upload)
         extracted = await extract(
             upload.kind, upload.filename, upload.data, upload.student_name, self.ctx.llm
@@ -387,8 +399,8 @@ class CaseService:
             previous = _existing_upload(case, evidence_id)
             if previous and (not upload.retry_read or not previous.read_error):
                 return previous
-            if case.status == "decided":
-                raise CaseClosedError(case_id)
+            # NOTE: evidence added after a verdict reopens the case; it is decided again.
+            case = await self._load_for_input(case_id)
             uploads = await self._upload_manifest(case_id, upload)
             if previous:
                 # Only a failed read may be retried in place; readable evidence is immutable.
@@ -439,12 +451,12 @@ class CaseService:
         the round message says so) instead of being overwritten.
         """
         ids = list(evidence_ids or [])
-        snapshot = await self._load(case_id, must_be_open=True)
+        snapshot = await self._load_for_input(case_id)
         # NOTE: read_reply checks `action_id` first (InvalidActionError, 422) before any LLM call.
         result = await conversation.read_reply(snapshot, text, ids, action_id, status, self.ctx)
 
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
+            case = await self._load_for_input(case_id)
             case.actions, dropped = conversation.apply(case.actions, result, text)
             changed_fields = fields.apply_fields(case, result.field_updates)
             answered = [u.action_id for u in result.updates if u.action_id not in dropped]
@@ -468,7 +480,7 @@ class CaseService:
         student's side is read like a chat reply. Every parse runs on a snapshot without the
         state lock, like `reply`. Only the short thanks message is emitted over the stream.
         """
-        snapshot = await self._load(case_id, must_be_open=True)
+        snapshot = await self._load_for_input(case_id)
         # NOTE: mask first, so nothing stored or sent to an LLM holds a full bank account.
         call = debrief.masked(call)
         if not call.lines:
@@ -531,7 +543,7 @@ class CaseService:
             readings.append((transcript, text, True))
 
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
+            case = await self._load_for_input(case_id)
             case.evidence.append(evidence)
             case.messages.extend(messages)
             case.chat.extend(turns)
@@ -641,7 +653,14 @@ class CaseService:
             return await self._confirm_payment(case)
         case.decision = decision.decide(case)
         case.status = "decided"
+        # The student spoke last (an answer, a question, a call): tell them the outcome in the
+        # chat too, so a verdict never looks like a chat that stopped replying.
+        said = None
+        if case.chat and case.chat[-1].role == "student":
+            said = _say(case, f"{case.decision.summary} {STILL_OPEN_TEXT}")
         await self.repo.save(case)
+        if said:
+            await self._emit(case.case_id, said)  # `decision_made` stays the last event
         await self._emit(case.case_id, DecisionMade(decision=case.decision))
         return case
 

@@ -49,7 +49,8 @@ def test_receipt_identifies_readable_email_and_retry_does_not_duplicate_it(
     assert len(retried.json()["case"]["evidence"]) == 1
     assert len(retried.json()["case"]["messages"]) == 1
     form["request_id"] = str(uuid4())
-    assert client.post(endpoint, data=form, files=files).status_code == 409
+    # A new file after the decision is accepted too: the case is checked again.
+    assert client.post(endpoint, data=form, files=files).status_code == 200
 
 
 def test_unreadable_receipt_is_saved_and_is_not_a_successful_read(client: TestClient) -> None:

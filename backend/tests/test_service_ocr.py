@@ -23,7 +23,7 @@ from app.intake import service as intake_service
 from app.intake.service import Extracted
 from app.orchestrator import service as service_module
 from app.orchestrator.events import EventBus
-from app.orchestrator.service import CaseClosedError, CaseService, Upload, failure_message
+from app.orchestrator.service import CaseService, Upload, failure_message
 from tests.conftest import EmptyAgent, settled
 
 MakeService = Callable[[list | None], CaseService]
@@ -213,7 +213,7 @@ async def test_lock_is_not_held_during_the_real_read_path(
     assert any(t.text == "Still looking" for t in stored.chat)
 
 
-async def test_case_decided_while_the_image_is_read_rejects_the_upload(
+async def test_case_decided_while_the_image_is_read_still_saves_the_upload(
     make_service: MakeService, ctx: AgentContext
 ) -> None:  # O14
     service, llm = _gated_service(make_service, ctx)
@@ -226,12 +226,10 @@ async def test_case_decided_while_the_image_is_read_rejects_the_upload(
     await asyncio.wait_for(service.decide(case.case_id), 1)
     llm.release.set()
 
-    with pytest.raises(CaseClosedError):
-        await asyncio.wait_for(upload, 1)
+    await asyncio.wait_for(upload, 1)  # a verdict never locks the student out
     await service.wait_idle()
     stored = await service.get_case(case.case_id)
-    assert stored.evidence == []
-    assert stored.messages == []
+    assert len(stored.evidence) == 1
 
 
 def test_failure_messages_follow_appendix_c() -> None:

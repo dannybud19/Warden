@@ -168,7 +168,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <ActionCards
                 c={c}
                 busy={busy}
-                disabled={closed}
+                // A verdict never locks the page: an answer after it reopens the checks.
+                disabled={false}
                 onAnswer={(id, text) => void sendReply({ text, actionId: id, status: "done" })}
                 onSkip={(id) => void sendReply({ text: "Skip for now", actionId: id, status: "skipped" })}
               />
@@ -184,14 +185,14 @@ export function CaseScreen({ caseId }: { caseId: string }) {
                 onPaste={() => document.getElementById("rail-input")?.focus()}
               />
             )}
-            <IssueList c={c} flags={view.flags} cleared={view.cleared} disabled={closed || busy} onUpload={onUpload} />
+            <IssueList c={c} flags={view.flags} cleared={view.cleared} disabled={busy} onUpload={onUpload} />
             <StillKeen top={view.flags[0]} />
             {(closed || busy) && <p role="status" className="text-[13px] text-ink/70">
-              {closed ? "This case has a final decision. New attachments cannot be added."
+              {!busy ? "Warden has given a verdict on this home. You can still add files, paste messages or ask questions: it will check again."
                 : uploading ? "Your files are being uploaded and read. Add/Paste will be available when this finishes."
                 : "Warden is saving your reply. Add/Paste will be available when this finishes."}
             </p>}
-            <EvidencePanel c={c} disabled={closed || busy} onUpload={onUpload} onPaste={onPaste} />
+            <EvidencePanel c={c} disabled={busy} onUpload={onUpload} onPaste={onPaste} />
           </motion.main>
 
           <div className="sticky top-[96px] h-[calc(100dvh-112px)] max-h-[900px]">
@@ -200,8 +201,9 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               rows={view.rows}
               chat={chat}
               busy={busy}
-              // The orchestrator answers any message while the home is open, also with no step open yet.
-              canReply={!closed}
+              // The orchestrator takes a message at any time: with no step open yet, and after a
+              // verdict (it checks again).
+              canReply
               closed={closed}
               callCase={c}
               onCallDebrief={onCallDebrief}

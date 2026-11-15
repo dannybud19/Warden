@@ -440,13 +440,13 @@ function ChatPane({
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={!canReply || busy}
-              placeholder={closed ? "Warden has finished checking this home." : canReply ? "Ask Warden, or forward the agent's reply…" : "Nothing to answer right now."}
+              placeholder={closed ? "Ask Warden about the verdict, or add something new…" : canReply ? "Ask Warden, or forward the agent's reply…" : "Nothing to answer right now."}
               autoComplete="off"
               className="absolute left-4 right-4 top-3.5 bg-transparent text-[13.5px] leading-[1.4] outline-none placeholder:text-hint disabled:cursor-not-allowed"
             />
             <motion.button
               type="button"
-              disabled={closed || busy}
+              disabled={busy}
               onClick={() => file.current?.click()}
               whileTap={{ scale: 0.95 }}
               className="absolute left-4 top-[56px] cursor-pointer rounded-full border border-line bg-white py-1 pl-[9px] pr-2.5 text-[11.5px] font-medium leading-[normal] disabled:cursor-not-allowed disabled:opacity-50"
