@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { motion } from "motion/react";
 import { STUDENT_NAME_KEY } from "@/lib/config";
-import { Dot, Mascot } from "./primitives";
+import { Mascot } from "./primitives";
 
 const ITEMS = [
   { label: "Cases", href: "/" },
@@ -82,10 +82,6 @@ export function SiteNav({ active = "Cases" }: { active?: (typeof ITEMS)[number][
       </ul>
 
       <div className="relative flex items-center gap-2">
-        <span className="hidden items-center gap-1.5 rounded-full bg-white/60 px-3 py-[7px] text-[12px] font-medium leading-[normal] sm:inline-flex">
-          <Dot src="/warden/dot-whatsapp.svg" size={7} />
-          WhatsApp connected
-        </span>
         <span className="flex size-[38px] items-center justify-center rounded-full bg-teal text-[14px] font-medium text-white">
           {(name.trim()[0] ?? "W").toUpperCase()}
         </span>
