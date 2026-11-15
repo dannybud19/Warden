@@ -94,6 +94,12 @@ contract. It exports concerns and facts through the frozen `AgentReport` schema.
 concerns have low severity and no hard flag. Richer fields are available in standalone JSON;
 the shared schema cannot yet represent all of them.
 
+On an open case, uploads are appended as distinct evidence with an ID and UTC `uploaded_at` timestamp.
+Two contract uploads are accepted by intake, but the adapter then returns `needs_input` without
+reviewing either contract. It does not select the latest upload or compare versions. Upload order
+does not establish document-version order; replacement, active-version selection and comparison
+remain unimplemented. A new file can still be reviewed separately through the standalone checker.
+
 Rule-level passes use `supports="cleared"` in detailed JSON. The adapter does not promote
 these to whole-check clears: the current orchestrator would otherwise mark all of
 `deposit_protection` cleared solely because an amount meets a cap. Agree finer clearing

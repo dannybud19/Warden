@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HOME_STATUS, type Home } from "@/lib/homes";
 import { Chip, Dot, PillButton, PillLink, Segments, stagger, rise } from "./primitives";
+import { ListingPhoto } from "./ListingPhoto";
 
 /** Copies a link to the page so the student can send it to their parents. */
 export function ShareButton({ href, small = false, label = "Share with parents" }: { href: string; small?: boolean; label?: string }) {
@@ -51,7 +51,7 @@ export function FeaturedHome({ home }: { home: Home }) {
       className="relative h-[532px] overflow-hidden rounded-[28px] shadow-card"
     >
       <motion.div className="absolute inset-0" variants={{ rest: { scale: 1 }, hover: { scale: 1.04 } }} transition={spring}>
-        <Image src={home.photos.front} alt="" fill sizes="(min-width: 1024px) 870px, 100vw" priority className="object-cover" />
+        <ListingPhoto listingUrl={home.listingUrl} fallback={home.photos.front} sizes="(min-width: 1024px) 870px, 100vw" priority />
       </motion.div>
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink/30 to-transparent" />
 

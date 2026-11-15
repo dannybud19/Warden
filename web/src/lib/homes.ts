@@ -64,6 +64,8 @@ export interface Home {
   /** What the mascot says about this home on the dashboard. */
   nudge: string | null;
   photos: { front: string; back: string };
+  /** The supplied listing URL; preview photos are fetched separately from case analysis. */
+  listingUrl?: string | null;
 }
 
 const PHOTO_SETS: Home["photos"][] = [
@@ -148,6 +150,7 @@ export function caseToHome(c: Case, index: number): Home {
     redFlags: flags.slice(0, 3).map((f) => f.title),
     nudge: open[0]?.text ?? (flags[0] ? `${title}: ${flags[0].title.toLowerCase()}. I'd hold off.` : null),
     photos: PHOTO_SETS[index % PHOTO_SETS.length],
+    listingUrl: c.listing?.url ?? null,
   };
 }
 

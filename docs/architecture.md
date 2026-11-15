@@ -262,6 +262,27 @@ API (`api/`):
   events as `event.model_dump_json()` until disconnect, then unsubscribe.
 - Errors: unknown case gives 404, decided case gives 409, validation gives 422.
 
+### Web presentation
+
+The product gauge labels the existing weighted score **Yet to verify** and keeps its exact value out
+of 100. Unverified and suspicious checks retain their weight; cleared checks reduce it according to
+confidence. This is not a scam probability or a count of checks left. The explanation is behind an
+information control. Status colours follow verdicts and evidence: neutral when unverified, amber
+for concerns/payment confirmation, red only for `likely_scam`, green only when all eight checks are
+cleared. The gauge remains visible next to a scam verdict; it never overrides that warning.
+
+The Next.js-only `GET /api/listing-photo?url=...` route reads a public listing's Open Graph, Twitter
+or JSON-LD image metadata and proxies a bounded image. Every fetch/redirect uses a checked public IPv4
+address with hostname TLS verification; it sends no cookies or credentials. Missing, blocked or
+broken photos use a visibly labelled **Default placeholder**. This is presentation only and does not
+add evidence, verify a property or change any backend schema. Limits and offline tests are documented
+in `web/README.md`.
+
+Contract uploads on an open case are appended as distinct evidence, each with `uploaded_at` in UTC.
+The contract-checker adapter currently requires exactly one readable contract; two contracts produce
+`needs_input`. Upload timestamps are stored but are not used to select or compare versions, and an
+upload date is not a document's version or effective date.
+
 ---
 
 ## 8. Quality gates

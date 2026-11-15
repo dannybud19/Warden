@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { HOME_STATUS, type Home } from "@/lib/homes";
 import { Chip, Segments } from "./primitives";
+import { ListingPhoto } from "./ListingPhoto";
 
 const MotionLink = motion.create(Link);
 const spring = { type: "spring", stiffness: 260, damping: 24 } as const;
@@ -25,7 +25,7 @@ export function HomeFolder({ home, priority = false }: { home: Home; priority?: 
       className="relative block h-[258px] overflow-hidden rounded-[24px] shadow-card hover:shadow-glass"
     >
       <motion.div className="absolute inset-0" variants={{ rest: { scale: 1 }, hover: { scale: 1.05 } }} transition={spring}>
-        <Image src={home.photos.front} alt="" fill sizes="(min-width: 1280px) 430px, 50vw" priority={priority} className="object-cover" />
+        <ListingPhoto listingUrl={home.listingUrl} fallback={home.photos.front} sizes="(min-width: 1280px) 430px, 50vw" priority={priority} />
       </motion.div>
       {/* soften the bottom so the glass panel always has something calm behind it */}
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/25 to-transparent" />

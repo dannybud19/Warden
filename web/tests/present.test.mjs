@@ -1,17 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import test from "node:test";
-import ts from "typescript";
-
-// Load the real presentation modules with the installed compiler; no browser or API is needed.
-const load = createRequire(import.meta.url);
-load.extensions[".ts"] = (module, filename) => {
-  const { outputText } = ts.transpileModule(readFileSync(filename, "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 },
-  });
-  module._compile(outputText, filename);
-};
+import { load } from "./load-typescript.mjs";
 const { mood, riskDisplay, actionCardStatus } = load("../src/lib/present.ts");
 
 const CHECKS = [

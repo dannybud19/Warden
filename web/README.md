@@ -1,15 +1,38 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Risk display
+## Yet to verify
 
-The gauge displays the exact latest backend score, without rounding it or changing it to fit a colour.
-Unverified checks keep the score high; it is not a probability of a scam. The shared presentation in
+The gauge is labelled **Yet to verify** and displays the exact latest backend score as `84/100`, without
+rounding it or changing it to fit a colour. It measures remaining weighted uncertainty or concerns:
+unverified and suspicious checks keep their full weight; cleared checks reduce it according to their
+confidence. Clearing landlord identity (weight 20%) at 80% confidence takes 100 to 84. It is neither
+a scam probability nor a percentage of unfinished checks. The explanation is behind the keyboard-
+accessible “About Yet to verify” information button. A red verdict always takes precedence over a low
+number, and the gauge remains visible. The shared presentation in
 `src/lib/present.ts` drives the headline, gauge colour and status pill: neutral for unverified checks,
 amber for concerns or a targeted payment-confirmation question, red only for a `likely_scam` verdict,
 and green only when all eight checks are cleared. Neutral answers are labelled "Answered", not "Done".
 
 Run `corepack pnpm test`, `corepack pnpm typecheck`, `corepack pnpm lint` and `corepack pnpm build`
 from this folder. The presentation regression tests are offline and use the existing TypeScript compiler.
+
+## Listing photos
+
+The featured home, home grid and case header try the supplied listing URL through
+`GET /api/listing-photo?url=...`. The server reads [Open Graph](https://ogp.me/), Twitter image metadata
+or JSON-LD image fields, then proxies one declared image. No API key or new dependency is needed.
+The photo is presentation only: it never clears a check or establishes that the property is genuine.
+
+Missing links, blocked sites, missing/broken images and timeouts retain the existing default picture
+with a visible **Default placeholder** badge, also shown during loading. Sites requiring login,
+JavaScript or an anti-bot challenge can fall back; the preview does not bypass those restrictions.
+The browser caches successful previews for one hour and failures for one minute.
+
+Only public HTTPS destinations are fetched. Each redirect and image host is checked; connections
+are pinned to checked public IPv4 addresses with hostname TLS verification. Private/reserved IPs,
+credentials, nonstandard ports, non-image responses and SVG are rejected. Requests share a ten-second
+deadline, at most three redirects per resource, a 1 MiB HTML limit and a 5 MiB image limit. No incoming
+cookies or authorization headers are forwarded. IPv6-only sites use the placeholder for now.
 
 ## Getting Started
 

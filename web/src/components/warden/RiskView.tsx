@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
@@ -16,8 +15,9 @@ import { detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors"
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
 import { PAYMENT_NOTE, addedBySlot, type AddSlot } from "@/lib/evidence";
 import { useRouter } from "next/navigation";
-import { Mascot, SourceLinks, rise } from "./primitives";
+import { SourceLinks, rise } from "./primitives";
 import { PILL } from "./Dashboard";
+import { ListingPhoto } from "./ListingPhoto";
 
 const RED = "#e06a52";
 const GREEN = "#2e9a7c";
@@ -104,7 +104,7 @@ function RiskGauge({ risk }: { risk: ReturnType<typeof riskDisplay> }) {
   const [ex, ey] = dialPoint(Math.max(n, 0.5));
   const [hx, hy] = dialPoint(100);
   return (
-    <div className="relative h-[214px] w-[260px] shrink-0" role="img" aria-label={`Risk score: ${risk.value} out of 100. ${risk.headline}`}>
+    <div className="relative h-[214px] w-[260px] shrink-0" role="img" aria-label={`Yet to verify: ${risk.value} out of 100. ${risk.headline}`}>
       <svg width={260} height={200} viewBox="0 0 260 200" className="overflow-visible">
         <g>
           {SLICES.map((sl) => (
@@ -127,7 +127,7 @@ function RiskGauge({ risk }: { risk: ReturnType<typeof riskDisplay> }) {
         <p className="text-[34px] font-semibold leading-none tracking-[-0.04em] tabular-nums" style={{ color: risk.color }}>
           {risk.value}<span className="text-[14px] font-medium text-muted">/100</span>
         </p>
-        <p className="mt-1.5 text-[16px] font-medium leading-none" style={{ color: risk.color }}>Risk score</p>
+        <p className="mt-1.5 text-[16px] font-medium leading-none" style={{ color: risk.color }}>Yet to verify</p>
       </div>
     </div>
   );
@@ -157,11 +157,7 @@ export function RiskHeader({ c, photo, caseId }: { c: Case; photo: string | null
   return (
     <motion.header variants={rise} className="flex items-center gap-5">
       <motion.div whileHover={{ scale: 1.04, rotate: -1 }} className="relative size-[92px] shrink-0 overflow-hidden rounded-[20px] bg-mint shadow-photo">
-        {photo ? (
-          <Image src={photo} alt="" fill sizes="92px" className="object-cover" priority />
-        ) : (
-          <span className="flex size-full items-center justify-center"><Mascot width={40} height={48} /></span>
-        )}
+        <ListingPhoto listingUrl={c.listing?.url} fallback={photo ?? undefined} sizes="92px" priority compact />
       </motion.div>
       <div className="min-w-0 flex-1">
         <Link href="/" className="group inline-flex items-center gap-0.5 text-[13.5px] text-ink/60 transition-colors hover:text-teal">
@@ -263,9 +259,16 @@ export function VerdictCard({ c, mood }: { c: Case; mood: Mood }) {
             <p className="mt-2.5 text-[16px] text-ink/70">{risk.sub}</p>
           </motion.div>
         </AnimatePresence>
-        <p className="mt-4 text-[13px] leading-[1.5] text-muted">
-          Unverified checks keep this score high. It is not a probability of a scam.
-        </p>
+        <details className="mt-4 text-[13px] leading-[1.5] text-muted">
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal [&::-webkit-details-marker]:hidden">
+            <Info size={15} aria-hidden /> About “Yet to verify”
+          </summary>
+          <p className="mt-2">
+            Higher numbers mean more uncertainty or unresolved concerns remain. The score falls as
+            important checks are cleared with confidence. It is not a scam probability or a percentage
+            of checks left. A low number never cancels a warning above.
+          </p>
+        </details>
       </div>
     </motion.section>
   );
