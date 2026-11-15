@@ -56,6 +56,9 @@ async def test_link_fills_empty_fields_and_keeps_what_the_student_typed(
     assert case.landlord.company_name == "Prime City Lettings"
     assert case.score_history[-1].score == 100  # reading a listing never lowers the score
     assert (await service.get_case(case.case_id)).listing == case.listing
+    # what was read is told to the student in the chat history, which survives a reload
+    (turn,) = (await service.get_case(case.case_id)).chat
+    assert turn.role == "orchestrator" and "Prime City Lettings" in turn.text
 
 
 async def test_stub_mode_leaves_the_case_as_given(ctx: AgentContext) -> None:

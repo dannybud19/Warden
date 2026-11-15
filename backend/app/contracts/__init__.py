@@ -1,6 +1,6 @@
 """Shared schemas. FROZEN after Phase 0: see AGENTS.md, "Changing contracts"."""
 
-from app.contracts.case import Case, Landlord, Listing, StudentContext
+from app.contracts.case import Case, ChatTurn, Landlord, Listing, StudentContext
 from app.contracts.checks import (
     Action,
     ActionKind,
@@ -40,6 +40,7 @@ __all__ = [
     "AgentStatus",
     "Case",
     "Category",
+    "ChatTurn",
     "Check",
     "CheckId",
     "CheckState",

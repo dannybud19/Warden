@@ -44,7 +44,7 @@ is confirmed, it gives a final decision with the full evidence trail.
 | --- | --- |
 | Backend | Python 3.12, FastAPI, Pydantic v2, asyncio, managed with `uv` |
 | Quality | ruff (lint + format), pyright (basic), pytest + pytest-asyncio, import-linter, pre-commit |
-| LLM | One `LLMClient` protocol in `app/core/llm.py`; Anthropic adapter first, provider set by env. `FakeLLM` for tests |
+| LLM | One `LLMClient` protocol in `app/core/llm.py`. `LLM_PROVIDER=anthropic` (default) or `openai_compatible` (Gemini, Groq and others, for free-tier development; see `.env.example`). `FakeLLM` for tests |
 | Live web | Linkup via `WebSearchClient` protocol in `app/core/search.py`; `FakeSearch` for tests |
 | Registers | Companies House public API (key in `.env`) |
 | Storage | `CaseRepository` protocol: `InMemoryCaseRepo` (default), `MongoCaseRepo` (MongoDB Atlas, motor) |
@@ -161,12 +161,36 @@ Warden/
       severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
    5. `scoring.score()` appends a ScoreResult.
-   6. If any confirmed `hard_flag` finding: `decide()` and stop.
+   6. Payment hard flags first require a targeted confirmation of their quoted evidence. Yes confirms
+      that concern; no/unsure/skip keeps the case open and asks for clarification without clearing the
+      payment check. Other hard flags still decide immediately. Confirmations are bound to a finding
+      and its evidence, so changing the quoted demand requires a new answer.
    7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
-      Else store and emit the actions and an `orchestrator_message`.
-4. `reply(case_id, text, evidence_ids)`: `conversation.parse()` maps the student's free text onto open
-   actions (status + answer). Answers can clear or flag checks directly via `checks.update`. Then `analyse()`.
-5. `decide(case_id)`: `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
+      Else store and emit any new actions, then one **round message** (`orchestrator/composer.py`): what
+      changed (score delta, checks that moved, checks that did not run, notes about the reply), then the
+      steps by count. An LLM writes it (max 60 words); a validator (no "safe"/"scam"/"genuine", no
+      number that is not in its input, no 6+ digit run, no JSON) falls back to a fixed template.
+   Steps 3 to 7 apply their results in short locked steps; the Cross-checker, the consultant and the
+   composer run between them, so no LLM call ever holds the state lock. Every orchestrator message is
+   also stored in `case.chat`.
+4. `reply(case_id, text, evidence_ids, action_id?, status?)`: `conversation.parse()` maps the reply
+   onto open actions on a snapshot (LLM, no lock held), then `apply()` writes it to the latest stored
+   actions. With `action_id` only that action can change; `skipped` / `impossible` never call the LLM;
+   free text may answer several actions, but only a reply on a step's own card can close it as
+   `neutral` (a hedge like "I'll ask them" leaves it open). Every update must quote the reply or it is
+   dropped. When the
+   LLM fails (error, timeout, bad JSON, unknown ids) a keyword fallback runs, but only when exactly one
+   action could be meant; otherwise nothing changes and the round message says it could not match the
+   reply. The reply is stored in `case.chat`. Answers can clear or flag checks via `checks.update`; a
+   flagged answer about payment asks the student to upload that message. The same LLM call also reads
+   case fields the student states (company number, landlord name, rent, deposit, move-in date): each is
+   validated, fills an empty field or overwrites only on an explicit correction, and is named in the
+   round message (a company number never with its digits). A changed landlord reruns Companies House
+   through its input hash. A question from the student is answered in the round message from the
+   case's own findings and checks only, or the message says it cannot tell yet. Then the background
+   analysis.
+5. `decide(case_id)` (also `POST /cases/{id}/decide`, the student's final say): waits for a running
+   analysis, then `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
 
 Scoring formula (team doc): `score = 100 * sum(w_i * s_i) / sum(w_i)`, with s = 1 for UNVERIFIED or
 SUSPICIOUS and s = 1 - clear_confidence for CLEARED. Weights in `aggregators/scoring/weights.yaml`:
@@ -191,11 +215,20 @@ Verdict rules (`decision.py`):
 | proceed_with_care | Those three CLEARED, some other check not CLEARED |
 | no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
 
-Hard flags (a finding with `hard_flag=true` closes the case as `likely_scam`): payment before a viewing
+Hard flags (a finding with `hard_flag=true` can close the case as `likely_scam`): payment before a viewing
 or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
 liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
 the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
 hard flag.
+
+Payment hard flags require an explicit student yes to their targeted confirmation question before
+closure. The orchestrator prioritises these questions even for SUSPICIOUS payment checks; this is an
+exception to the consultant's usual UNVERIFIED-only selection. Free chat targets an open payment
+confirmation first. These questions parse only an exact yes (optional terminal punctuation) as
+confirmation; no, unsure or longer ambiguous answers remain neutral and trigger clarification.
+Payment confirmations count towards the same maximum of three open actions as consultant questions.
+If all three slots are occupied, the case stays open and a confirmation is offered when a slot opens.
+Identity/contract hard flags still close immediately, including when a payment question is pending.
 
 API (`api/`):
 
@@ -203,7 +236,8 @@ API (`api/`):
 | --- | --- | --- |
 | POST | /cases | `{student, listing?, landlord?}` -> Case |
 | POST | /cases/{id}/evidence | multipart file + kind + note -> Case |
-| POST | /cases/{id}/messages | `{text, evidence_ids?}` -> Case |
+| POST | /cases/{id}/messages | `{text, evidence_ids?, action_id?, status?}` -> Case (`status` without `action_id`: 422) |
+| POST | /cases/{id}/decide | Case: decide now on what is verified so far (waits for a running analysis; 409 once decided) |
 | GET | /cases/{id} | Case |
 | GET | /cases/{id}/decision | Decision or 404 |
 | WS | /cases/{id}/stream | StreamEvent JSON |

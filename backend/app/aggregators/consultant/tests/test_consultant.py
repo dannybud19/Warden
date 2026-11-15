@@ -48,9 +48,12 @@ async def test_proposes_three_then_the_rest(fake_agency_case: Case, ctx: AgentCo
     first = await propose_actions(case, result, ctx)
     assert [a.id for a in first] == ["act_viewing", "act_company_number", "act_payment_method"]
     case.actions = first
+    assert await propose_actions(case, result, ctx) == []  # three are open: nothing is added
+    answered = [a.model_copy(update={"status": ActionStatus.DONE}) for a in first]
+    case.actions = answered
     second = await propose_actions(case, result, ctx)
     assert [a.id for a in second] == ["act_deposit_scheme"]
-    case.actions = first + second
+    case.actions = answered + second
     assert await propose_actions(case, result, ctx) == []
 
 
@@ -118,16 +121,21 @@ async def test_only_unverified_checks_get_actions(
     assert len(proposed) == 6 and len(checks) == 6  # one per remaining check
 
 
-async def test_no_duplicates_and_waits_for_open_actions(
+async def test_no_duplicates_and_at_most_three_open_actions(
     fake_agency_case: Case, real: AgentContext
 ) -> None:
     case = _case(fake_agency_case)
     result = score(case.checks, load_weights())
     first = await propose_actions(case, result, real)
     case.actions = first
-    # while the first three are open, the next round moves on to other checks
+    # while the first three are open, nothing is added: the student never has more than three
+    assert await propose_actions(case, result, real) == []
+    # answering one makes room for exactly one more, on a check that has no open action
+    case.actions = [first[0].model_copy(update={"status": ActionStatus.DONE}), *first[1:]]
     second = await propose_actions(case, result, real)
-    assert not {a.check_id for a in second} & {a.check_id for a in first}
+    assert len(second) == 1
+    assert second[0].check_id not in {a.check_id for a in first[1:]}
+    assert second[0].id not in {a.id for a in first}
     # once answered without settling the check, the next action for that check is offered
     case.actions = [
         a.model_copy(update={"status": ActionStatus.SKIPPED, "outcome": "neutral"}) for a in first

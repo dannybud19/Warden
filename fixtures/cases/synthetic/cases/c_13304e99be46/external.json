@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The settlement report is temporarily unavailable; no settled surplus or refund amount has been confirmed.",
+        "title": "payment reconciliation"
+      },
+      "method": "GET",
+      "status": 503,
+      "url": "https://records.example/payment_reconciliation"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_13304e99be46_x1",
+      "key": "payment_reconciliation",
+      "outcome": "unavailable",
+      "query_alternatives": [],
+      "query_terms": [
+        "Northbank Example Lettings Ltd",
+        "ledger"
+      ],
+      "snippet": "The settlement report is temporarily unavailable; no settled surplus or refund amount has been confirmed.",
+      "title": "payment reconciliation",
+      "url": "https://records.example/payment_reconciliation"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

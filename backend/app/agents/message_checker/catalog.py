@@ -69,8 +69,8 @@ _SPECS = [
         Severity.CRITICAL,
         0.95,
         "Untraceable payment method requested",
-        "Money transfer services, gift cards, pre-paid cards and crypto cannot be traced or "
-        "refunded. Genuine landlords and agencies do not take rent or deposits this way.",
+        "The agent requests gift-card codes, prepaid stored value, crypto or a similar payment "
+        "route. Confirm exactly what they are asking you to send before paying.",
     ),
     _flag(
         "personal_emoney_transfer",
@@ -128,9 +128,9 @@ _SPECS = [
         Category.PROPERTY,
         Severity.HIGH,
         0.8,
-        "Landlord says they are away and cannot meet",
-        "The agent says they are abroad or unavailable, or that someone else will pass on the "
-        "keys once you have paid. This is the classic reason given for not showing a property.",
+        "Away, and nobody will show you the property",
+        "The conversation links being away to a refused viewing or remote key handover. "
+        "An owner living abroad alone does not establish a problem with access.",
     ),
     _flag(
         "viewing_refused",

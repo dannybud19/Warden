@@ -8,10 +8,13 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from app.api.main import _check_storage as check_storage
 from app.api.main import create_app
 from app.contracts import Case
+from app.core.agent import AgentContext
 from app.core.settings import Settings
 from app.intake import service as intake_service
+from app.storage.mongo import MongoCaseRepo
 from tests.conftest import EmptyAgent
 from tests.test_service_background import GateAgent
 
@@ -79,7 +82,12 @@ def test_pasted_text_reply_and_decision_flow(client: TestClient) -> None:
     assert len(body["actions"]) == 3 and body["status"] == "open"
 
     for _ in range(4):
-        response = client.post(f"/cases/{case_id}/messages", json={"text": "yes"})
+        # Target the oldest open card: free text with several open actions is not guessed.
+        actions = client.get(f"/cases/{case_id}").json()["actions"]
+        action_id = next(a["id"] for a in actions if a["status"] == "open")
+        response = client.post(
+            f"/cases/{case_id}/messages", json={"text": "yes", "action_id": action_id}
+        )
         assert response.status_code == 200
         _settle(client)
     assert client.get(f"/cases/{case_id}").json()["status"] == "decided"
@@ -204,3 +212,41 @@ def test_reply_targets_a_specific_action_and_rejects_unknown_ids(client: TestCli
         json={"text": "x", "action_id": "act_viewing", "status": "bogus"},
     )
     assert wrong_status.status_code == 422
+
+
+def test_status_without_action_id_is_rejected(client: TestClient) -> None:
+    client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
+    case_id = _open(client)
+    client.post(f"/cases/{case_id}/evidence", data={"kind": "chat_export", "text": CHAT})
+    _settle(client)
+    before = client.get(f"/cases/{case_id}").json()
+
+    response = client.post(f"/cases/{case_id}/messages", json={"text": "", "status": "skipped"})
+    assert response.status_code == 422
+    assert "status needs action_id" in response.text
+    assert client.get(f"/cases/{case_id}").json() == before  # case unchanged
+
+
+async def test_an_unreachable_mongo_fails_at_startup(
+    ctx: AgentContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = MongoCaseRepo("mongodb://localhost:1")  # motor connects lazily: nothing is dialled
+
+    async def unreachable() -> None:
+        raise ConnectionError("no cluster")
+
+    monkeypatch.setattr(repo, "ping", unreachable)
+    with pytest.raises(ConnectionError):
+        await check_storage(repo, ctx)
+    repo.close()
+
+
+def test_decide_route_closes_the_case_once(client: TestClient) -> None:
+    client.app.state.service.agents = [EmptyAgent()]  # type: ignore[attr-defined]
+    case_id = _open(client)
+    response = client.post(f"/cases/{case_id}/decide")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "decided" and body["decision"]["verdict"] == "not_verified"
+    assert client.post(f"/cases/{case_id}/decide").status_code == 409
+    assert client.post("/cases/case_nope/decide").status_code == 404

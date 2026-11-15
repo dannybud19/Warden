@@ -101,10 +101,16 @@ async def _reword(case: Case, chosen: list[LibraryAction], ctx: AgentContext) ->
 async def propose_actions(
     case: Case, score: ScoreResult, ctx: AgentContext, max_actions: int = 3
 ) -> list[Action]:
-    """The next 1 to `max_actions` actions for the student.
+    """New actions for the student, so that at most `max_actions` are open at once.
 
-    An empty list means nothing useful is left to ask, which triggers the final decision.
+    Actions the student has not answered yet count towards the limit: answering one of three
+    brings one new action, not three more. An empty list means there is nothing to add right now.
+    The orchestrator decides the case only when the list is empty and no action is still open.
     """
+    still_open = sum(1 for a in case.actions if a.status == ActionStatus.OPEN)
+    max_actions -= still_open
+    if max_actions <= 0:
+        return []
     if ctx.settings.agent_mode(NAME) != "real":
         return stub_actions(case, max_actions)
 

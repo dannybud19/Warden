@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "git_revision": "7f7e865da53234adeadccaa4d3de48c7536d1774",
+  "dataset_sha256": "9b1df8e02cc05591e192711bbb922cef84a00a0b8ea84adceb72849d1fa7ff80",
+  "model": "claude-sonnet-5-5",
+  "agent_max_tokens": 2048,
+  "rounds": "initial_only",
+  "external_services": "controlled_fixtures",
+  "label_review": "pending_agent_owner_review",
+  "semantic_grading": true,
+  "started_at": "2026-11-14T20:10:42.645384+00:00",
+  "parallel_cases": 2,
+  "unimplemented_capabilities": [
+    "video analysis",
+    "LLM cross-checker"
+  ],
+  "execution_notes": [
+    "Three-case pilot used 2 parallel cases; full continuation used 3.",
+    "Four grading reference errors were retried with saved outputs; no agent case was rerun.",
+    "All 36 initially accepted grades passed the stricter output-prose reference validator.",
+    "The grader was not supplied the internal area_rents.yaml table; overall grounding flags require interpretation."
+  ]
+}

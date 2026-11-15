@@ -1,0 +1,31 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The supplied host airbnb-reservation.example is not an Airbnb-owned hostname; the claimed booking does not appear in the platform account.",
+        "title": "platform booking check"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/platform_booking_check"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_8e908328824a_x1",
+      "key": "platform_booking_check",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "airbnb-reservation.example"
+      ],
+      "snippet": "The supplied host airbnb-reservation.example is not an Airbnb-owned hostname; the claimed booking does not appear in the platform account.",
+      "title": "platform booking check",
+      "url": "https://records.example/platform_booking_check"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

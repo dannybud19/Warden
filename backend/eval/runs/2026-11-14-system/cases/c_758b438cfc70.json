@@ -1,0 +1,729 @@
+{
+  "case_id": "c_758b438cfc70",
+  "family": "unavailable_advert",
+  "variant": "concern",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 10063,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [
+    "payment_safety",
+    "no_pressure"
+  ],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_758b438cfc70",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_758b438cfc70",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3641",
+      "platform": "rental listing",
+      "address": "Flat 2, 71 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_758b438cfc70_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: The advert at https://listings.example/homes/3641 has disappeared. Is Flat 2, 71 Example Mews, London W12 8QT still available?\nRowan Pike: Yes. Send GBP 1500 before I show you inside.\nAlex Reed: I called the agency whose watermark is on the photos. They say these pictures were copied from their old advert.\nRowan Pike: Do not call that agency again. Pay me directly or you lose the room.\n",
+        "note": null
+      },
+      {
+        "id": "c_758b438cfc70_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 71 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_758b438cfc70_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 71 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3641\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_758b438cfc70_m1",
+        "evidence_id": "c_758b438cfc70_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "The advert at https://listings.example/homes/3641 has disappeared. Is Flat 2, 71 Example Mews, London W12 8QT still available?"
+      },
+      {
+        "id": "c_758b438cfc70_m2",
+        "evidence_id": "c_758b438cfc70_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "Yes. Send GBP 1500 before I show you inside."
+      },
+      {
+        "id": "c_758b438cfc70_m3",
+        "evidence_id": "c_758b438cfc70_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "I called the agency whose watermark is on the photos. They say these pictures were copied from their old advert."
+      },
+      {
+        "id": "c_758b438cfc70_m4",
+        "evidence_id": "c_758b438cfc70_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Do not call that agency again. Pay me directly or you lose the room."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:payment_before_viewing"
+        ],
+        "reason": "Money requested before any viewing"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "emotion_classifier:pressure_urgency"
+        ],
+        "reason": "Pushed to act now"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for Northbank Example Lettings Ltd's Companies House number. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:12:13.121686Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Mira Vale for proof that she owns Flat 2, 71 Example Mews or has the owner's permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:12:13.121686Z"
+      },
+      {
+        "id": "act_viewing",
+        "check_id": "in_person_viewing",
+        "kind": "action",
+        "text": "Ask to view Flat 2, 71 Example Mews in person, or to send someone you trust, before paying anything. Did the agent agree?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:12:13.121686Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "789e319c837c0d64",
+        "findings": [
+          {
+            "id": "message_checker:payment_before_viewing",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Money requested before any viewing",
+            "detail": "The agent asks for money before you have seen the property in person. Paying before a viewing is the most common way students lose a deposit.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "Do not call that agency again. Pay me directly or you lose the room."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 71 Example Mews, London W12 8QT",
+            "source": "c_758b438cfc70_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Has the agent given you any proof that they own or manage the flat, such as a company number or tenancy documents?"
+        ],
+        "error": null,
+        "duration_ms": 3607
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "fc280501d2dd6126",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The amount arithmetic holds. Rent is GBP 1300 per calendar month (s5), so annual rent is GBP 15,600. Five weeks is 15600/52*5 = GBP 1500.00, and the stated deposit is GBP 1500 (s6). That is exactly at the cap, not above it, so no excess is shown. Nothing in the text defeats this reading, so the issue is not dismissed. Jurisdiction and tenancy type are still unknown in the context, and the property is not stated to be in England. The context also does not confirm that this is an ordinary covered private tenancy, or that rent and deposit relate to the same whole tenancy. The conclusion therefore stays limited to the amount: it is compliant if the cap applies. It says nothing about deposit protection or authenticity, and I am not raising any new issue. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_758b438cfc70_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_758b438cfc70_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 71 Example Mews, London W12 8QT",
+            "source": "c_758b438cfc70_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_758b438cfc70_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_758b438cfc70_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_758b438cfc70_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_758b438cfc70_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 8141
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "5116dc4ab7d55429",
+        "findings": [
+          {
+            "id": "emotion_classifier:pressure_urgency",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Pushed to act now",
+            "detail": "This puts a threat of losing the room on the payment, which pushes you to act without checking; the plain version is that the agent wants payment and has not answered what the agency said.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "or you lose the room"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The online advert for the flat is no longer visible. • The agent says Flat 2, 71 Example Mews is still available. • A payment of GBP 1500 is requested before the student is shown inside. • The agency whose watermark is on the photos says the pictures were copied from its old advert. • The student called the agency whose watermark is on the photos. • The agent asks to be paid directly.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "The advert at https://listings.example/homes/3641 has disappeared."
+              },
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "Yes."
+              },
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "Send GBP 1500 before I show you inside."
+              },
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "They say these pictures were copied from their old advert."
+              },
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "I called the agency whose watermark is on the photos."
+              },
+              {
+                "evidence_id": "c_758b438cfc70_e1",
+                "quote": "Pay me directly"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 8207
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:12:11.269742Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false,
+  "grading": {
+    "status": "ok",
+    "case_id": "c_758b438cfc70",
+    "passed": false,
+    "counts": {
+      "met": 2,
+      "missed": 1
+    },
+    "expectations_passed": false,
+    "forbidden_assertions_passed": true,
+    "outcome": "pending",
+    "outcome_allowed": true,
+    "grounding_status": "failed",
+    "grounding_audit": [
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "Do not call that agency again. Pay me directly or you lose the room.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "evidence_id": "c_758b438cfc70_e2",
+        "quote": "Tenancy deposit: GBP 1500.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "evidence_id": "c_758b438cfc70_e2",
+        "quote": "Rent: GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_urgency",
+        "evidence_index": 0,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "or you lose the room",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 0,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "The advert at https://listings.example/homes/3641 has disappeared.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 1,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "Yes.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 2,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "Send GBP 1500 before I show you inside.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 3,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "They say these pictures were copied from their old advert.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 4,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "I called the agency whose watermark is on the photos.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 5,
+        "evidence_id": "c_758b438cfc70_e1",
+        "quote": "Pay me directly",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "evidence_id": "listing",
+        "quote": "£1,300 pcm",
+        "status": "structured_source_match",
+        "reason": null
+      }
+    ],
+    "expectations": [
+      {
+        "finding_ids": [
+          "message_checker:payment_before_viewing",
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [
+          "act_viewing"
+        ],
+        "agent_questions": [],
+        "expectation_index": 0,
+        "judgement": "met",
+        "explanation": "message_checker:payment_before_viewing (payment_safety, critical) states money is requested before a viewing. Its cited quote is the pressure message rather than the \"Send GBP 1500 before I show you inside\" line, but the semantic issue is correct. emotion_classifier:stated_facts quotes the \"Send GBP 1500 before I show you inside\" line, and act_viewing advises not paying before viewing."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [
+          "act_proof_of_ownership",
+          "act_company_number"
+        ],
+        "agent_questions": [
+          {
+            "agent": "message_checker",
+            "question_index": 0
+          }
+        ],
+        "expectation_index": 1,
+        "judgement": "met",
+        "explanation": "act_proof_of_ownership asks for title or the owner's permission to let, under right_to_let. message_checker question 0 and act_company_number also ask for proof of authority. No output treats the copied photos or the disappeared advert as proof. No output asks directly about the copied-photo provenance, but the authority clarification is relevant and preserves uncertainty."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:pressure_urgency"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 2,
+        "judgement": "missed",
+        "explanation": "emotion_classifier:pressure_urgency covers the \"or you lose the room\" threat. Its detail mentions that the agent \"has not answered what the agency said\", but it never identifies the instruction \"Do not call that agency again\" as an attempt to block independent verification. No other finding or action captures this issue."
+      }
+    ],
+    "forbidden_assertions": [
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 0,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output says the removed advert alone proves fraud. The disappearance appears only as a neutral stated fact in emotion_classifier:stated_facts."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 1,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output says copied photos establish lack of ownership. The agency's statement is only listed as a stated fact."
+      }
+    ],
+    "unsupported_claims": [],
+    "grounding_issues": [
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "explanation": "The quote \"Do not call that agency again. Pay me directly or you lose the room.\" is an exact match, but it does not itself show payment before viewing. The supporting line is \"Send GBP 1500 before I show you inside.\", which is not cited. The claim is still supported by the case overall."
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "explanation": "The evidence_id \"listing\" is a structured source rather than the listing evidence item. The area-average figure of about £950 has no controlled source. The finding is only informational and its relevance is limited."
+      }
+    ],
+    "reviewer_note": "The case is a likely scam, and the external record (original agency denial) is unreferenced in the outputs. The deposit-cap finding is labelled supports=suspicious despite a benign low-severity conclusion. The Companies House 503 error is correctly not treated as evidence either way. The decision is null."
+  },
+  "usage": {
+    "attempts": 6,
+    "completed_requests": 6,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.096782",
+    "cost_usd_by_stage": {
+      "grading": "0.040286",
+      "agents": "0.056496"
+    },
+    "input_tokens": 30156,
+    "output_tokens": 3647,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

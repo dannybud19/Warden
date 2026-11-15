@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import * as api from "@/lib/api";
 import {
@@ -10,11 +10,10 @@ import {
   type Home,
 } from "@/lib/homes";
 import { Chip, rise, stagger } from "./primitives";
-import { SiteNav, useStudentName } from "./SiteNav";
+import { useStudentName } from "./SiteNav";
 import { HomeFolder } from "./HomeFolder";
 import { AddHomeCard } from "./AddHome";
 import { FeaturedHome, HowWardenChecks } from "./FeaturedHome";
-import { PixelField, type QuietZone } from "./PixelField";
 import { AnimatedWarden, type WardenState } from "./AnimatedWarden";
 
 // ---- which homes to show ----
@@ -42,7 +41,8 @@ function useHomes(): { homes: Home[]; loading: boolean; failed: boolean } {
   }, [key, view]);
 
   if (view === "one") return { homes: SAMPLE_HOMES.slice(0, 1), loading: false, failed: false };
-  if (view === "samples" || !key) return { homes: SAMPLE_HOMES, loading: false, failed: false };
+  if (view === "samples") return { homes: SAMPLE_HOMES, loading: false, failed: false };
+  if (!key) return { homes: [], loading: false, failed: false };
   if (load.key !== key) return { homes: [], loading: true, failed: false };
   if (load.failed || !load.homes?.length) return { homes: SAMPLE_HOMES, loading: false, failed: true };
   return { homes: load.homes, loading: false, failed: false };
@@ -58,32 +58,9 @@ const MASCOT_FOR: Record<Home["status"], WardenState> = {
   checking: "thinking",
 };
 
-/** Keep the pixels calm right behind Warden so he stands out. */
-const GREETING_ZONE: QuietZone = (w) => [w / 2 - 190, 90, w / 2 + 190, 400];
 
 
-function HeroBackdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[430px] overflow-hidden bg-[linear-gradient(to_bottom,#8fd3d8,#c6ebed_55%,#f5f8f9)]">
-      <PixelField className="absolute inset-0 size-full" quiet={GREETING_ZONE} />
-    </div>
-  );
-}
 
-export function PageGlows() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="relative mx-auto h-full max-w-[1440px]">
-        <div className="absolute left-[-170px] top-[510px] size-[640px]">
-          <Image src="/warden/glow-bottom-left.svg" alt="" width={640} height={640} unoptimized className="block size-full" />
-        </div>
-        <div className="absolute left-[1010px] top-[550px] size-[600px]">
-          <Image src="/warden/glow-bottom-right.svg" alt="" width={600} height={600} unoptimized className="block size-full" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function partOfDay(): string {
   const h = new Date().getHours();
@@ -107,7 +84,7 @@ function cheer(homes: Home[]): string {
   const fishy = homes.filter((h) => h.status === "likely_scam" || h.status === "not_verified").length;
   const good = homes.filter((h) => h.status === "proceed_with_care" || h.status === "no_red_flags_remaining").length;
   const n = homes.length;
-  if (!n) return "Add a home and Warden will start checking.";
+  if (!n) return "Found a place? Start a case and my agents get to work.";
   if (fishy === n) return "Something's very fishy here…";
   if (fishy > 1) return "Warden senses something fishy…";
   if (fishy === 1) return "Just one thing smells fishy…";
@@ -117,8 +94,28 @@ function cheer(homes: Home[]): string {
 
 
 
+const noopSubscribe = () => () => {};
+
 export function HomesView() {
   const { homes, loading, failed } = useHomes();
+  const router = useRouter();
+  const params = useSearchParams();
+  // New visitors meet Warden first. Anyone with homes, or who has onboarded, stays here.
+  const onboarded = useSyncExternalStore(
+    noopSubscribe,
+    () => {
+      try {
+        return localStorage.getItem("warden.onboarded") === "1" || localStorage.getItem("warden.caseIds") !== null;
+      } catch {
+        return true;
+      }
+    },
+    () => true,
+  );
+  useEffect(() => {
+    if (!onboarded && !params.get("homes")) router.replace("/onboarding");
+  }, [onboarded, params, router]);
+  const empty = !loading && homes.length === 0;
   const single = homes.length === 1;
   const needYou = homes.filter((h) => h.needsYou).length;
 
@@ -135,12 +132,8 @@ export function HomesView() {
   const heroState: WardenState = loading ? "thinking" : riskiest ? MASCOT_FOR[riskiest.status] : "default";
 
   return (
-    <div className="relative min-h-dvh overflow-x-clip">
-      <PageGlows />
-      <HeroBackdrop />
-
-      <div className="relative mx-auto max-w-[1440px] px-4 pb-14 pt-4 sm:px-8 xl:px-16">
-        <SiteNav />
+    <div>
+      <div className="pb-4">
 
         <header className="relative flex flex-col items-center pb-10">
           <h1 className="sr-only">
@@ -208,14 +201,19 @@ export function HomesView() {
           </p>
         )}
 
-        {single ? (
+        {empty ? (
+          <motion.div variants={rise} initial="hidden" animate="show" className="mx-auto mt-2 grid max-w-[880px] grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
+            <AddHomeCard title="Start your first case" />
+            <HowWardenChecks />
+          </motion.div>
+        ) : single ? (
           <div className="grid grid-cols-1 gap-4 lg:mt-[28px] lg:grid-cols-[868fr_428fr]">
             <motion.div variants={rise} initial="hidden" animate="show">
               <FeaturedHome home={homes[0]} />
             </motion.div>
             <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col gap-4">
               <motion.div variants={rise}>
-                <AddHomeCard size="md" title="Add another home" />
+                <AddHomeCard size="md" title="New case" />
               </motion.div>
               <motion.div variants={rise}>
                 <HowWardenChecks />

@@ -13,6 +13,12 @@ from tests.conftest import EmptyAgent, add_evidence_and_settle, reply_and_settle
 MakeService = Callable[[list | None], CaseService]
 
 
+def _oldest_open(case: Case) -> str:
+    """The card the student answers next. Free text with several open actions is not guessed
+    (decision 11), so these loops target an action the way the web app does."""
+    return next(a.id for a in case.actions if a.status == ActionStatus.OPEN)
+
+
 async def test_actions_proposed_replies_then_decision(
     make_service: MakeService, fake_agency_case: Case, bus: EventBus
 ) -> None:
@@ -37,7 +43,9 @@ async def test_actions_proposed_replies_then_decision(
     scores = [100.0]
     for _ in range(4):
         assert case.status == "open"
-        case = await reply_and_settle(service, case.case_id, "yes, they did")
+        case = await reply_and_settle(
+            service, case.case_id, "yes, they did", action_id=_oldest_open(case)
+        )
         scores.append(case.score_history[-1].score)
 
     assert [a.id for a in case.actions][-1] == "act_deposit_scheme"
@@ -65,7 +73,10 @@ async def test_a_flagging_reply_makes_the_check_suspicious(
         service, case.case_id, Upload(EvidenceKind.EMAIL, b"Hello")
     )
     case = await reply_and_settle(
-        service, case.case_id, "No, they refused and said they are abroad"
+        service,
+        case.case_id,
+        "No, they refused and said they are abroad",
+        action_id="act_viewing",
     )
     viewing = next(c for c in case.checks if c.id.value == "in_person_viewing")
     assert viewing.state == CheckState.SUSPICIOUS
@@ -81,7 +92,9 @@ async def test_reply_with_no_open_actions_still_settles(
         service, case.case_id, Upload(EvidenceKind.EMAIL, b"Hello")
     )
     for _ in range(4):
-        case = await reply_and_settle(service, case.case_id, "unclear answer")
+        case = await reply_and_settle(
+            service, case.case_id, "unclear answer", action_id=_oldest_open(case)
+        )
     assert case.status == "decided"
     assert all(a.outcome == "neutral" for a in case.actions)
 

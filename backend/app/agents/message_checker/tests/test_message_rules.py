@@ -136,7 +136,36 @@ def test_landlord_abroad_and_viewing_refused() -> None:
     assert found["landlord_abroad"].severity == "high"
     assert found["viewing_refused"].evidence[0].quote == "That is not possible I'm afraid."
     # the quote is taken from the original text, curly apostrophe included
-    assert "I’m overseas" in found["landlord_abroad"].evidence[0].quote
+    quotes = [ref.quote or "" for ref in found["landlord_abroad"].evidence]
+    assert any("I’m overseas" in q for q in quotes)
+
+
+def test_being_abroad_alone_is_not_a_flag() -> None:
+    """A genuine landlord who is away and arranges a viewing through someone else."""
+    found = by_id(
+        chat(
+            "s: Could I see it this weekend?",
+            "a: I am an engineer on an offshore project so I cannot show it myself.",
+            "a: My agent can show you round on Saturday at 11:00.",
+        )
+    )
+    assert "landlord_abroad" not in found
+    found = by_id(chat("a: I live abroad now, which is why I am letting the flat."))
+    assert "landlord_abroad" not in found
+
+
+def test_abroad_flag_cites_why_nobody_will_show_the_flat() -> None:
+    found = by_id(
+        chat(
+            "a: I am an engineer on an offshore project in Dubai so I cannot show it myself.",
+            "a: My agent will give you the keys once the first month and the deposit are paid.",
+            "s: Could a friend of mine see it first?",
+            "a: That is not possible, the flat is being cleaned.",
+        )
+    )
+    quotes = [ref.quote or "" for ref in found["landlord_abroad"].evidence]
+    assert "My agent will give you the keys" in quotes[0]  # the reason it is a flag comes first
+    assert found["landlord_abroad"].title == "Away, and nobody will show you the property"
 
 
 def test_off_platform_move_is_low() -> None:

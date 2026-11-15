@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Mira Vale owns Flat 2, 94 Example Mews, London W12 8QT; Rowan Pike is a two-night guest and has no letting authority.",
+        "title": "owner denial"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/owner_denial"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_e28695b56a10_x1",
+      "key": "owner_denial",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 94 Example Mews, London W12 8QT",
+        "Mira Vale"
+      ],
+      "snippet": "Mira Vale owns Flat 2, 94 Example Mews, London W12 8QT; Rowan Pike is a two-night guest and has no letting authority.",
+      "title": "owner denial",
+      "url": "https://records.example/owner_denial"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

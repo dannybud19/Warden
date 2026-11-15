@@ -1,0 +1,911 @@
+{
+  "case_id": "c_c58eed11c888",
+  "family": "overpayment",
+  "variant": "concern",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 10337,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [
+    "payment_safety",
+    "no_pressure"
+  ],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_c58eed11c888",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_c58eed11c888",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/7888",
+      "platform": "rental listing",
+      "address": "Flat 2, 58 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_c58eed11c888_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I have not paid for Flat 2, 58 Example Mews, London W12 8QT. Why did you send me this payment screenshot?\nRowan Pike: My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived.\nAlex Reed: My bank shows no cleared incoming funds. Can your bank recall the payment?\nRowan Pike: Do not ask your bank. Send the GBP 700 from your savings to the account ending 7888 before 16 November 2026 at 18:00.\n",
+        "note": null
+      },
+      {
+        "id": "c_c58eed11c888_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 58 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_c58eed11c888_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 58 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/7888\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_c58eed11c888_m1",
+        "evidence_id": "c_c58eed11c888_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I have not paid for Flat 2, 58 Example Mews, London W12 8QT. Why did you send me this payment screenshot?"
+      },
+      {
+        "id": "c_c58eed11c888_m2",
+        "evidence_id": "c_c58eed11c888_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived."
+      },
+      {
+        "id": "c_c58eed11c888_m3",
+        "evidence_id": "c_c58eed11c888_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "My bank shows no cleared incoming funds. Can your bank recall the payment?"
+      },
+      {
+        "id": "c_c58eed11c888_m4",
+        "evidence_id": "c_c58eed11c888_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Do not ask your bank. Send the GBP 700 from your savings to the account ending 7888 before 16 November 2026 at 18:00."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "message_checker:payment_before_viewing",
+          "message_checker:overpayment_refund"
+        ],
+        "reason": "Money requested before any viewing"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "emotion_classifier:pressure_urgency",
+          "emotion_classifier:pressure_authority"
+        ],
+        "reason": "Pushed to act now"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for Northbank Example Lettings Ltd's Companies House number so you can look the company up. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:13:31.205029Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Mira Vale for proof she owns Flat 2, 58 Example Mews or has the owner's permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:13:31.205029Z"
+      },
+      {
+        "id": "act_viewing",
+        "check_id": "in_person_viewing",
+        "kind": "action",
+        "text": "Ask to view Flat 2, 58 Example Mews in person, or send someone you trust, before you pay anything. Did the agent agree?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:13:31.205029Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "36f5f5f84603fc15",
+        "findings": [
+          {
+            "id": "message_checker:payment_before_viewing",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Money requested before any viewing",
+            "detail": "The agent asks for money before you have seen the property in person. Paying before a viewing is the most common way students lose a deposit.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "message_checker:overpayment_refund",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Overpayment and refund request",
+            "detail": "Paying more than is owed and refunding the difference is a known scam pattern: the original payment bounces or is reversed after you send the refund. The agent claims money was sent by mistake and asks you to send part of it on, a classic overpayment scam where the original payment never really arrives.",
+            "category": "payment",
+            "severity": "critical",
+            "confidence": 0.8,
+            "evidence": [
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 58 Example Mews, London W12 8QT",
+            "source": "c_c58eed11c888_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Did you view the flat in person, and when?",
+          "Did you receive any money into your account, or only a screenshot?"
+        ],
+        "error": null,
+        "duration_ms": 3821
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "ba9ed6ee77767e83",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The cap arithmetic checks out. Rent of GBP 1300 per calendar month gives annual rent of GBP 15,600, and five weeks is 15,600/52*5 = GBP 1,500. The GBP 1,500 deposit is therefore at the cap, not above it. This amount-cap pass applies only to the amount. It says nothing about deposit protection or authenticity. The pass stays conditional because the context leaves jurisdiction, tenancy type and the agreement and start dates unknown. The contract does not give the property's jurisdiction or confirm an ordinary private tenancy, and s2 only gives a London address. Nothing in the contract contradicts the figures: s5 gives monthly rent and s6 gives the deposit, with no holding deposit or other amount that would change the calculation. Nothing in the supplied text defeats the amount calculation, so dismissal is not warranted. The remaining uncertainty is scope and applicability, not the arithmetic. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_c58eed11c888_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 58 Example Mews, London W12 8QT",
+            "source": "c_c58eed11c888_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_c58eed11c888_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_c58eed11c888_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_c58eed11c888_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_c58eed11c888_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 8559
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "c2c8e919f0665682",
+        "findings": [
+          {
+            "id": "emotion_classifier:pressure_urgency",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Pushed to act now",
+            "detail": "This sets a deadline, which leaves you less time to check anything. This asks for the transfer immediately, which leaves no time to check whether any money actually arrived.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Please transfer GBP 700 to another account now; the screenshot proves it arrived."
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "now"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "before 16 November 2026 at 18:00"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:pressure_authority",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Credibility you cannot check",
+            "detail": "This presents a screenshot as proof, but a screenshot is not the same as money in your account; the plain version is 'trust this image'. This brings in an accountant you cannot check to explain the supposed payment; the plain version is 'I say a mistake happened'.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "the screenshot proves it arrived"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "My accountant accidentally sent you"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Do not ask your bank."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The student says they have not paid for Flat 2, 58 Example Mews, London W12 8QT. • The student received a payment screenshot from the agent. • The agent says their accountant sent the student GBP 2000 by mistake. • The agent asks the student to transfer GBP 700 to another account immediately. • The agent says the screenshot shows the payment arrived. • The student says their bank shows no cleared incoming funds. • The student asks whether the agent's bank can recall the payment. • The agent tells the student not to contact their bank. • The agent asks for GBP 700 to be sent from the student's savings. • The payment is to be sent to an account ending 7888.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "I have not paid for Flat 2, 58 Example Mews, London W12 8QT."
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Why did you send me this payment screenshot?"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "My accountant accidentally sent you GBP 2000."
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Please transfer GBP 700 to another account now"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "the screenshot proves it arrived"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "My bank shows no cleared incoming funds."
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Can your bank recall the payment?"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Do not ask your bank."
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "Send the GBP 700 from your savings"
+              },
+              {
+                "evidence_id": "c_c58eed11c888_e1",
+                "quote": "to the account ending 7888"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 8040
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:13:29.430523Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false,
+  "grading": {
+    "status": "ok",
+    "case_id": "c_c58eed11c888",
+    "passed": false,
+    "counts": {
+      "met": 3
+    },
+    "expectations_passed": true,
+    "forbidden_assertions_passed": true,
+    "outcome": "pending",
+    "outcome_allowed": true,
+    "grounding_status": "failed",
+    "grounding_audit": [
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "message_checker:overpayment_refund",
+        "evidence_index": 0,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "My accountant accidentally sent you GBP 2000. Please transfer GBP 700 to another account now; the screenshot proves it arrived.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "evidence_id": "c_c58eed11c888_e2",
+        "quote": "Tenancy deposit: GBP 1500.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "evidence_id": "c_c58eed11c888_e2",
+        "quote": "Rent: GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_urgency",
+        "evidence_index": 0,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Please transfer GBP 700 to another account now; the screenshot proves it arrived.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_urgency",
+        "evidence_index": 1,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "now",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_urgency",
+        "evidence_index": 2,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "before 16 November 2026 at 18:00",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_authority",
+        "evidence_index": 0,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "the screenshot proves it arrived",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_authority",
+        "evidence_index": 1,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "My accountant accidentally sent you",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:pressure_authority",
+        "evidence_index": 2,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Do not ask your bank.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 0,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "I have not paid for Flat 2, 58 Example Mews, London W12 8QT.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 1,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Why did you send me this payment screenshot?",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 2,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "My accountant accidentally sent you GBP 2000.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 3,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Please transfer GBP 700 to another account now",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 4,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "the screenshot proves it arrived",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 5,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "My bank shows no cleared incoming funds.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 6,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Can your bank recall the payment?",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 7,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Do not ask your bank.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 8,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "Send the GBP 700 from your savings",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 9,
+        "evidence_id": "c_c58eed11c888_e1",
+        "quote": "to the account ending 7888",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "evidence_id": "listing",
+        "quote": "£1,300 pcm",
+        "status": "structured_source_match",
+        "reason": null
+      }
+    ],
+    "expectations": [
+      {
+        "finding_ids": [
+          "message_checker:overpayment_refund",
+          "emotion_classifier:pressure_authority"
+        ],
+        "action_ids": [],
+        "agent_questions": [
+          {
+            "agent": "message_checker",
+            "question_index": 1
+          }
+        ],
+        "expectation_index": 0,
+        "judgement": "met",
+        "explanation": "message_checker:overpayment_refund flags the accidental-overpayment pattern and says the original payment may never arrive. emotion_classifier:pressure_authority says a screenshot is not money in the account. Both match the concern that a screenshot was substituted for confirmed receipt."
+      },
+      {
+        "finding_ids": [
+          "message_checker:overpayment_refund"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 1,
+        "judgement": "met",
+        "explanation": "message_checker:overpayment_refund identifies the request to send part of the supposed mistaken payment on to another account as a classic overpayment scam. This matches the new outbound payment requested despite no cleared incoming funds. The finding is not tied to the 'from your savings' quote, but the semantic issue is the same."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:pressure_authority",
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 2,
+        "judgement": "met",
+        "explanation": "emotion_classifier:pressure_authority cites 'Do not ask your bank.' as part of credibility the student cannot check. emotion_classifier:stated_facts records that the agent told the student not to contact their bank. The finding does not spell out that independent verification was discouraged, but it covers the same issue under no_pressure."
+      }
+    ],
+    "forbidden_assertions": [
+      {
+        "finding_ids": [
+          "emotion_classifier:pressure_authority",
+          "message_checker:overpayment_refund"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 0,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The outputs say a screenshot is not money in the account and that the payment may never arrive. None says the screenshot proves settlement."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [
+          {
+            "agent": "message_checker",
+            "question_index": 1
+          }
+        ],
+        "forbidden_index": 1,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The outputs record that the student said they had not paid and that the agent asked for GBP 700. None says the student transferred it."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 2,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output claims that a normal documented refund always proves fraud. The findings are specific to this unverified overpayment pattern."
+      }
+    ],
+    "unsupported_claims": [
+      {
+        "finding_ids": [
+          "message_checker:payment_before_viewing"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "output_quote": "The agent asks for money before you have seen the property in person.",
+        "explanation": "The case does not state whether any viewing took place. The expectation commitments say 'No viewing stated', and the viewing status is unknown. The finding treats it as established that no viewing happened. It is also questionable whether a request to send GBP 700 onward counts as payment before viewing."
+      }
+    ],
+    "grounding_issues": [
+      {
+        "finding_id": "message_checker:payment_before_viewing",
+        "evidence_index": 0,
+        "explanation": "The quote exists, but it says nothing about viewing. It does not show the student has not seen the property, so it cannot support the before-viewing claim."
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "explanation": "The finding is a low-severity amount-cap pass but is labelled supports 'suspicious'. This polarity is misleading, although the quotes themselves match."
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "explanation": "The evidence_id 'listing' points to a structured rendering, not an uploaded evidence ID. The 'roughly £950' area figure is unsourced, and the finding is labelled supports 'suspicious' despite being described as 'Not a scam sign'."
+      }
+    ],
+    "reviewer_note": "Agent outputs cover all three concerns with correct polarity and without asserting forbidden claims. Companies House returned 503, so company existence is unverified rather than disproved. The decision is null and the score history stays at 100 despite critical findings. This is a fixture or pipeline oddity, not part of the expectations. Open actions concern the company number, proof of ownership and viewing, and they are reasonable. The contract names Rowan Pike as the letting representative, but the actions address Mira Vale."
+  },
+  "usage": {
+    "attempts": 6,
+    "completed_requests": 6,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.102506",
+    "cost_usd_by_stage": {
+      "grading": "0.046994",
+      "agents": "0.055512"
+    },
+    "input_tokens": 31668,
+    "output_tokens": 3917,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

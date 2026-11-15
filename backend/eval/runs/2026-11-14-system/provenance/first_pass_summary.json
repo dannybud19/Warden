@@ -1,0 +1,334 @@
+{
+  "cases": 40,
+  "truth_counts": {
+    "scam": 11,
+    "genuine": 17,
+    "unknown": 12
+  },
+  "outcomes": {
+    "pending": 32,
+    "likely_scam": 8
+  },
+  "run_statuses": {
+    "degraded": 34,
+    "complete": 6
+  },
+  "likely_scam_by_truth": {
+    "scam": {
+      "count": 5,
+      "total": 11
+    },
+    "genuine": {
+      "count": 2,
+      "total": 17
+    },
+    "unknown": {
+      "count": 1,
+      "total": 12
+    }
+  },
+  "genuine_with_suspicious_checks": 8,
+  "allowed_outcomes": 37,
+  "grading_statuses": {
+    "ok": 36,
+    "error": 4
+  },
+  "expectation_counts": {
+    "met": 77,
+    "missed": 9,
+    "violated": 12,
+    "indeterminate": 1
+  },
+  "external_requests": {
+    "missing_fixture": 150,
+    "fixture_found": 31,
+    "scenario_unavailable": 3
+  },
+  "comparisons": [
+    {
+      "baseline_case_id": "c_14c60e282afe",
+      "variant_case_id": "c_e28695b56a10",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_14c60e282afe",
+      "variant_case_id": "c_485e45446715",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2e46a01ef8dd",
+      "variant_case_id": "c_8e908328824a",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2e46a01ef8dd",
+      "variant_case_id": "c_43aa6dfd7442",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2500da052da6",
+      "variant_case_id": "c_758b438cfc70",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2500da052da6",
+      "variant_case_id": "c_80b9f7524472",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": true,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2f1ac6eea223",
+      "variant_case_id": "c_df7011effd5a",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": false,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "likely_scam"
+    },
+    {
+      "baseline_case_id": "c_2f1ac6eea223",
+      "variant_case_id": "c_c398c9772cab",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_d9080a53cc62",
+      "variant_case_id": "c_b764a65d4e3f",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "likely_scam",
+      "variant_outcome": "likely_scam"
+    },
+    {
+      "baseline_case_id": "c_d9080a53cc62",
+      "variant_case_id": "c_594d491cf146",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": false,
+      "baseline_outcome": "likely_scam",
+      "variant_outcome": "likely_scam"
+    },
+    {
+      "baseline_case_id": "c_53138427e1cc",
+      "variant_case_id": "c_9e84e913852a",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_53138427e1cc",
+      "variant_case_id": "c_85c6e685129a",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_fa56f2bbf2cd",
+      "variant_case_id": "c_c58eed11c888",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_fa56f2bbf2cd",
+      "variant_case_id": "c_13304e99be46",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_bd8e144b5d70",
+      "variant_case_id": "c_a919eb7d9823",
+      "kind": "meaningful_change",
+      "expected_behavior": "Detect specified concerns while avoiding the control's false positives.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_bd8e144b5d70",
+      "variant_case_id": "c_c973e4f6deea",
+      "kind": "meaningful_change",
+      "expected_behavior": "Ask for missing evidence; uncertainty alone does not establish fraud.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_14c60e282afe",
+      "variant_case_id": "c_5ca19646e651",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2500da052da6",
+      "variant_case_id": "c_f5968d4dab8a",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": true,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2f1ac6eea223",
+      "variant_case_id": "c_ebab2eaad409",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": true,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_bd8e144b5d70",
+      "variant_case_id": "c_6a74e674b937",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": true,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_2e46a01ef8dd",
+      "variant_case_id": "c_c39be7c7dfec",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": false,
+      "same_cleared_checks": false,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_d9080a53cc62",
+      "variant_case_id": "c_fa631a36a1a9",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": true,
+      "baseline_outcome": "likely_scam",
+      "variant_outcome": "likely_scam"
+    },
+    {
+      "baseline_case_id": "c_53138427e1cc",
+      "variant_case_id": "c_853497bf6e79",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": true,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    },
+    {
+      "baseline_case_id": "c_fa56f2bbf2cd",
+      "variant_case_id": "c_34c3363fa047",
+      "kind": "wording_only",
+      "expected_behavior": "Preserve topics, uncertainty and outcomes under rewording.",
+      "same_outcome": true,
+      "same_suspicious_checks": true,
+      "same_cleared_checks": true,
+      "baseline_outcome": "pending",
+      "variant_outcome": "pending"
+    }
+  ],
+  "interpretation": "Unreviewed synthetic development cases; no real-world accuracy claim.",
+  "usage": {
+    "attempts": 238,
+    "completed_requests": 238,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "4.002106",
+    "cost_usd_by_stage": {
+      "grading": "1.855352",
+      "agents": "2.146754"
+    },
+    "input_tokens": 1248588,
+    "output_tokens": 150493,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  },
+  "finished_at": "2026-11-14T20:15:52.128077+00:00",
+  "authentication_failed": false
+}

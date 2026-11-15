@@ -1,0 +1,10 @@
+Tenancy agreement
+Property: Flat 2, 66 Example Mews, London W12 8QT
+Landlord: Mira Vale
+Letting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.
+Rent: GBP 1300 per calendar month.
+Tenancy deposit: GBP 1500.
+The tenancy is periodic from 1 December 2026.
+The tenant may end the tenancy with two months' written notice.
+No administration fee is payable.
+The landlord is responsible for structural and heating repairs, except tenant-caused damage.

@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The invoice service is unavailable; no payee account or due date has been returned.",
+        "title": "account details"
+      },
+      "method": "GET",
+      "status": 503,
+      "url": "https://records.example/account_details"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_c973e4f6deea_x1",
+      "key": "account_details",
+      "outcome": "unavailable",
+      "query_alternatives": [],
+      "query_terms": [
+        "Northbank Example Lettings Ltd",
+        "invoice"
+      ],
+      "snippet": "The invoice service is unavailable; no payee account or due date has been returned.",
+      "title": "account details",
+      "url": "https://records.example/account_details"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}
