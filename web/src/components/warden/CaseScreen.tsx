@@ -22,6 +22,7 @@ import { useUploads } from "./UploadProvider";
 import { UploadStatus } from "./UploadStatus";
 
 const SHOW_ACTION_CARDS = true;
+const THINK_FOR = 60_000;
 
 function studentName(): string {
   try {
@@ -101,6 +102,22 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   }, [state.chat, append]);
   const chat: ChatEntry[] = convo.active?.messages ?? [];
 
+  // Warden is "thinking" from the student's message until his answer arrives (given up after a minute).
+  const last = chat[chat.length - 1];
+  const awaitingSince = last?.role === "student" ? Date.parse(last.at) : null;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (awaitingSince === null) return;
+    const id = window.setTimeout(() => setNow(Date.now()), Math.max(0, awaitingSince + THINK_FOR - Date.now()) + 50);
+    return () => window.clearTimeout(id);
+  }, [awaitingSince]);
+  const thinking = awaitingSince !== null && now - awaitingSince < THINK_FOR;
+  // a delayed answer must add to the conversation as it is then, not as it was when asked
+  const appendLatest = useRef(append);
+  useEffect(() => {
+    appendLatest.current = append;
+  }, [append]);
+
   if (!c || !view) {
     return (
       <div>
@@ -143,11 +160,10 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
   function ask(q: Suggestion) {
     if (!c) return;
-    const at = new Date().toISOString();
-    convo.append([
-      { role: "student", text: q, at },
-      { role: "orchestrator", text: answerSuggestion(c, q), at: new Date(Date.parse(at) + 1).toISOString() },
-    ]);
+    // the answer is ready at once; a short beat lets Warden visibly think first
+    const answer = answerSuggestion(c, q);
+    convo.append([{ role: "student", text: q, at: new Date().toISOString() }]);
+    window.setTimeout(() => appendLatest.current([{ role: "orchestrator", text: answer, at: new Date().toISOString() }]), 1400);
   }
 
   return (
@@ -200,6 +216,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               rows={view.rows}
               chat={chat}
               busy={busy}
+              thinking={thinking}
               canReply={!closed && view.open.length > 0}
               closed={closed}
               callCase={c}

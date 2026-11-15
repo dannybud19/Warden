@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, Maximize2, MessageSquare, Phone, Plus, Trash2, X } from "lucide-react";
 import type { Case, ChatEntry, EvidenceKind } from "@/lib/types";
 import type { DebriefInput } from "@/lib/api";
@@ -11,6 +11,7 @@ import { agentSummary, type AgentRow, type Mood, type Suggestion, type Tone } fr
 import { AnimatedWarden } from "./AnimatedWarden";
 import { Mascot } from "./primitives";
 import { CaseCall, type CallContext } from "./CaseCall";
+import { ThinkingBubble } from "./ThinkingBubble";
 import { threadTitle, threadWhen, type useThreads } from "@/lib/threads";
 
 type Threads = ReturnType<typeof useThreads>;
@@ -202,6 +203,8 @@ type Props = {
   rows: AgentRow[];
   chat: ChatEntry[];
   busy: boolean;
+  /** Warden is working on an answer to the student's last message. */
+  thinking?: boolean;
   canReply: boolean;
   closed: boolean;
   onAsk: (q: Suggestion) => void;
@@ -320,7 +323,7 @@ function ChatDrawer({ onClose, children, threads }: { onClose: () => void; child
 
 /** The conversation: history that fills the space, suggestions, and the message box or call bar. */
 function ChatPane({
-  chat, busy, canReply, closed, onAsk, onSend, onUpload, threads, callContext, onCallLine, callCase, onCallDebrief, onExpand, roomy = false,
+  chat, busy, thinking = false, canReply, closed, onAsk, onSend, onUpload, threads, callContext, onCallLine, callCase, onCallDebrief, onExpand, roomy = false,
 }: Props & { onExpand?: () => void; roomy?: boolean }) {
   const [text, setText] = useState("");
   const [inCall, setInCall] = useState(false);
@@ -329,7 +332,7 @@ function ChatPane({
 
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: "smooth" });
-  }, [chat.length]);
+  }, [chat.length, thinking]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -406,6 +409,7 @@ function ChatPane({
             </motion.div>
           ))
         )}
+        <AnimatePresence>{thinking && !inCall && <ThinkingBubble key="thinking" roomy={roomy} />}</AnimatePresence>
       </div>
 
       {inCall && callContext && callCase && onCallDebrief ? (
