@@ -15,8 +15,11 @@ import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { Mascot, stagger } from "./primitives";
 import { EvidencePanel, IssueList, RiskHeader, StillKeen, VerdictCard } from "./RiskView";
 import { NextStep } from "./NextStep";
+import { ActionCards } from "./ActionCards";
 import { AgentsRail } from "./AgentsRail";
 import type { CallContext } from "./CaseCall";
+
+const SHOW_ACTION_CARDS = true;
 
 function studentName(): string {
   try {
@@ -133,6 +136,15 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <p role="alert" className="rounded-[16px] bg-[#fbe6e1] px-4 py-3 text-[13px] text-[#a8402b]">{state.error}</p>
             )}
             <VerdictCard c={c} mood={view.mood} flags={view.flags.length} />
+            {SHOW_ACTION_CARDS && (
+              <ActionCards
+                c={c}
+                busy={state.busy}
+                disabled={closed}
+                onAnswer={(id, text) => void sendReply({ text, actionId: id, status: "done" })}
+                onSkip={(id) => void sendReply({ text: "Skip for now", actionId: id, status: "skipped" })}
+              />
+            )}
             {action && (
               <NextStep
                 key={action.id}
