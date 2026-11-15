@@ -71,10 +71,14 @@ def awaiting(case: Case) -> list[Finding]:
 
 
 def questions(case: Case, limit: int = 3) -> list[Action]:
-    """Ask once about each unanswered payment concern, within the open-action limit."""
-    limit -= sum(action.status == ActionStatus.OPEN for action in case.actions)
-    if limit <= 0:
-        return []
+    """Ask once about each unanswered payment concern, within the open-action limit, but always
+    at least one.
+
+    An unanswered concern holds up every other step, so it must be asked even when three steps
+    are already open (the agency check proposes three as soon as a home is added). Waiting for
+    room left the case with nothing asked and nothing said: the chat stopped replying.
+    """
+    limit = max(1, limit - sum(action.status == ActionStatus.OPEN for action in case.actions))
     proposed = []
     for finding in awaiting(case):
         prefix = action_prefix(finding)

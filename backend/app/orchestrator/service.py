@@ -467,10 +467,11 @@ class CaseService:
                 # A payment hard flag needs the student's explicit yes before it can decide.
                 case = await self._confirm_payment(case)
 
-        questions = [n for n in notes if n.kind == "question"]
         if confirming:
-            # No new steps while the confirmation is open, but a question still gets an answer.
-            if not questions:
+            # No new steps while the confirmation is open, but whatever the student just said
+            # (a question, an answer, something we could not match) still gets a reply: a round
+            # that says nothing looks like a chat that has stopped working.
+            if not notes:
                 return case
             inp = rounds.round_input(
                 score_before=score_before,
@@ -481,7 +482,7 @@ class CaseService:
                 fresh=[],
                 actions=case.actions,
                 recap_sent=recap is not None,
-                notes=questions,
+                notes=notes,
                 case_grounding=rounds.grounding(case),
                 case_history=rounds.history(case),
                 previous_reports=snapshot.reports,
