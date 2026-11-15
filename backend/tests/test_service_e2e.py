@@ -14,7 +14,7 @@ from app.contracts import (
 )
 from app.orchestrator.checks import initial_checks
 from app.orchestrator.events import EventBus
-from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService, Upload
+from app.orchestrator.service import CaseNotFoundError, CaseService, Upload
 from tests.conftest import add_evidence_and_settle, reply_and_settle
 
 MakeService = Callable[[list | None], CaseService]
@@ -53,7 +53,7 @@ async def test_open_case_starts_at_100_with_all_checks_unverified(
     assert [s.score for s in case.score_history] == [100.0]
 
 
-async def test_hard_flag_closes_the_case_as_likely_scam(
+async def test_hard_flag_assesses_likely_scam_and_keeps_the_case_open(
     make_service: MakeService, fake_agency_case: Case, bus: EventBus
 ) -> None:
     service = make_service(None)
@@ -63,7 +63,7 @@ async def test_hard_flag_closes_the_case_as_likely_scam(
     case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
 
     assert len(case.messages) == 8
-    assert case.status == "decided"
+    assert case.status == "open"
     assert case.decision is not None and case.decision.verdict == Verdict.LIKELY_SCAM
     assert "companies_house:company_not_found" in case.decision.finding_ids
     assert case.reports["contract_checker"].status == AgentStatus.SKIPPED
@@ -72,7 +72,8 @@ async def test_hard_flag_closes_the_case_as_likely_scam(
 
     types = [e.type for e in _drain(queue)]
     assert types.count("agent_started") == 3  # companies_house, message_checker, emotion_classifier
-    assert "score_updated" in types and types[-1] == "decision_made"
+    assert "score_updated" in types and "decision_made" in types
+    assert types.index("decision_made") == types.index("score_updated") + 1
     stored = await service.get_case(case.case_id)
     assert stored.decision == case.decision
 
@@ -88,21 +89,26 @@ async def test_contract_address_mismatch_is_a_crosscheck_hard_flag(
     cross = case.reports["crosscheck"].findings
     assert [(f.id, f.hard_flag) for f in cross] == [("crosscheck:address", True)]
     assert case.reports["contract_checker"].status == AgentStatus.OK
-    assert case.status == "decided"
+    assert case.status == "open"
     assert case.decision is not None and case.decision.verdict == Verdict.LIKELY_SCAM
     assert "crosscheck:address" in case.decision.finding_ids
 
 
-async def test_a_decided_case_rejects_more_work(
+async def test_a_likely_scam_case_still_takes_more_work(
     make_service: MakeService, fake_agency_case: Case
 ) -> None:
+    """A hard flag used to close the case (409 from then on); now every input regrades it."""
     service = make_service(None)
     case = await _open(service, fake_agency_case)
     case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
-    with pytest.raises(CaseClosedError):
-        await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
-    with pytest.raises(CaseClosedError):
-        await reply_and_settle(service, case.case_id, "yes")
+    assert case.decision is not None and case.decision.verdict == Verdict.LIKELY_SCAM
+    rounds = len(case.score_history)
+
+    case = await add_evidence_and_settle(service, case.case_id, _chat_upload(fake_agency_case))
+    assert len(case.score_history) == rounds + 1
+    case = await reply_and_settle(service, case.case_id, "yes")
+    assert len(case.score_history) == rounds + 2
+    assert case.status == "open" and case.chat[-1].role == "orchestrator"
 
 
 async def test_unknown_case(make_service: MakeService) -> None:

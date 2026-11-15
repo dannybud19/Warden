@@ -28,7 +28,7 @@ from app.orchestrator import service as service_module
 from app.orchestrator.composer import RoundNote
 from app.orchestrator.debrief import CallAnswer, CallDebrief, CallLine
 from app.orchestrator.events import EventBus
-from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService, Upload
+from app.orchestrator.service import CaseNotFoundError, CaseService, Upload
 from app.storage.memory import InMemoryCaseRepo
 from tests.conftest import EmptyAgent, add_evidence_and_settle, settled
 
@@ -536,18 +536,20 @@ async def test_the_transcript_parse_runs_without_the_state_lock(
     assert any(e.kind == EvidenceKind.CALL_RECORDING for e in result.evidence)
 
 
-async def test_a_decided_case_refuses_a_debrief_and_saves_nothing(
+async def test_an_assessed_case_still_takes_a_debrief(
     make_service: MakeService,
 ) -> None:
+    """A home never closes: after an assessment the call is saved and graded like any input."""
     service = make_service([EmptyAgent()])
     case = await service.open_case(StudentContext(), LISTING, None)
-    decided = await service.decide(case.case_id)
-    assert decided.status == "decided"
+    assessed = await service.decide(case.case_id)
+    assert assessed.status == "open" and assessed.decision is not None
 
-    with pytest.raises(CaseClosedError):
-        await service.debrief(case.case_id, call(*FOUR_LINES))
+    await service.debrief(case.case_id, call(*FOUR_LINES))
+    await service.wait_idle()
     stored = await service.get_case(case.case_id)
-    assert stored.evidence == [] and stored.messages == []
+    assert stored.status == "open"
+    assert [e.kind for e in stored.evidence] == [EvidenceKind.CALL_RECORDING]
 
 
 async def test_an_unknown_case_raises_not_found(make_service: MakeService) -> None:

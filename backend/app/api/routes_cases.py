@@ -124,7 +124,7 @@ async def debrief(case_id: str, body: DebriefRequest, request: Request) -> Case:
 
 @router.post("/cases/{case_id}/decide")
 async def decide(case_id: str, request: Request) -> Case:
-    """The student ends the checks: decide now on what is verified so far (409 once decided)."""
+    """The live assessment on what is verified so far. The case stays open: nothing is final."""
     return await _service(request).decide(case_id)
 
 
@@ -136,8 +136,8 @@ async def get_case(case_id: str, request: Request) -> Case:
 
 @router.get("/cases/{case_id}/decision")
 async def get_decision(case_id: str, request: Request) -> Decision:
-    """The final decision, or 404 while the case is still open."""
+    """The live assessment, or 404 before the first analysis round."""
     case = await _service(request).get_case(case_id)
     if case.decision is None:
-        raise HTTPException(404, "no decision yet")
+        raise HTTPException(404, "no assessment yet")
     return case.decision

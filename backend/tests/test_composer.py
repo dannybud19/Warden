@@ -302,7 +302,31 @@ async def test_compose_sends_prompt_and_payload(ctx: AgentContext) -> None:
         "notes": [{"kind": "unmatched", "text": ""}],
         "grounding": [],
         "history": [],
+        "nothing_left": False,
+        "unverified": [],
     }
+
+
+def test_template_with_nothing_left_names_what_is_unverified_and_invites_more() -> None:
+    inp = replace(
+        BASE,
+        new_actions=0,
+        open_actions=0,
+        nothing_left=True,
+        unverified=("landlord identity", "right to let", "fair price", "no pressure"),
+    )
+    text = template(inp)
+    assert "Still unverified: landlord identity, right to let, fair price." in text
+    assert "no pressure" not in text  # at most three
+    assert "Add any new file, message or call" in text
+    assert validate(text, inp) == []
+
+
+def test_template_with_nothing_left_and_every_check_clear_still_invites_more() -> None:
+    inp = replace(BASE, new_actions=0, open_actions=0, nothing_left=True)
+    text = template(inp)
+    assert "Still unverified" not in text and "Add any new file" in text
+    assert validate(text, inp) == []
 
 
 async def test_compose_banned_word_uses_template(

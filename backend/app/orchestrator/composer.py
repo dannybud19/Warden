@@ -1,6 +1,6 @@
-"""The round message: one short chat message to the student after each analysis that does not
-decide. An LLM writes it from a small structured input; a validator rejects anything risky and a
-deterministic template takes over (plan 4.4)."""
+"""The round message: one short chat message to the student after each analysis. An LLM
+writes it from a small structured input; a validator rejects anything risky and a deterministic
+template takes over (plan 4.4)."""
 
 import asyncio
 import json
@@ -70,6 +70,10 @@ class RoundInput:
     notes: tuple[RoundNote, ...] = ()
     grounding: tuple[str, ...] = ()  # P2: findings (title: detail) and check states, to answer
     history: tuple[str, ...] = ()  # the last chat turns, so a follow-up question has its context
+    # No step is open and the consultant has none to add. Not an ending: the message names what
+    # is still unverified (`unverified`, check labels) and invites more evidence.
+    nothing_left: bool = False
+    unverified: tuple[str, ...] = ()
 
 
 @cache
@@ -234,6 +238,7 @@ def template(inp: RoundInput) -> str:
         *_checked_sentences(inp.checked),
         *_note_sentences(inp.notes),
         _actions_sentence(inp.new_actions, inp.open_actions),
+        _nothing_left_sentence(inp),
     ]
     return " ".join(part for part in parts if part)
 
@@ -297,6 +302,20 @@ def _actions_sentence(new: int, open_: int) -> str:
         verb = "is" if open_ == 1 else "are"
         return f"{open_} {_steps(open_)} {verb} still open below."
     return ""
+
+
+MAX_UNVERIFIED = 3
+
+
+def _nothing_left_sentence(inp: RoundInput) -> str:
+    """What is still unverified when there is no step left to ask, and an invitation to add more."""
+    if not inp.nothing_left:
+        return ""
+    invite = "Add any new file, message or call and I'll check it again."
+    if not inp.unverified:
+        return f"I have nothing more to ask right now. {invite}"
+    still = ", ".join(inp.unverified[:MAX_UNVERIFIED])
+    return f"I have nothing more to ask right now. Still unverified: {still}. {invite}"
 
 
 def _steps(n: int) -> str:

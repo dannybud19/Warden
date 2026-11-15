@@ -120,10 +120,6 @@ class CaseNotFoundError(Exception):
     """No case with this id (HTTP 404)."""
 
 
-class CaseClosedError(Exception):
-    """The case is already decided (HTTP 409)."""
-
-
 class UploadConflictError(Exception):
     """An initial attachment still needs attention, or does not match its reservation."""
 
@@ -250,12 +246,14 @@ class CaseService:
         # Cross-checker disagreements already relayed to the student, per case.
         self._relayed: dict[str, list[Finding]] = {}
 
-    async def _load(self, case_id: str, *, must_be_open: bool = False) -> Case:
+    async def _load(self, case_id: str) -> Case:
+        """The stored case. A home never closes: a case stored as "decided" by an older version
+        loads as open, so it accepts new input and is graded again."""
         case = await self.repo.get(case_id)
         if case is None:
             raise CaseNotFoundError(case_id)
-        if must_be_open and case.status == "decided":
-            raise CaseClosedError(case_id)
+        if case.status != "open":
+            case.status = "open"
         return case
 
     async def _emit(self, case_id: str, event: StreamEvent) -> None:
@@ -327,8 +325,6 @@ class CaseService:
                 raise CaseNotFoundError(request_id)
             if item.state != "pending":
                 return uploads  # idempotent after a lost response or completed upload
-            if case.status == "decided":
-                raise CaseClosedError(case_id)
             item.state = "skipped"
             # Skipping records no clear: unreadable evidence remains visible as unreadable.
             await self.repo.save(case, uploads=uploads)
@@ -367,8 +363,6 @@ class CaseService:
         previous = _existing_upload(case, evidence_id)
         if previous and (not upload.retry_read or not previous.read_error):
             return previous
-        if case.status == "decided":
-            raise CaseClosedError(case_id)
         await self._upload_manifest(case_id, upload)
         extracted = await extract(
             upload.kind, upload.filename, upload.data, upload.student_name, self.ctx.llm
@@ -387,8 +381,6 @@ class CaseService:
             previous = _existing_upload(case, evidence_id)
             if previous and (not upload.retry_read or not previous.read_error):
                 return previous
-            if case.status == "decided":
-                raise CaseClosedError(case_id)
             uploads = await self._upload_manifest(case_id, upload)
             if previous:
                 # Only a failed read may be retried in place; readable evidence is immutable.
@@ -413,14 +405,15 @@ class CaseService:
                     item.state = "pending" if read_error else "accepted"
             await self.repo.save(case, uploads=uploads)
             if not read_error:
-                # Queue while holding the state lock: an older round cannot decide before rerun.
+                # Queue while holding the state lock, so the file is graded by a round that
+                # starts after it was saved (a running round never drops it).
                 self._schedule(case_id)
         await self._emit_all(case_id, events)
         return UploadResult(case, extracted.evidence_id, read_error)
 
     async def analyse(self, case_id: str) -> Case:
-        """Run the agents, crosscheck, update checks and score, then ask or decide (awaited)."""
-        await self._load(case_id, must_be_open=True)
+        """Run the agents, crosscheck, update checks, score and assessment, then ask (awaited)."""
+        await self._load(case_id)
         return await self._run_analysis(case_id)
 
     async def reply(
@@ -439,12 +432,12 @@ class CaseService:
         the round message says so) instead of being overwritten.
         """
         ids = list(evidence_ids or [])
-        snapshot = await self._load(case_id, must_be_open=True)
+        snapshot = await self._load(case_id)
         # NOTE: read_reply checks `action_id` first (InvalidActionError, 422) before any LLM call.
         result = await conversation.read_reply(snapshot, text, ids, action_id, status, self.ctx)
 
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
+            case = await self._load(case_id)
             case.actions, dropped = conversation.apply(case.actions, result, text)
             changed_fields = fields.apply_fields(case, result.field_updates)
             answered = [u.action_id for u in result.updates if u.action_id not in dropped]
@@ -468,7 +461,7 @@ class CaseService:
         student's side is read like a chat reply. Every parse runs on a snapshot without the
         state lock, like `reply`. Only the short thanks message is emitted over the stream.
         """
-        snapshot = await self._load(case_id, must_be_open=True)
+        snapshot = await self._load(case_id)
         # NOTE: mask first, so nothing stored or sent to an LLM holds a full bank account.
         call = debrief.masked(call)
         if not call.lines:
@@ -531,7 +524,7 @@ class CaseService:
             readings.append((transcript, text, True))
 
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
+            case = await self._load(case_id)
             case.evidence.append(evidence)
             case.messages.extend(messages)
             case.chat.extend(turns)
@@ -597,8 +590,8 @@ class CaseService:
         """Run one analysis; a failure becomes a message to the student, never a crash."""
         try:
             await self._run_analysis(case_id, queued=True)
-        except (CaseNotFoundError, CaseClosedError):
-            return  # the case is gone or already decided: nothing left to analyse
+        except CaseNotFoundError:
+            return  # the case is gone: nothing left to analyse
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001 - a background task must never die silently
@@ -610,7 +603,7 @@ class CaseService:
         event = OrchestratorMessage(text=FAILED_ANALYSIS_TEXT)
         try:
             async with self._locks[case_id]:
-                case = await self._load(case_id, must_be_open=True)
+                case = await self._load(case_id)
                 event = _say(case, FAILED_ANALYSIS_TEXT)
                 await self.repo.save(case)
         except Exception:  # noqa: BLE001 - the message must still go out
@@ -618,32 +611,16 @@ class CaseService:
         await self._emit(case_id, event)
 
     async def decide(self, case_id: str) -> Case:
-        """Close the case now, on what is verified so far (the student has the final say).
-
-        Waits for a running analysis to finish first, so the decision sees its results.
+        """The live assessment on what is verified so far. Nothing closes: the case stays open and
+        every later input grades it again. Waits for a running analysis, so it sees its results.
         """
-        await self._load(case_id, must_be_open=True)  # 404 / 409 at once, before waiting
+        await self._load(case_id)  # 404 at once, before waiting
         async with self._analysis_locks[case_id], self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
-            if any(u.state == "pending" for u in await self.repo.get_uploads(case_id)):
-                raise UploadConflictError(
-                    "Initial attachments still need attention. Retry each file or choose "
-                    "Continue without this file before requesting a final decision."
-                )
-            return await self._decide(case)
-
-    async def _decide(self, case: Case) -> Case:
-        if case.case_id in self._queued or any(
-            u.state == "pending" for u in await self.repo.get_uploads(case.case_id)
-        ):
-            return case  # all initial files must be resolved, and newer evidence analysed first
-        if payment_confirmation.awaiting(case) and not decision.hard_flags(case):
-            return await self._confirm_payment(case)
-        case.decision = decision.decide(case)
-        case.status = "decided"
-        await self.repo.save(case)
-        await self._emit(case.case_id, DecisionMade(decision=case.decision))
-        return case
+            case = await self._load(case_id)
+            case.decision = decision.decide(case)
+            await self.repo.save(case)
+            await self._emit(case_id, DecisionMade(decision=case.decision))
+            return case
 
     async def _confirm_payment(self, case: Case) -> Case:
         """Keep the case open and ask about payment evidence even when the check is suspicious."""
@@ -675,7 +652,7 @@ class CaseService:
             async with self._locks[case_id]:
                 # NOTE: taken together under the lock, so these notes belong to exactly the
                 # replies this snapshot contains.
-                snapshot = await self._load(case_id, must_be_open=True)
+                snapshot = await self._load(case_id)
                 notes = self._notes.pop(case_id, [])
             try:
                 new_reports = await run_agents(snapshot, self.agents, self.ctx, publish)
@@ -749,12 +726,13 @@ class CaseService:
     async def _finish_analysis(
         self, snapshot: Case, new_reports: dict[str, AgentReport], notes: list[RoundNote]
     ) -> Case:
-        """Score the round, relay the recap, then ask the next steps or decide.
+        """Score the round, store the live assessment, relay the recap, then ask the next steps.
 
         Three short locked steps with the LLM work (Cross-checker, consultant, composer) between
-        them, so no LLM call ever holds the state lock. Event order: `score_updated`, the recap
-        message (only if it changed), then `actions_proposed` (if any) and the round message, or
-        `decision_made` instead of those two.
+        them, so no LLM call ever holds the state lock. Event order: `score_updated`,
+        `decision_made` (the live assessment, every round), the recap message (only if it
+        changed), an assessment message (only when the verdict moved), then `actions_proposed`
+        (if any) and the round message. Nothing ever closes the case.
         """
         case_id = snapshot.case_id
         reviewed = snapshot.model_copy(update={"reports": {**snapshot.reports, **new_reports}})
@@ -762,7 +740,7 @@ class CaseService:
 
         # Step 1 (locked): reports, checks, score and recap on the latest stored case.
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
+            case = await self._load(case_id)
             score_before = case.score_history[-1] if case.score_history else None
             states_before = {c.id: c.state for c in case.checks}
             previous = case.reports.get(crosschecker.NAME)
@@ -775,16 +753,22 @@ class CaseService:
             case.actions = _retire_settled(case)
             result = score(case.checks, self.weights)
             case.score_history.append(result)
-            events: list[StreamEvent] = [ScoreUpdated(score=result)]
+            # The live assessment: recomputed every round, never final (a home never closes).
+            assessed_before = case.decision
+            case.decision = decision.decide(case)
+            events: list[StreamEvent] = [
+                ScoreUpdated(score=result),
+                DecisionMade(decision=case.decision),
+            ]
             if recap:
                 events.append(_say(case, recap))
+            if decision.worth_saying(assessed_before, case.decision):
+                events.append(_say(case, decision.message(case.decision)))
             await self.repo.save(case)
             await self._emit_all(case_id, events)
-            if decision.hard_flags(case):
-                return await self._decide(case)
             confirming = bool(payment_confirmation.awaiting(case))
             if confirming:
-                # A payment hard flag needs the student's explicit yes before it can decide.
+                # A payment hard flag counts only after the student's explicit yes.
                 case = await self._confirm_payment(case)
 
         if confirming:
@@ -809,7 +793,7 @@ class CaseService:
             )
             text = await composer.compose_round(inp, self.ctx)
             async with self._locks[case_id]:
-                case = await self._load(case_id, must_be_open=True)
+                case = await self._load(case_id)
                 event = _say(case, text)
                 await self.repo.save(case)
                 await self._emit(case_id, event)
@@ -823,8 +807,9 @@ class CaseService:
             a.model_copy(update={"asked_at": now}) for a in proposals or [] if a.id not in existing
         ]
         nothing_open = not any(a.status == ActionStatus.OPEN for a in case.actions)
-        if proposals is not None and not fresh and nothing_open:
-            return await self._decide_if_still_done(case_id)
+        # Nothing left to ask is not an ending: the message says what is still unverified and
+        # invites more evidence. (None means the consultant failed: no claim either way.)
+        nothing_left = proposals is not None and not fresh and nothing_open
         inp = rounds.round_input(
             score_before=score_before,
             score_after=result,
@@ -838,24 +823,17 @@ class CaseService:
             case_grounding=rounds.grounding(case),
             case_history=rounds.history(case),
             previous_reports=snapshot.reports,
+            nothing_left=nothing_left,
         )
         text = await composer.compose_round(inp, self.ctx)
 
         # Step 3 (locked): store the new actions and the message on the latest case, then emit.
         # NOTE: only analyses add actions and they run one at a time, so `fresh` is still fresh.
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
+            case = await self._load(case_id)
             case.actions.extend(fresh)
             events = [ActionsProposed(actions=fresh)] if fresh else []
             events.append(_say(case, text))
             await self.repo.save(case)
             await self._emit_all(case_id, events)
             return case
-
-    async def _decide_if_still_done(self, case_id: str) -> Case:
-        """Decide, unless a reply reopened work while the consultant was thinking."""
-        async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
-            if any(a.status == ActionStatus.OPEN for a in case.actions):
-                return case  # cannot happen today (replies only close actions); kept for safety
-            return await self._decide(case)

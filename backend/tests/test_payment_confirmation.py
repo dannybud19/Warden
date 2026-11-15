@@ -1,4 +1,7 @@
-"""Payment concerns are confirmed through the real service/reply loop before a verdict."""
+"""Payment concerns are confirmed through the real service/reply loop before they count.
+
+A home never closes, so the live assessment is always there; an unconfirmed payment concern
+must simply never make it a likely scam."""
 
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -31,6 +34,15 @@ from app.orchestrator.service import CONFIRM_PAYMENT_TEXT, CaseService
 from tests.conftest import reply_and_settle
 
 MakeService = Callable[[list[BaseAgent] | None], CaseService]
+
+
+def not_counted(case: Case) -> bool:
+    """Open, assessed, and the payment concern has not made it a likely scam."""
+    return (
+        case.status == "open"
+        and case.decision is not None
+        and case.decision.verdict != Verdict.LIKELY_SCAM
+    )
 
 
 async def payment_case(
@@ -69,7 +81,7 @@ async def test_payment_waits_for_targeted_confirmation(
     make_service: MakeService, text: str
 ) -> None:
     service, case = await payment_case(make_service, text)
-    assert case.status == "open" and case.decision is None
+    assert not_counted(case)
     action = next(a for a in case.actions if a.id.startswith(payment_confirmation.PREFIX))
     assert action.asked_at and text in action.text
     assert (
@@ -87,7 +99,7 @@ async def test_non_confirmation_preserves_concern_without_asking_again(
     service, case = await payment_case(make_service)
     action = case.actions[0]
     case = await reply_and_settle(service, case.case_id, answer, action_id=action.id)
-    assert case.status == "open" and case.decision is None
+    assert not_counted(case)
     old = next(a for a in case.actions if a.id == action.id)
     assert old.answer == answer and old.outcome == "neutral"
     # Answered once: the conversation moves on instead of repeating the same question.
@@ -109,7 +121,7 @@ async def test_skipping_cannot_confirm_or_clear_payment(
     case = await reply_and_settle(
         service, case.case_id, "yes", action_id=case.actions[0].id, status=status
     )
-    assert case.decision is None
+    assert not_counted(case)
     assert case.actions[0].outcome == "neutral"
     assert payment_confirmation.pending(case)  # skipping keeps the concern; it is not asked again
 
@@ -117,7 +129,7 @@ async def test_skipping_cannot_confirm_or_clear_payment(
 async def test_direct_decide_cannot_bypass_confirmation(make_service: MakeService) -> None:
     service, case = await payment_case(make_service)
     case = await service.decide(case.case_id)
-    assert case.status == "open" and case.decision is None
+    assert not_counted(case)
     assert len(case.actions) == 1
 
 
@@ -144,7 +156,7 @@ async def test_payment_confirmation_is_asked_even_when_three_steps_are_open(
     case = await service.analyse(case.case_id)
     open_actions = [a for a in case.actions if a.status == ActionStatus.OPEN]
     confirmations = [a for a in open_actions if a.id.startswith(payment_confirmation.PREFIX)]
-    assert case.decision is None and len(open_actions) == 4
+    assert not_counted(case) and len(open_actions) == 4
     assert len(confirmations) == 1
     assert "Pay the deposit before any viewing." in confirmations[0].text
 
@@ -266,7 +278,7 @@ async def test_evidence_growing_keeps_one_open_confirmation(make_service: MakeSe
     assert "Transfer to my personal account." in only.text  # the card shows the current quotes
     assert "Pay the deposit before any viewing." in only.text
     assert orchestrator_says(case, CONFIRM_PAYMENT_TEXT) == 1  # not posted a second time
-    assert case.decision is None and len(payment_confirmation.awaiting(case)) == 1
+    assert not_counted(case) and len(payment_confirmation.awaiting(case)) == 1
 
 
 async def test_yes_still_confirms_after_the_evidence_grows(make_service: MakeService) -> None:
@@ -289,14 +301,14 @@ async def test_no_is_not_asked_again_when_the_evidence_grows(make_service: MakeS
     service, case = await growing_case(make_service)
     [card] = confirmations(case)
     case = await reply_and_settle(service, case.case_id, "no", action_id=card.id)
-    assert case.decision is None and not payment_confirmation.awaiting(case)
+    assert not_counted(case) and not payment_confirmation.awaiting(case)
     said = orchestrator_says(case, CONFIRM_PAYMENT_TEXT)
     case = await add_message(service, case.case_id, "Send it today or I give the flat away.")
     assert [a.id for a in confirmations(case)] == [card.id]
     assert confirmations(case)[0].status == ActionStatus.DONE
     assert orchestrator_says(case, CONFIRM_PAYMENT_TEXT) == said
     assert payment_confirmation.pending(case) and not payment_confirmation.awaiting(case)
-    assert case.decision is None  # kept pending, never cleared, cannot close the case
+    assert not_counted(case)  # kept pending, never cleared, never a hard flag
 
 
 async def test_a_different_finding_is_still_asked(make_service: MakeService) -> None:

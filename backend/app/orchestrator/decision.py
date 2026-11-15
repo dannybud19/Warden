@@ -1,4 +1,8 @@
-"""Final decision rules. Pure: `decide(case) -> Decision`. Never calls anything "safe"."""
+"""Live assessment rules. Pure: `decide(case) -> Decision`. Never calls anything "safe".
+
+There is no final verdict: the orchestrator runs `decide` at the end of every analysis round and
+stores the result on `case.decision`, which every later input grades again.
+"""
 
 from datetime import UTC, datetime
 
@@ -50,7 +54,7 @@ def hard_flags(case: Case) -> list[Finding]:
 
 
 def decide(case: Case) -> Decision:
-    """Apply the verdict table to the Case's checks and findings."""
+    """The live assessment: apply the verdict table to the Case's checks and findings."""
     state = {c.id: c.state for c in case.checks}
     suspicious_checks = [c for c in case.checks if c.state == CheckState.SUSPICIOUS]
     suspicious_ids = {fid for c in suspicious_checks for fid in c.finding_ids}
@@ -86,3 +90,20 @@ def decide(case: Case) -> Decision:
         reasons=reasons,
         finding_ids=finding_ids,
     )
+
+
+ASSESSMENT_PREFIX = "Updated assessment: "
+_STILL_OPEN = " You can keep adding files, messages or calls and I'll check them."
+
+
+def worth_saying(before: Decision | None, after: Decision) -> bool:
+    """Say the assessment in the chat only when its verdict moved: to or from a likely scam, or
+    any change after the first one (the first round's "not verified" is what the gauge shows)."""
+    if before is None:
+        return after.verdict == Verdict.LIKELY_SCAM
+    return before.verdict != after.verdict
+
+
+def message(assessment: Decision) -> str:
+    """The chat line for a changed assessment; it never sounds final."""
+    return f"{ASSESSMENT_PREFIX}{assessment.summary}{_STILL_OPEN}"
