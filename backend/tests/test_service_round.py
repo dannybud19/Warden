@@ -532,3 +532,100 @@ def test_steps_for_a_cleared_check_are_retired_but_never_a_payment_confirmation(
     assert retired[3].outcome == "neutral"
     assert retired[0].answer == service_module.RETIRED_ANSWER
     assert retired[0].outcome == "neutral"
+
+
+# --- one recap per disagreement set (E9) ------------------------------------------------------
+
+
+def _llm_finding(slug: str, quote_a: str, quote_b: str) -> Finding:
+    """A Cross-checker finding the way the LLM pass makes them: id from the topic, two quotes."""
+    return Finding(
+        id=f"crosscheck:{slug}",
+        agent="crosscheck",
+        check_id=CheckId.PAYMENT_SAFETY,
+        title=f"{slug}: The contract and Your messages disagree",
+        detail="They disagree.",
+        category=Category.CONSISTENCY,
+        severity=Severity.HIGH,
+        confidence=0.7,
+        evidence=[
+            EvidenceRef(evidence_id="ev_contract", quote=quote_a),
+            EvidenceRef(evidence_id="ev_chat", quote=quote_b),
+        ],
+    )
+
+
+HOLDING = _llm_finding("holding-deposit", "Holding deposit: GBP 300.", "Nothing is due before then")
+START = _llm_finding("tenancy-start-date", "starts 15 Sep", "available 1 Sep")
+
+
+def _scripted_review(
+    monkeypatch: pytest.MonkeyPatch, rounds: list[tuple[list[Finding], str]]
+) -> None:
+    """Make each round's Cross-checker return the next `(findings, recap)`."""
+    queue = list(rounds)
+
+    async def scripted(case: Case, rule_findings: list[Any], ctx: AgentContext) -> AgentReport:
+        findings, recap = queue.pop(0) if len(queue) > 1 else queue[0]
+        return AgentReport(
+            agent="crosscheck",
+            version="x",
+            status=AgentStatus.OK,
+            input_hash="",
+            findings=[*rule_findings, *findings],
+            summary=recap,
+        )
+
+    monkeypatch.setattr(service_module.crosschecker, "review", scripted)
+
+
+async def _recaps(
+    make_service: MakeService,
+    bus: EventBus,
+    monkeypatch: pytest.MonkeyPatch,
+    rounds: list[tuple[list[Finding], str]],
+) -> list[list[str]]:
+    """The recaps relayed in each of `len(rounds)` rounds."""
+    _scripted_review(monkeypatch, rounds)
+    service = make_service([EmptyAgent()])
+    case = await service.open_case(StudentContext(), None, None)
+    queue = bus.subscribe(case.case_id)
+    relayed: list[list[str]] = []
+    for _ in rounds:
+        await add_evidence_and_settle(service, case.case_id, EMAIL)
+        relayed.append([m for m in _messages(_drain(queue)) if m.startswith("RECAP")])
+    return relayed
+
+
+async def test_a_reworded_recap_for_the_same_disagreement_is_not_relayed_again(
+    make_service: MakeService, bus: EventBus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reworded = _llm_finding("payment-before-signing", "Holding deposit: GBP 300", "is due before")
+    relayed = await _recaps(
+        make_service,
+        bus,
+        monkeypatch,
+        [
+            ([HOLDING], "RECAP Two things don't match: the holding deposit."),
+            ([HOLDING], "RECAP Two things do not match: the holding deposit."),  # wording only
+            ([reworded], "RECAP A payment is due earlier than the agent said."),  # new slug
+        ],
+    )
+    assert [len(r) for r in relayed] == [1, 0, 0]
+
+
+async def test_a_new_disagreement_gets_one_new_recap_and_never_a_repeat(
+    make_service: MakeService, bus: EventBus, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    relayed = await _recaps(
+        make_service,
+        bus,
+        monkeypatch,
+        [
+            ([HOLDING], "RECAP one"),
+            ([HOLDING, START], "RECAP two"),  # the start date is new
+            ([HOLDING], "RECAP three"),  # one resolved: nothing new to say
+            ([HOLDING, START], "RECAP four"),  # back to a set that was already relayed
+        ],
+    )
+    assert relayed == [["RECAP one"], ["RECAP two"], [], []]

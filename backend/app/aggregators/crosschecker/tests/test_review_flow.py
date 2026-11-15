@@ -163,6 +163,17 @@ def with_reports(case: Case, **reports: AgentReport) -> Case:
     return case.model_copy(update={"reports": {**case.reports, **reports}})
 
 
+def with_email(case: Case, text: str = "Hello, the flat is still available.") -> Case:
+    """`case` plus one more readable upload: new material for the Cross-checker to compare."""
+    email = Evidence(
+        id=f"ev_email{len(case.evidence)}",
+        kind=EvidenceKind.EMAIL,
+        uploaded_at=case.evidence[0].uploaded_at,
+        extracted_text=text,
+    )
+    return case.model_copy(update={"evidence": [*case.evidence, email]})
+
+
 def llm_findings(report: AgentReport, rules: list[Finding]) -> list[Finding]:
     return report.findings[len(rules) :]
 
@@ -424,8 +435,7 @@ async def test_x9_changed_inputs_call_the_llm_again(utilities: Case, ctx: AgentC
     first = await review(
         utilities, [], real(ctx, llm_reply(utilities_item(build_sources(utilities))))
     )
-    changed = utilities.reports["contract_checker"].model_copy(update={"input_hash": "h-new"})
-    case = with_reports(utilities, crosscheck=first, contract_checker=changed)
+    case = with_reports(with_email(utilities), crosscheck=first)
     llm = llm_reply()
     await review(case, [], real(ctx, llm))
     assert len(llm.calls) == 1
@@ -659,8 +669,7 @@ async def test_llm_failure_keeps_the_disagreements_already_verified(
     utilities: Case, ctx: AgentContext
 ) -> None:
     first = await _first_run(utilities, ctx)
-    changed = utilities.reports["contract_checker"].model_copy(update={"input_hash": "h-new"})
-    case = with_reports(utilities, crosscheck=first, contract_checker=changed)
+    case = with_reports(with_email(utilities), crosscheck=first)
     report = await review(case, [], real(ctx, RaisingLLM()))
 
     assert [f.id for f in report.findings] == ["crosscheck:utilities", "crosscheck:not-run"]
@@ -707,3 +716,97 @@ class CancelledLLM(FakeLLM):
 async def test_cancellation_is_not_swallowed(utilities: Case, ctx: AgentContext) -> None:
     with pytest.raises(asyncio.CancelledError):
         await review(utilities, [], real(ctx, CancelledLLM()))
+
+
+# --- stable findings across reruns (E9) -------------------------------------------------------
+
+
+async def test_a_reply_with_no_new_evidence_does_not_call_the_llm_again(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    """Action answers change the agents' input hashes and may reword their findings, but not the
+    material the Cross-checker compares: the earlier findings and recap stand, with no LLM call."""
+    first = await _first_run(utilities, ctx)
+    contract = utilities.reports["contract_checker"]
+    reworded = contract.model_copy(
+        update={
+            "input_hash": "after-the-student-answered",
+            "findings": [
+                f.model_copy(update={"title": "A new title", "detail": "New wording."})
+                for f in contract.findings
+            ],
+        }
+    )
+    case = with_reports(utilities, crosscheck=first, contract_checker=reworded)
+    llm = llm_reply()
+    report = await review(case, [], real(ctx, llm))
+
+    assert llm.calls == []
+    assert report.findings == first.findings
+    assert report.summary == UTILITIES_RECAP
+    assert report.input_hash == first.input_hash
+
+
+async def test_a_rerun_that_words_the_same_disagreement_differently_keeps_one_finding(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    case = with_reports(with_email(utilities), crosscheck=first)
+    sources = build_sources(case)
+    renamed = utilities_item(sources) | {"topic": "Bills charged on top of the rent"}
+    report = await review(case, [], real(ctx, llm_reply(renamed, recap_text=UTILITIES_RECAP)))
+
+    assert [f.id for f in report.findings] == ["crosscheck:bills-charged-on-top-of-the-rent"]
+
+
+async def test_a_rerun_that_misses_a_disagreement_keeps_it_while_its_quotes_stand(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    case = with_reports(with_email(utilities), crosscheck=first)
+    llm = llm_reply()  # the new run finds nothing at all
+    report = await review(case, [], real(ctx, llm))
+
+    assert len(llm.calls) == 1
+    assert report.findings == first.findings
+    assert report.summary == UTILITIES_RECAP  # nothing new, so the same recap
+    assert report.input_hash != first.input_hash
+
+
+async def test_a_rerun_that_adds_a_disagreement_keeps_the_old_one_and_names_both(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    case = with_reports(with_email(utilities), crosscheck=first)
+    sources = build_sources(case)
+    account = inconsistency(
+        "who to pay",
+        side(sid(sources, "send it to my personal account", kind="message"), "my personal account"),
+        side(
+            sid(sources, "Utilities: £60 per month", agent="contract_checker", kind="quote"),
+            "Utilities: £60 per month",
+        ),
+        check="payment_safety",
+    )
+    report = await review(case, [], real(ctx, llm_reply(account)))
+
+    assert [f.id for f in report.findings] == ["crosscheck:who-to-pay", "crosscheck:utilities"]
+    assert report.summary is not None
+    assert "who to pay" in report.summary and "utilities" in report.summary
+
+
+async def test_a_carried_disagreement_is_dropped_when_its_quote_is_gone(
+    utilities: Case, ctx: AgentContext
+) -> None:
+    first = await _first_run(utilities, ctx)
+    messages = [m.model_copy(update={"text": "Nothing else to add."}) for m in utilities.messages]
+    message_checker = utilities.reports["message_checker"].model_copy(update={"findings": []})
+    case = with_reports(
+        with_email(utilities).model_copy(update={"messages": messages}),
+        crosscheck=first,
+        message_checker=message_checker,
+    )
+    report = await review(case, [], real(ctx, llm_reply()))
+
+    assert report.findings == []
+    assert report.summary is None

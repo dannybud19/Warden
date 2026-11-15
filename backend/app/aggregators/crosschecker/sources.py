@@ -55,27 +55,15 @@ def input_reports(case: Case) -> dict[str, AgentReport]:
     }
 
 
-def input_hash(case: Case, reports: dict[str, AgentReport]) -> str:
-    """Hash of everything the LLM pass reads; unchanged means the previous result still holds.
-
-    Beyond the plan's report and student slice, it also covers the evidence and message ids:
-    the LLM reads those directly, so an upload that no agent reads must still trigger a pass.
-    """
+def digest(sources: list[Source]) -> str:
+    """Hash of the material the LLM compares: uploads, messages, student fields, facts and the
+    quotes agents cite. Source numbers and agents' own wording (finding titles and details) are
+    left out, so an agent rewording its finding does not make the Cross-checker run again."""
     return hash_slice(
         {
-            "reports": [
-                {
-                    "agent": name,
-                    "input_hash": report.input_hash,
-                    "findings": [finding.id for finding in report.findings],
-                    "facts": [[fact.key.value, fact.value] for fact in report.facts],
-                }
-                for name, report in reports.items()
-            ],
-            "listing": _dump(case.listing),
-            "landlord": _dump(case.landlord),
-            "evidence": [evidence.id for evidence in case.evidence if _readable(evidence)],
-            "messages": [message.id for message in case.messages],
+            "sources": [
+                [s.agent, s.evidence_id, s.kind, s.text] for s in sources if s.kind != "finding"
+            ]
         }
     )
 

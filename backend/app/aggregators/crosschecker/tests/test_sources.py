@@ -1,4 +1,4 @@
-"""Sources the LLM may quote, the budget, and the input hash (plan section 6)."""
+"""Sources the LLM may quote, the budget, and the digest that decides reruns."""
 
 from datetime import UTC, datetime
 
@@ -11,8 +11,8 @@ from app.aggregators.crosschecker.sources import (
     SourceKind,
     build_sources,
     collect,
+    digest,
     fit_budget,
-    input_hash,
     input_reports,
     quotable,
 )
@@ -300,7 +300,7 @@ def test_fit_budget_never_touches_finding_quote_fact_or_student() -> None:
     assert trimmed == 1
 
 
-# --- input_hash --------------------------------------------------------------------------------
+# --- digest ------------------------------------------------------------------------------------
 
 
 def _hash_case(**overrides: object) -> Case:
@@ -322,7 +322,7 @@ def _hash_case(**overrides: object) -> Case:
 
 
 def _digest(case: Case) -> str:
-    return input_hash(case, input_reports(case))
+    return digest(build_sources(case))
 
 
 def _with_report(report: AgentReport) -> Case:
@@ -330,17 +330,26 @@ def _with_report(report: AgentReport) -> Case:
     return case.model_copy(update={"reports": case.reports | {report.agent: report}})
 
 
-def test_input_hash_is_stable() -> None:
+def test_digest_is_stable() -> None:
     assert _digest(_hash_case()) == _digest(_hash_case())
 
 
-def test_input_hash_changes_with_each_input() -> None:
+def test_digest_changes_with_each_compared_input() -> None:
     base = _digest(_hash_case())
     contract = _hash_case().reports["contract_checker"]
     changed = [
-        _with_report(contract.model_copy(update={"input_hash": "h2"})),
         _with_report(
-            contract.model_copy(update={"findings": [_finding("contract_checker", "other")]})
+            contract.model_copy(
+                update={
+                    "findings": [
+                        _finding(
+                            "contract_checker",
+                            "utilities",
+                            refs=[EvidenceRef(evidence_id="ev_c", quote="£75")],
+                        )
+                    ]
+                }
+            )
         ),
         _with_report(
             contract.model_copy(
@@ -362,7 +371,22 @@ def test_input_hash_changes_with_each_input() -> None:
     assert len(set(digests)) == len(digests)
 
 
-def test_input_hash_ignores_unreadable_evidence_and_own_report() -> None:
+def test_digest_ignores_report_hashes_and_agents_own_wording() -> None:
+    """Action answers change an agent's input hash and may reword its finding: not our material."""
+    base = _digest(_hash_case())
+    contract = _hash_case().reports["contract_checker"]
+    reworded = contract.model_copy(
+        update={
+            "input_hash": "h2",
+            "findings": [
+                _finding("contract_checker", "other-slug", title="A different title entirely")
+            ],
+        }
+    )
+    assert _digest(_with_report(reworded)) == base
+
+
+def test_digest_ignores_unreadable_evidence_and_own_report() -> None:
     base = _digest(_hash_case())
     with_video = _hash_case(
         evidence=[

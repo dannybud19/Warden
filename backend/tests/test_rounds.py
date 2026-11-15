@@ -98,13 +98,6 @@ def test_not_run_reports_errors_and_not_run_notes() -> None:
     ]
 
 
-def test_changed_recap() -> None:
-    assert rounds.changed_recap(None, "Two sources disagree on the rent.") is not None
-    assert rounds.changed_recap("same", "same") is None
-    assert rounds.changed_recap("old", None) is None
-    assert rounds.changed_recap("old", "") is None
-
-
 def test_round_input_counts_and_rounds_scores() -> None:
     at = datetime(2026, 11, 14, tzinfo=UTC)
     open_action = Action(

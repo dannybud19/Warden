@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.aggregators.consultant.consultant import already_answered, propose_actions
-from app.aggregators.crosschecker import crosschecker
+from app.aggregators.crosschecker import crosschecker, disagreements
 from app.aggregators.listing_reader.reader import apply_details, read_listing, summary_message
 from app.aggregators.scoring.scoring import Weights, score
 from app.contracts import (
@@ -188,6 +188,8 @@ class CaseService:
         # What the next round message should mention about replies saved since the last analysis
         # started. In memory only: a restart loses at most one round's notes.
         self._notes: defaultdict[str, list[RoundNote]] = defaultdict(list)
+        # Cross-checker disagreements already relayed to the student, per case.
+        self._relayed: dict[str, list[Finding]] = {}
 
     async def _load(self, case_id: str, *, must_be_open: bool = False) -> Case:
         case = await self.repo.get(case_id)
@@ -555,15 +557,28 @@ class CaseService:
                 summary=previous.summary if previous else None,
             )
 
-    def _relayable_recap(self, previous: str | None, current: str | None) -> str | None:
-        """The recap to relay this round: changed, and within the student-facing rules."""
-        recap = rounds.changed_recap(previous, current)
-        if recap is None:
+    def _relayable_recap(
+        self, case_id: str, previous: AgentReport | None, cross: AgentReport
+    ) -> str | None:
+        """The recap to relay this round: only when it brings a disagreement not relayed before
+        (a reworded recap or a reordered set is not one), and within the student-facing rules.
+
+        What was relayed is kept in memory per case; after a restart it starts from the previous
+        report, whose recap is taken as relayed.
+        """
+        seen = self._relayed.get(case_id)
+        if seen is None:
+            seen = disagreements.of_report(previous) if previous and previous.summary else []
+            self._relayed[case_id] = seen
+        recap = cross.summary
+        fresh = disagreements.unseen(disagreements.of_report(cross), seen)
+        if not recap or not fresh:
             return None
         violations = composer.validate_recap(recap)
         if violations:
             self.ctx.log.warning("recap not relayed: %s", ", ".join(violations))
             return None
+        seen.extend(fresh)
         return recap
 
     async def _propose(self, case: Case, result: ScoreResult) -> list[Action] | None:
@@ -600,7 +615,7 @@ class CaseService:
             score_before = case.score_history[-1] if case.score_history else None
             states_before = {c.id: c.state for c in case.checks}
             previous = case.reports.get(crosschecker.NAME)
-            recap = self._relayable_recap(previous.summary if previous else None, cross.summary)
+            recap = self._relayable_recap(case_id, previous, cross)
 
             case.reports.update(new_reports)
             case.reports[crosschecker.NAME] = cross

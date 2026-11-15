@@ -150,11 +150,6 @@ def checked_lines(
     return lines
 
 
-def changed_recap(previous: str | None, current: str | None) -> str | None:
-    """The recap to send, or None when it is empty or the same as last time (decision 16)."""
-    return current if current and current != previous else None
-
-
 def grounding(case: Case) -> list[str]:
     """What the composer may use to answer a student's question: the case's own findings first
     (suspicious, medium or worse, most serious first, with their detail so it can say *how*,
