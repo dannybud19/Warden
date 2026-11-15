@@ -4,12 +4,15 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
-import { Maximize2, Phone, X } from "lucide-react";
+import { ChevronDown, Maximize2, MessageSquare, Phone, Plus, Trash2, X } from "lucide-react";
 import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { agentSummary, type AgentRow, type Mood, type Suggestion, type Tone } from "@/lib/present";
 import { AnimatedWarden } from "./AnimatedWarden";
 import { Mascot } from "./primitives";
 import { CaseCall, type CallContext } from "./CaseCall";
+import { threadTitle, threadWhen, type useThreads } from "@/lib/threads";
+
+type Threads = ReturnType<typeof useThreads>;
 
 // Right side of the one-home screen: who is working on it (Your team) and the chat with Warden.
 // The one thing Warden needs from the student lives in the main column (NextStep.tsx).
@@ -96,6 +99,103 @@ function TeamTile({ r, i, count }: { r: AgentRow; i: number; count: number }) {
   );
 }
 
+/** The conversations in this home, newest first. Used in the switcher menu and the expanded panel. */
+function ThreadList({ threads, onPick, compact = false }: { threads: Threads; onPick?: () => void; compact?: boolean }) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {threads.threads.map((t) => {
+        const on = t.id === threads.active?.id;
+        return (
+          <li key={t.id} className="group/row relative">
+            <button
+              type="button"
+              onClick={() => {
+                threads.open(t.id);
+                onPick?.();
+              }}
+              aria-current={on}
+              className={`flex w-full cursor-pointer items-start gap-2.5 rounded-[12px] px-2.5 py-2 text-left transition-colors ${on ? "bg-white shadow-tab" : "hover:bg-white/60"}`}
+            >
+              <span className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full ${t.kind === "call" ? "bg-mint text-teal" : "bg-field text-ink/60"}`}>
+                {t.kind === "call" ? <Phone size={12} /> : <MessageSquare size={12} />}
+              </span>
+              <span className="min-w-0 flex-1 pr-5">
+                <span className={`block truncate ${compact ? "text-[12.5px]" : "text-[13.5px]"} font-medium`}>{threadTitle(t)}</span>
+                <span className="block text-[11.5px] text-muted">
+                  {threadWhen(t)} · {t.messages.length} message{t.messages.length === 1 ? "" : "s"}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label={`Delete ${threadTitle(t)}`}
+              onClick={() => threads.remove(t.id)}
+              className="absolute right-1.5 top-2 hidden size-6 cursor-pointer items-center justify-center rounded-full text-ink/40 hover:bg-white hover:text-[#c4513b] group-hover/row:flex"
+            >
+              <Trash2 size={12} />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ThreadSwitcher({ threads }: { threads: Threads }) {
+  const [open, setOpen] = useState(false);
+  const current = threads.active ? threadTitle(threads.active) : "New chat";
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
+  return (
+    <div className="relative min-w-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex max-w-[210px] cursor-pointer items-center gap-1 rounded-full px-2 py-1 font-medium text-ink/75 hover:bg-white/70"
+      >
+        <span className="truncate">{current}</span>
+        {threads.threads.length > 1 && <span className="shrink-0 text-muted">· {threads.threads.length}</span>}
+        <motion.span animate={{ rotate: open ? 180 : 0 }} className="shrink-0"><ChevronDown size={14} /></motion.span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="absolute left-0 top-9 z-40 w-[300px] rounded-[16px] border border-line bg-[#f4fbfb] p-2 shadow-glass"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                threads.start("chat");
+                setOpen(false);
+              }}
+              className="mb-1 flex w-full cursor-pointer items-center gap-2 rounded-[12px] px-2.5 py-2 text-[13px] font-medium text-teal hover:bg-white"
+            >
+              <Plus size={15} /> New chat
+            </button>
+            {threads.threads.length ? (
+              <div className="max-h-[300px] overflow-y-auto">
+                <ThreadList threads={threads} onPick={() => setOpen(false)} compact />
+              </div>
+            ) : (
+              <p className="px-2.5 py-2 text-[12.5px] text-muted">No conversations yet.</p>
+            )}
+          </motion.div>
+        </>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   mood: Mood;
   rows: AgentRow[];
@@ -106,7 +206,8 @@ type Props = {
   onAsk: (q: Suggestion) => void;
   onSend: (text: string) => void;
   onUpload: (kind: EvidenceKind, file: File) => void;
-  onClearChat?: () => void;
+  /** Separate conversations in this home. */
+  threads?: Threads;
   /** Enables "Call Warden" for this home. */
   callContext?: CallContext;
   onCallLine?: (role: "student" | "orchestrator", text: string) => void;
@@ -161,7 +262,7 @@ export function AgentsRail(props: Props) {
 
       {expanded &&
         createPortal(
-          <ChatDrawer onClose={() => setExpanded(false)}>
+          <ChatDrawer onClose={() => setExpanded(false)} threads={props.threads}>
             <ChatPane {...props} roomy />
           </ChatDrawer>,
           document.body,
@@ -170,7 +271,7 @@ export function AgentsRail(props: Props) {
   );
 }
 
-function ChatDrawer({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+function ChatDrawer({ onClose, children, threads }: { onClose: () => void; children: React.ReactNode; threads?: Threads }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -183,7 +284,7 @@ function ChatDrawer({ onClose, children }: { onClose: () => void; children: Reac
         role="dialog"
         aria-modal="true"
         aria-label="Chat with Warden"
-        className="relative flex h-full w-[540px] max-w-full flex-col bg-[linear-gradient(to_bottom,#e3f4f5,#cdeaec)] px-5 pb-5 pt-4 shadow-glass"
+        className={`relative flex h-full ${threads ? "w-[780px]" : "w-[540px]"} max-w-full flex-col bg-[linear-gradient(to_bottom,#e3f4f5,#cdeaec)] px-5 pb-5 pt-4 shadow-glass`}
         initial={{ x: 60, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
@@ -195,7 +296,23 @@ function ChatDrawer({ onClose, children }: { onClose: () => void; children: Reac
             <X size={18} />
           </button>
         </div>
-        <div className="mt-2 flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="mt-3 flex min-h-0 flex-1 gap-4">
+          {threads && (
+            <nav aria-label="Conversations" className="flex w-[220px] shrink-0 flex-col border-r border-white/70 pr-3">
+              <button
+                type="button"
+                onClick={() => threads.start("chat")}
+                className="mb-2 flex cursor-pointer items-center gap-2 rounded-[12px] bg-white px-3 py-2 text-[13px] font-medium text-teal shadow-tab hover:bg-[#f4fbfb]"
+              >
+                <Plus size={15} /> New chat
+              </button>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <ThreadList threads={threads} />
+              </div>
+            </nav>
+          )}
+          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -203,7 +320,7 @@ function ChatDrawer({ onClose, children }: { onClose: () => void; children: Reac
 
 /** The conversation: history that fills the space, suggestions, and the message box or call bar. */
 function ChatPane({
-  chat, busy, canReply, closed, onAsk, onSend, onUpload, onClearChat, callContext, onCallLine, onAnswer, onExpand, roomy = false,
+  chat, busy, canReply, closed, onAsk, onSend, onUpload, threads, callContext, onCallLine, onAnswer, onExpand, roomy = false,
 }: Props & { onExpand?: () => void; roomy?: boolean }) {
   const [text, setText] = useState("");
   const [inCall, setInCall] = useState(false);
@@ -228,10 +345,19 @@ function ChatPane({
   return (
     <div className="rail-grow flex min-h-0 flex-1 flex-col">
       <div className="mt-2.5 flex items-center justify-between px-1 text-[12px]">
-        <span className="font-medium text-ink/70">Chat{chat.length ? ` · ${chat.length}` : ""}</span>
-        <span className="flex items-center gap-3">
-          {onClearChat && chat.length > 0 && (
-            <button type="button" onClick={onClearChat} className="cursor-pointer text-ink/50 hover:text-ink">Clear</button>
+        {threads && !roomy ? <ThreadSwitcher threads={threads} /> : <span className="font-medium text-ink/70">{threads?.active ? threadTitle(threads.active) : "Chat"}</span>}
+        <span className="flex items-center gap-1.5">
+          {threads && !roomy && (
+            <button
+              type="button"
+              onClick={() => threads.start("chat")}
+              disabled={inCall}
+              aria-label="New chat"
+              title="New chat"
+              className="flex size-7 cursor-pointer items-center justify-center rounded-full text-ink/55 hover:bg-white/70 hover:text-teal disabled:opacity-40"
+            >
+              <Plus size={15} />
+            </button>
           )}
           {onExpand && (
             <button
@@ -334,7 +460,10 @@ function ChatPane({
             {callContext && (
               <motion.button
                 type="button"
-                onClick={() => setInCall(true)}
+                onClick={() => {
+                  threads?.start("call");
+                  setInCall(true);
+                }}
                 aria-label="Call Warden about this home"
                 title="Call Warden"
                 whileHover={{ scale: 1.06 }}

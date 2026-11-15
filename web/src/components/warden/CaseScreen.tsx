@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { motion } from "motion/react";
 import { useCase } from "@/lib/useCase";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { isDecided, openActions } from "@/lib/selectors";
 import { rememberCase, shortAddress } from "@/lib/homes";
-import { useLocalJSON } from "@/lib/localStore";
+import { useThreads } from "@/lib/threads";
 import { DEMO_CASE_ID } from "@/lib/demo";
 import { agentRows, answerSuggestion, mood, redFlags, type Suggestion } from "@/lib/present";
 import type { ChatEntry, EvidenceKind } from "@/lib/types";
@@ -29,9 +29,8 @@ function studentName(): string {
 /** Figma "V4 · One home": left is the dashboard (facts + your decision), right is the agents. */
 export function CaseScreen({ caseId }: { caseId: string }) {
   const { state, upload, sendReply } = useCase(caseId);
-  const [local, setLocal] = useState<ChatEntry[]>([]);
-  // messages from before the last Clear stay hidden even though the live stream still holds them
-  const [cleared, setCleared] = useState(0);
+  // separate conversations with Warden in this home
+  const convo = useThreads(caseId);
   const c = state.caseData;
 
   useEffect(() => {
@@ -54,23 +53,15 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     return { rows, open: openActions(c), mood: mood(c, working), flags: redFlags(c) };
   }, [c, state.agentStatus, state.busy]);
 
-  // The conversation is saved per home in this browser, so history survives a reload.
-  const [saved, setSaved] = useLocalJSON<ChatEntry[]>(`warden.chat.${caseId}`, []);
-  const chat = useMemo(() => {
-    const seen = new Set<string>();
-    return [...saved, ...state.chat, ...local]
-      .filter((m) => Date.parse(m.at) > cleared)
-      .filter((m) => {
-        const k = `${m.role}|${m.at}|${m.text}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      })
-      .sort((a, b) => a.at.localeCompare(b.at));
-  }, [saved, state.chat, local, cleared]);
+  // Live messages (your replies and Warden's answers over the stream) join the open conversation.
+  const seen = useRef(0);
+  const { append } = convo;
   useEffect(() => {
-    if (chat.length > saved.length) setSaved(chat.slice(-60));
-  }, [chat, saved.length, setSaved]);
+    if (state.chat.length <= seen.current) return;
+    append(state.chat.slice(seen.current));
+    seen.current = state.chat.length;
+  }, [state.chat, append]);
+  const chat: ChatEntry[] = convo.active?.messages ?? [];
 
   if (!c || !view) {
     return (
@@ -115,8 +106,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   function ask(q: Suggestion) {
     if (!c) return;
     const at = new Date().toISOString();
-    setLocal((l) => [
-      ...l,
+    convo.append([
       { role: "student", text: q, at },
       { role: "orchestrator", text: answerSuggestion(c, q), at: new Date(Date.parse(at) + 1).toISOString() },
     ]);
@@ -161,12 +151,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               onSend={(text) => void sendReply({ text })}
               onUpload={onUpload}
               callContext={callContext}
-              onCallLine={(role, text) => setLocal((l) => [...l, { role, text, at: new Date().toISOString() }])}
-              onClearChat={() => {
-                setLocal([]);
-                setSaved([]);
-                setCleared(Date.now());
-              }}
+              onCallLine={(role, text) => convo.append([{ role, text, at: new Date().toISOString() }])}
+              threads={convo}
             />
           </div>
         </div>
