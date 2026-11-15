@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { MotionProvider } from "@/components/warden/MotionProvider";
 import { ProductChrome } from "@/components/warden/ProductChrome";
+import { UploadProvider } from "@/components/warden/UploadProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,7 +31,7 @@ export default function ProductLayout({ children }: { children: React.ReactNode 
     <html lang="en" className={`${inter.variable} ${generalSans.variable}`}>
       <body className="font-sans text-ink">
         <MotionProvider>
-          <ProductChrome>{children}</ProductChrome>
+          <UploadProvider><ProductChrome>{children}</ProductChrome></UploadProvider>
         </MotionProvider>
       </body>
     </html>

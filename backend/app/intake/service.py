@@ -15,7 +15,7 @@ from app.contracts import Case, Evidence, EvidenceKind, Message
 from app.core.ids import new_id
 from app.core.llm import LLMClient
 from app.core.logging import get_logger
-from app.intake import audio, docx, images, ocr, pdf, transcript, whatsapp, zip_export
+from app.intake import audio, docx, email_pdf, images, ocr, pdf, transcript, whatsapp, zip_export
 from app.intake.redact import mask_sensitive
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / ".uploads"  # backend/.uploads, gitignored
@@ -47,6 +47,18 @@ async def _document_text(data: bytes) -> str:
     if docx.is_docx(data):
         return docx.extract_text(data)
     return _decode(data)
+
+
+async def _email_text(data: bytes, llm: LLMClient | None) -> str:
+    """Extract a PDF email without passing binary PDF source to message checkers."""
+    if not data.startswith(b"%PDF"):
+        return _decode(data)
+    try:
+        return await email_pdf.read(data, llm)
+    except ocr.OCRError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - corrupt or encrypted PDFs need a readable explanation
+        raise ocr.OCRError(pdf.UNREADABLE) from exc
 
 
 async def _chat_text(
@@ -128,7 +140,7 @@ async def _extract_parts(
             return None, []
         return await _read_image(kind, data, evidence_id, student_name, llm)
     try:
-        return await _read_file(kind, data, evidence_id, student_name)
+        return await _read_file(kind, data, evidence_id, student_name, llm)
     except (ocr.OCRError, NotImplementedError):
         raise
     except Exception as exc:  # noqa: BLE001 - a corrupt PDF or Word file must not fail the request
@@ -137,7 +149,11 @@ async def _extract_parts(
 
 
 async def _read_file(
-    kind: EvidenceKind, data: bytes, evidence_id: str, student_name: str | None
+    kind: EvidenceKind,
+    data: bytes,
+    evidence_id: str,
+    student_name: str | None,
+    llm: LLMClient | None,
 ) -> tuple[str, list[Message]]:
     """Text and messages for anything that is not an image (PDF, Word, zip or plain text)."""
     match kind:
@@ -145,7 +161,7 @@ async def _read_file(
             # NOTE: text sent as a screenshot is read as a chat export (a wrong pick is common).
             return await _chat_text(data, evidence_id, student_name)
         case EvidenceKind.EMAIL:
-            text = _decode(data)
+            text = await _email_text(data, llm)
             return text, [_single_message(text, evidence_id, "email", "agent")]
         case _:  # contract, document, listing
             return await _document_text(data), []

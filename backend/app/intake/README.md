@@ -23,7 +23,7 @@ Images are recognised by their magic bytes, never by the filename (`images.kind_
 | `chat_screenshot` | `ocr.read_chat`: a transcript in `extracted_text` and one `Message` per bubble | Read as a chat export, as below (students sometimes pick the wrong kind) |
 | `chat_export` | `ocr.read_chat` (a screenshot uploaded as "chats"); stored as `chat_screenshot` | WhatsApp `.zip` export: the chat `.txt` inside (`zip_export`); a PDF or Word file: its text; else the WhatsApp `.txt` parser. Text that isn't a WhatsApp export becomes one message |
 | `contract`, `document`, `listing` | `ocr.read_document`: the verbatim text, no messages | PDF text, Word `.docx` text, or UTF-8 text |
-| `email` | `ocr.read_document`, then one email message (sender `agent`) on that text | UTF-8 text as one email message |
+| `email` | `ocr.read_document`, then one email message (sender `agent`) on that text | PDF: per-page text extraction, OCR for pages without text; otherwise UTF-8 text as one email message |
 | `call_recording` | Unchanged: `audio.transcribe` (stub) | Same |
 | `video` | Unchanged: no text | Same |
 
@@ -50,6 +50,38 @@ on invalid JSON, 40 s timeout per call.
   earlier `chat_screenshot` is not added again, so overlapping screenshots don't double-count. The
   transcript of each screenshot keeps everything. Messages from text exports are never deduped.
   Images uploaded as `chat_export` are stored as `chat_screenshot`, so they are deduped too.
+
+### Email PDFs
+
+`email_pdf.py` reads selectable text without an LLM call. Pages with no extractable text are rendered
+by `pdf_render.py` and read with the existing document vision prompt; mixed PDFs preserve page order.
+Entirely blank separator pages are skipped. If any nonblank scanned page fails, no partial email text
+is sent to checkers: the attachment is saved as unreadable with a retry explanation. Successful text
+is masked before it becomes evidence or messages. OCR uses the configured LLM and its normal charges.
+
+**Dependency update for Danny/team:** `pypdfium2` and `Pillow` were added to `backend/pyproject.toml`
+and `backend/uv.lock`; run `uv sync` from `backend/` before restarting the API. PDF parsing/rendering
+runs in a separate bounded child process because [PDFium is not thread-safe](https://pypdfium2.readthedocs.io/en/stable/python_api.html#incompatibility-with-threading).
+The child reads bytes over stdin and returns text/JPEGs over stdout; it creates no temporary PDF files.
+Rendering is limited to 15 seconds; OCR has a shared 100-second deadline. Limits: 10 MiB, 20 pages,
+at most 5 nonblank pages needing OCR, and 200,000 selectable-text characters. Password-protected PDFs
+are rejected with an explanation. Rendered pages are at most 1,800 pixels on their longest side.
+This OCR addition applies to email PDFs; other PDF intake paths retain their existing behavior.
+
+### Upload receipts and initial attachments
+
+The original `add_evidence -> Case` API remains. `accept_evidence -> UploadResult` also reports
+`evidence_id` and `read_error`: HTTP success means the upload was saved, not necessarily read.
+The web sends a UUID `request_id`; retries of identical bytes reuse the saved evidence, including after
+a lost response followed by a final decision. `retry_read=true` reruns an unreadable extraction in place,
+without duplicating its evidence or messages. Every web retry requires selecting the same file again.
+
+New-case files are reserved before checks start. Their manifest is stored beside Case, atomically with
+its evidence updates; normal Mongo case saves preserve it. Every initial file must be read successfully
+(or stored, for currently unsupported audio/video) or explicitly skipped using **Continue without this
+file** before any final decision. Failed reads keep that hold. Mongo preserves it across API restarts;
+memory storage, like its cases, is lost on restart. Skipping never clears a check. A queued rerun also
+prevents an older analysis from deciding before newly arrived evidence has been assessed.
 
 ## Limits
 
@@ -78,6 +110,9 @@ no messages, no analysis is started (nothing new to read), and the orchestrator 
 | `timeout` | Reading that image took too long. Please try again in a moment. |
 | `llm_error` (provider error, or an invalid reply twice) | I couldn't read that image right now. Please try again in a moment. |
 | `zip` | Couldn't find the chat text in that zip. Export the chat again "Without media". |
+| `pdf_unreadable` | Could not read the email PDF: use selectable text, paste the email, or upload screenshots. |
+| `pdf_ocr_failed` | Could not read every scanned page: retry or supply clearer pages; no partial email was analysed. |
+| `pdf_limit` | PDF exceeds reading limits or is password protected: use a smaller unlocked PDF or paste the email. |
 
 ## Run it alone
 
@@ -87,3 +122,5 @@ cd backend && uv run pytest -q tests/test_ocr.py tests/test_images.py tests/test
 ```
 
 Synthetic screenshots for a live check are in `backend/tests/data/screenshots/` (fake names only).
+Email PDF/initial-upload regressions: `tests/test_email_pdf_uploads.py`, `tests/test_initial_uploads.py`,
+`tests/test_upload_receipts.py`, and `tests/test_upload_storage.py`. Vision is faked; PDF rendering is real.

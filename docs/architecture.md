@@ -139,6 +139,9 @@ Warden/
 
 1. `open_case(student, listing, landlord) -> Case`: all 8 checks UNVERIFIED, first ScoreResult = 100.
    If the landlord has a company name or number, the agency check starts at once in the background.
+   Optional `initial_uploads` reserves the wizard's file list before any check starts. Its progress
+   is stored beside Case (not in the frozen shared schema), atomically with evidence updates. Pending
+   files block all final decisions until accepted or explicitly skipped; failed reads remain pending.
 2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages and saves them, returns the
    Case, then analyses in the background.
 
@@ -193,6 +196,8 @@ Warden/
    analysis.
 5. `decide(case_id)` (also `POST /cases/{id}/decide`, the student's final say): waits for a running
    analysis, then `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
+   Returns 409 while initial attachments are pending. Automatic decisions wait too, including hard flags.
+   A queued rerun prevents an older analysis from deciding before newer evidence has been assessed.
 
 Scoring formula (team doc): `score = 100 * sum(w_i * s_i) / sum(w_i)`, with s = 1 for UNVERIFIED or
 SUSPICIOUS and s = 1 - clear_confidence for CLEARED. Weights in `aggregators/scoring/weights.yaml`:
@@ -238,8 +243,10 @@ API (`api/`):
 
 | Method | Path | Body / returns |
 | --- | --- | --- |
-| POST | /cases | `{student, listing?, landlord?}` -> Case |
-| POST | /cases/{id}/evidence | multipart file + kind + note -> Case |
+| POST | /cases | `{student, listing?, landlord?, initial_uploads?}` -> Case |
+| POST | /cases/{id}/evidence | multipart file + kind + note -> Case; `?include_receipt=true` returns `{case, evidence_id, read_error}` |
+| GET | /cases/{id}/uploads | Initial attachment manifest with pending/accepted/skipped state |
+| POST | /cases/{id}/uploads/{request_id}/skip | Explicitly continue without this initial file; returns manifest |
 | POST | /cases/{id}/messages | `{text, evidence_ids?, action_id?, status?}` -> Case (`status` without `action_id`: 422) |
 | POST | /cases/{id}/decide | Case: decide now on what is verified so far (waits for a running analysis; 409 once decided) |
 | GET | /cases/{id} | Case |
@@ -258,6 +265,11 @@ API (`api/`):
   to `conversation.parse`.
 - `POST /cases/{id}/evidence`: multipart fields `file` (optional), `text` (optional, for pasted
   email), `kind`, `note`, `student_name`. Exactly one of `file` and `text` is required (422 otherwise).
+  Optional UUID `request_id` makes identical retries idempotent, even after closure; `retry_read=true`
+  reruns an unreadable extraction in place. Read failures appear in `read_error` even with HTTP 200.
+  `initial_uploads` contains `{request_id, filename, kind, size, note?}` (max 20, unique UUIDs).
+  The server persists state, evidence id and read error; skip never clears a check. Existing API clients
+  without a manifest or receipt opt-in retain the original request/response behavior.
 - `WS /cases/{id}/stream`: on connect, send a `score_updated` with the latest score, then forward bus
   events as `event.model_dump_json()` until disconnect, then unsubscribe.
 - Errors: unknown case gives 404, decided case gives 409, validation gives 422.
@@ -280,9 +292,13 @@ in `web/README.md`. Image requests include a selection version (`v=2`) to avoid 
 portal logo from the browser's one-hour cache when image-selection rules change.
 
 Evidence controls are disabled while an upload/reply request is running and after a final decision;
-the API rejects uploads to decided cases with 409. New-case uploads currently run without waiting and
-discard errors. Email PDFs are selectable but their bytes are decoded as text instead of extracted.
-See `web/UPLOAD_VERIFICATION.md` for the verified limitations and test scope.
+the page now explains why. New files on decided cases receive 409; retries can recover existing receipts.
+The shared upload queue shows each filename, retains successful uploads, and always requires fresh file
+selection for retry. Initial files are reserved before case creation returns; failed files keep the
+case open until retry or explicit skip, with status restored from the server after reload.
+Email PDFs use per-page text extraction plus vision OCR for nonblank pages with no text layer. Failed
+pages prevent partial text from reaching checkers. PDFium/Pillow rendering runs in a child process with
+size/page/deadline limits; see the intake README and `web/UPLOAD_VERIFICATION.md` for details and tests.
 
 Contract uploads on an open case are appended as distinct evidence, each with `uploaded_at` in UTC.
 The contract-checker adapter currently requires exactly one readable contract; two contracts produce

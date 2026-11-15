@@ -1,77 +1,69 @@
-# Upload verification — 15 November 2026
+# Upload recovery and email PDFs — 15 November 2026
 
-Checked on `fix/bill-upload-verification`, based on `main` at `935552b`.
-The original screenshot's case URL was unavailable, and browser automation reported
-“The browser access host is unavailable”. These results combine production-component rendering,
-offline API requests and source inspection; they do not establish that the native file picker works
-in the teammate's browser.
+Implemented on `fix/bill-upload-recovery`, based on `main` at `878bd51`.
 
-## Finding
+## What was wrong, with examples
 
-There is no blanket failure to add files to open cases. The screenshot shows all Add/Paste buttons
-disabled. `CaseScreen.tsx` passes `closed || state.busy` to `EvidencePanel`: uploads are disabled
-after a final decision and while a request is running. The API independently rejects decided-case
-uploads with HTTP 409. The exact screenshot could therefore be a closed case or an in-flight request;
-its cause cannot be confirmed without the case state. The panel does not explain this restriction.
+- **Silently hidden:** New case started each upload and discarded errors. If `chat.txt` succeeded
+  but `contract.pdf` failed, the case opened without saying the contract was missing or offering retry.
+- **Incorrectly read:** Email PDFs were decoded as UTF-8 bytes. The checker received
+  `%PDF-1.7…` and PDF instructions instead of “Your viewing is confirmed for Tuesday.” HTTP 200
+  only meant that the evidence record had been saved.
+- **Temporarily disabled:** while a screenshot upload waits for OCR, Add/Paste controls are disabled
+  until that request finishes. A final decision also disables uploads, permanently for that case.
+  The page now explains which condition applies.
 
-Rendering the actual `EvidencePanel` through React's server renderer produced:
+## Result
 
-| State | Enabled Add/Paste controls | Disabled controls |
-| --- | ---: | ---: |
-| New open case | 8 | 0 |
-| Existing open case with evidence | 8 | 0 |
-| Decided case | 0 | 8 |
-| Upload in progress | 0 | 8 |
+The New case wizard registers its initial files before checks start. Both new and existing cases use
+a shared upload queue, showing every filename and progress on the case page. Successful uploads stay
+saved when another file fails. **Retry — select file** always requires selecting the original file
+again; files are never retained for an automatic retry. Browser session storage holds metadata only.
 
-The new-case wizard uses separate labelled file inputs. It retains one file per category, creates the
-case, then starts the uploads and navigates to the case screen. Its upload requests use the same API
-as the existing-case panel.
+Each initial attachment keeps the case open until it is successfully read or the student explicitly
+chooses **Continue without this file**. Unreadable files retain the hold. Skipping never clears a check.
+The backend stores this manifest beside the shared Case, without changing the frozen contracts. Mongo
+preserves it across API restarts; memory storage remains temporary like its cases. The case page reloads
+server progress and can recover a lost upload response without sending the file again. Older analyses
+also wait for queued reruns before deciding, so the last attachment is assessed first.
 
-## Defects that remain
+Email PDFs now use selectable text and OCR for pages without a text layer, preserving page order.
+If a nonblank scanned page fails, the whole file is marked unreadable rather than analysing a partial
+email. Extracted/OCR text is masked before it reaches checkers. The original Case-only upload response
+remains available; the UI opts into a receipt with `evidence_id` and `read_error`. Identical retries do
+not duplicate evidence, and an explicitly retried failed extraction updates that evidence in place.
 
-1. **New-case upload errors are hidden.** `Onboarding.tsx` launches each upload without waiting and
-   ends every request with `.catch(() => {})`. A failed request has no retry or visible error. This
-   includes HTTP 409 if an early decision closes the case before another initial file is attached.
-   The backend already tests rejection when a case closes during image extraction. Source inspection
-   establishes the missing error handling; the wizard's complete browser flow was not exercised.
-2. **Email PDFs are not extracted.** Both screens advertise PDF under Emails, but
-   `backend/app/intake/service.py::_read_file` decodes email bytes as UTF-8. A real synthetic PDF was
-   accepted with HTTP 200 and its raw `%PDF` content saved as email text on both new and existing cases.
-   The same PDF uploaded as a contract or document was extracted correctly. This needs an intake fix.
-3. **Disabled controls have no explanation.** The screenshot is consistent with existing case-locking
-   behaviour. Showing the reason is a UI improvement; accepting new evidence after a final decision
-   would require a separate product decision and backend change.
+## Limits and setup
 
-No upload behaviour or case-closing policy was changed during this verification.
+- Team dependency update: **PDFium (`pypdfium2`) and Pillow** were added to the backend manifest and
+  lockfile. Run `uv sync` from `backend/`, then restart the API. No new API key is needed: OCR uses the
+  existing vision client and incurs its normal provider charges. Text-only PDFs need no LLM call.
+- Email PDFs: 10 MiB, 20 pages, at most 5 nonblank scanned pages, 200,000 text characters. Password-
+  protected files need an unlocked copy. PDF parsing/rendering has a 15-second process deadline;
+  OCR shares a 100-second deadline. Pages render at up to 1,800 pixels on their longest side.
+- The new PDF OCR is for **Emails**. Contract/document PDF extraction and the one-readable-contract
+  limitation are unchanged. Audio/video uploads say they are stored without claiming analysis.
+- A retry uses the original filename and size. For a different/smaller file, **add the replacement
+  first** using Add more while the case is held open, then continue without the original file.
 
-## Checks performed
+## Verification
 
-- **76 existing API/intake tests passed**, covering file uploads, Word, images, zip exports, failures,
-  background extraction and decided-case rejection. All ran offline.
-- **32 additional offline multipart requests:** 16 file/kind combinations on a fresh case and on a
-  case already containing chat evidence. All 32 were stored. Of 30 text/image requests, 28 yielded the
-  expected extracted text and the two email PDFs failed extraction. The two video requests stored
-  bytes without analysis, as expected for the current stub. No LLM quality or video decoding was tested.
-- Formats: Chats `.txt`, `.zip`, PNG; Emails `.txt`, simple `.eml`, PNG, PDF; Contract and Document
-  PDF, `.docx`, `.txt`, PNG; Video synthetic MP4 bytes. Images used `FakeLLM`, search was fake, HTTP used
-  `MockTransport`, storage was in memory, and raw files used a temporary directory. No real cases changed.
-- **31 frontend tests, TypeScript checking and the production build passed** after the photo-cache
-  fix. Lint reported no errors and one pre-existing unused-disable warning in generated contracts.
+**1,408 backend tests passed; 4 optional Mongo integration tests skipped. 46 frontend tests passed.**
+Ruff, formatting, Pyright, all three import rules, TypeScript and the production build passed.
+Frontend lint has no errors and one pre-existing unused-disable warning in generated contract types.
 
-Repeat the existing backend checks from `backend/`:
+New regressions cover text/scanned/mixed PDFs, real PDF rendering with fake vision, OCR failure and
+timeout, blank pages, size/page limits, redaction, partial upload failure, mandatory reselection,
+lost-response deduplication, reload recovery, explicit skip, decision holds, stale-analysis races,
+and offline Mongo document persistence. The production attachment panel is rendered in a test to
+check filenames, failure labels, file inputs and skip controls. No live API spend was used for these tests.
 
-```powershell
-..\.venv\Scripts\python.exe -X utf8 -m pytest -q tests/test_api.py tests/test_intake_documents.py tests/test_intake_images.py tests/test_service_ocr.py tests/test_images.py tests/test_zip_export.py
-```
+Browser automation still reports “The browser access host is unavailable”; the teammate's original
+case URL is unavailable too. The native picker and complete browser wizard have **not** been exercised.
+Manual check: attach a chat and PDF in New case, inspect both outcomes, interrupt one upload, reload,
+then reselect it or explicitly skip it. On an existing open case, upload both selectable and scanned
+email PDFs. Confirm that Add/Paste re-enables after completion and failures remain visible.
 
-Remaining manual check: open a new case and an existing **open** case; click each Add control, choose
-a supported file, and verify it appears in the evidence list. Repeat on a decided case to confirm
-the disabled state. A closed case cannot be used to diagnose a file-picker fault.
-
-## OpenRent logo
-
-The current local photo endpoint returned a 71,117-byte JPEG matching the property's declared photo
-byte for byte. The generic OpenRent share graphic was excluded. Successful responses have a one-hour
-browser cache lifetime, so an earlier logo can survive a server-side correction. This branch adds
-`v=2` to the image request URL to bypass that stale entry on the next page load. The exact browser cache
-was not inspectable, so caching is the likely explanation rather than a directly observed cache hit.
+The earlier audit found the existing open-case Add/Paste controls enabled (8/8), disabled during a
+request or after a final decision (8/8), and email-PDF failures on both entry points. The OpenRent photo
+cache fix (`v=2`) from that audit remains unchanged.

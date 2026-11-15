@@ -15,7 +15,12 @@ from app.core.settings import Settings, get_settings
 from app.orchestrator.conversation import InvalidActionError
 from app.orchestrator.events import EventBus
 from app.orchestrator.registry import build_agents
-from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService
+from app.orchestrator.service import (
+    CaseClosedError,
+    CaseNotFoundError,
+    CaseService,
+    UploadConflictError,
+)
 from app.storage.memory import InMemoryCaseRepo
 from app.storage.mongo import MongoCaseRepo
 from app.storage.repository import CaseRepository
@@ -83,6 +88,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.exception_handler(InvalidActionError)
     async def _bad_action(_: Request, exc: InvalidActionError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+    @app.exception_handler(UploadConflictError)
+    async def _upload_conflict(_: Request, exc: UploadConflictError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": str(exc)})
 
     app.include_router(routes_cases.router)
     app.include_router(routes_stream.router)

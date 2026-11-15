@@ -1,6 +1,7 @@
 import { API_URL, USE_MOCK } from "./config";
 import * as mock from "./mock";
 import * as demo from "./demo";
+import type { InitialUpload, InitialUploadRequest, UploadReceipt } from "./uploadQueue";
 import type {
   Case, Decision, EvidenceKind, StreamEvent, ConnectionState, ActionStatusInput,
 } from "./types";
@@ -30,6 +31,7 @@ export interface OpenCaseInput {
   student: { university?: string; notes?: string; budget_pcm?: number };
   listing?: { url?: string; platform?: string; address?: string; postcode?: string; rent_pcm?: number; deposit?: number };
   landlord?: { name?: string; company_name?: string; company_number?: string };
+  initial_uploads?: InitialUploadRequest[];
 }
 
 export interface UploadInput {
@@ -38,6 +40,8 @@ export interface UploadInput {
   text?: string;
   note?: string;
   studentName: string;
+  requestId?: string;
+  retryRead?: boolean;
 }
 
 export interface ReplyInput {
@@ -62,6 +66,16 @@ export async function getCase(caseId: string): Promise<Case> {
   return request<Case>(`/cases/${caseId}`);
 }
 
+export async function getInitialUploads(caseId: string): Promise<InitialUpload[]> {
+  if (USE_MOCK || caseId === demo.DEMO_CASE_ID) return [];
+  return request<InitialUpload[]>(`/cases/${caseId}/uploads`);
+}
+
+export async function skipInitialUpload(caseId: string, requestId: string): Promise<InitialUpload[]> {
+  if (USE_MOCK || caseId === demo.DEMO_CASE_ID) return [];
+  return request<InitialUpload[]>(`/cases/${caseId}/uploads/${requestId}/skip`, { method: "POST" });
+}
+
 export async function getDecision(caseId: string): Promise<Decision | null> {
   if (caseId === demo.DEMO_CASE_ID) return demo.getCase().decision ?? null;
   if (USE_MOCK) return mock.getCase().decision ?? null;
@@ -76,13 +90,30 @@ export async function getDecision(caseId: string): Promise<Decision | null> {
 export async function uploadEvidence(caseId: string, input: UploadInput): Promise<Case> {
   if (caseId === demo.DEMO_CASE_ID) return demo.upload(input.kind, input.file?.name ?? null, input.note ?? null);
   if (USE_MOCK) return mock.getCase();
+  return request<Case>(`/cases/${caseId}/evidence`, { method: "POST", body: uploadForm(input) });
+}
+
+function uploadForm(input: UploadInput): FormData {
   const form = new FormData();
   form.append("kind", input.kind);
   form.append("student_name", input.studentName);
   if (input.file) form.append("file", input.file);
   if (input.text) form.append("text", input.text);
   if (input.note) form.append("note", input.note);
-  return request<Case>(`/cases/${caseId}/evidence`, { method: "POST", body: form });
+  if (input.requestId) form.append("request_id", input.requestId);
+  if (input.retryRead) form.append("retry_read", "true");
+  return form;
+}
+
+/** A file may be saved but unreadable; keep that distinct from a successful read. */
+export async function uploadEvidenceReceipt(caseId: string, input: UploadInput): Promise<UploadReceipt> {
+  if (USE_MOCK || caseId === demo.DEMO_CASE_ID) {
+    const c = await uploadEvidence(caseId, input);
+    return { case: c, evidence_id: c.evidence.at(-1)?.id ?? "demo", read_error: null };
+  }
+  return request<UploadReceipt>(`/cases/${caseId}/evidence?include_receipt=true`, {
+    method: "POST", body: uploadForm(input), signal: AbortSignal.timeout(150_000),
+  });
 }
 
 export async function reply(caseId: string, input: ReplyInput): Promise<Case> {

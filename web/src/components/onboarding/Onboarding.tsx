@@ -8,6 +8,8 @@ import { PAYMENT_NOTE } from "@/lib/evidence";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { rememberCase } from "@/lib/homes";
 import { writeLocal } from "@/lib/localStore";
+import { useUploadQueue } from "@/components/warden/UploadProvider";
+import { prepareInitialUploads } from "@/lib/uploadQueue";
 import type { EvidenceKind } from "@/lib/types";
 import {
   startWardenOnboarding, type CaseAnswers, type OnboardingFiles, type ProfileAnswers, type UploadKey,
@@ -86,6 +88,7 @@ function rentNumber(v: string): number | undefined {
 /** "onboarding": get to know the student, then show the empty dashboard. "newcase": check one place. */
 export default function Onboarding({ mode = "onboarding" }: { mode?: "onboarding" | "newcase" }) {
   const router = useRouter();
+  const uploads = useUploadQueue();
   const rootRef = useRef<HTMLDivElement>(null);
   // The panel glides to its new height between steps instead of jumping.
   const innerRef = useRef<HTMLDivElement>(null);
@@ -111,7 +114,12 @@ export default function Onboarding({ mode = "onboarding" }: { mode?: "onboarding
 
     async function finishCase(a: CaseAnswers, files: OnboardingFiles) {
       const profile = readProfile();
+      const studentName = (profile.name ?? readName()).split(/\s+/)[0] || "student";
+      const prepared = prepareInitialUploads((Object.entries(files) as [UploadKey, File][]).map(([k, f]) => ({
+        kind: FILE_KIND[k](f), file: f, studentName, note: k === "payment" ? PAYMENT_NOTE : undefined,
+      })));
       const c = await api.openCase({
+        initial_uploads: prepared.manifest,
         student: { notes: notesFrom(profile, a) },
         listing: {
           url: a.listingUrl || undefined,
@@ -128,11 +136,8 @@ export default function Onboarding({ mode = "onboarding" }: { mode?: "onboarding
       });
       if (!c.case_id) throw new Error("no case id");
       rememberCase(c.case_id);
-      // Uploads run on after we navigate: the case page shows each agent's check land live.
-      const studentName = (profile.name ?? readName()).split(/\s+/)[0] || "student";
-      for (const [k, f] of Object.entries(files) as [UploadKey, File][]) {
-        void api.uploadEvidence(c.case_id, { kind: FILE_KIND[k](f), file: f, studentName, note: k === "payment" ? PAYMENT_NOTE : undefined }).catch(() => {});
-      }
+      // The layout owns the queue, so progress and errors survive navigation to the case page.
+      uploads.add(c.case_id, prepared.inputs, true);
       router.push(`/case/${c.case_id}`);
     }
 
@@ -153,7 +158,7 @@ export default function Onboarding({ mode = "onboarding" }: { mode?: "onboarding
       cancelled = true;
       stop?.();
     };
-  }, [router, mode]);
+  }, [router, mode, uploads]);
 
   return (
     <div className="wd-onb" data-mood="calm" ref={rootRef}>

@@ -1,8 +1,9 @@
 """CaseService: the use cases the API calls. Every state change is saved, then published."""
 
 import asyncio
+import hashlib
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 
 from app.aggregators.consultant.consultant import already_answered, propose_actions
@@ -33,7 +34,7 @@ from app.contracts import (
 )
 from app.core.agent import AgentContext, BaseAgent
 from app.core.ids import new_id
-from app.intake import images, ocr
+from app.intake import email_pdf, images, ocr, pdf
 from app.intake.service import attach, extract
 from app.orchestrator import checks as checks_mod
 from app.orchestrator import (
@@ -49,7 +50,7 @@ from app.orchestrator import (
 from app.orchestrator.composer import RoundNote
 from app.orchestrator.events import EventBus
 from app.orchestrator.runner import run_agents
-from app.storage.repository import CaseRepository
+from app.storage.repository import CaseRepository, InitialUpload
 
 # NOTE: the LLM steps of a round get their own deadlines, because the LLM client's default
 # timeout is minutes and a hung call would hold the analysis lock for that long.
@@ -69,6 +70,18 @@ FAILED_ANALYSIS_TEXT = (
 
 # What the student is told when an upload could not be read (keys: intake OCRError reasons).
 _READ_FAILURES = {
+    email_pdf.OCR_FAILED: (
+        "I couldn't read every scanned page in that email PDF. Retry the file, upload a clearer "
+        "PDF or screenshots, or paste the email. No partial email was analysed."
+    ),
+    email_pdf.LIMIT: (
+        "That email PDF exceeds the reading limits (10 MB, 20 pages, at most 5 scanned pages), "
+        "or is password protected. Upload a smaller unlocked PDF or paste the email."
+    ),
+    pdf.UNREADABLE: (
+        "I couldn't read that email PDF. Upload a PDF with selectable text, paste the email, "
+        "or upload clear screenshots of its pages."
+    ),
     ocr.NOT_A_CHAT: (
         "That image doesn't look like a chat. If it's a document, upload it as a document instead."
     ),
@@ -111,6 +124,10 @@ class CaseClosedError(Exception):
     """The case is already decided (HTTP 409)."""
 
 
+class UploadConflictError(Exception):
+    """An initial attachment still needs attention, or does not match its reservation."""
+
+
 @dataclass(frozen=True)
 class Upload:
     """One thing the student uploaded or pasted."""
@@ -120,6 +137,48 @@ class Upload:
     filename: str | None = None
     note: str | None = None
     student_name: str | None = None
+    request_id: str | None = None
+    retry_read: bool = False
+
+
+@dataclass(frozen=True)
+class UploadResult:
+    """An upload receipt without changing the shared Case or Evidence schemas."""
+
+    case: Case
+    evidence_id: str
+    read_error: str | None
+
+
+def _upload_id(upload: Upload) -> str | None:
+    """Bind retries to the same request and bytes, without storing file contents in metadata."""
+    if upload.request_id is None:
+        return None
+    digest = hashlib.sha256()
+    for value in (upload.request_id, upload.kind.value, upload.filename, upload.note):
+        digest.update((value or "").encode())
+        digest.update(b"\0")
+    digest.update(upload.data)
+    return f"ev_upload_{digest.hexdigest()[:32]}"
+
+
+def _existing_upload(case: Case, evidence_id: str | None) -> UploadResult | None:
+    """Return the saved receipt after a lost response, even if the case has since closed."""
+    evidence = next((e for e in case.evidence if e.id == evidence_id), None)
+    if evidence is None:
+        return None
+    unreadable = not (evidence.extracted_text or "").strip() and evidence.kind not in (
+        EvidenceKind.VIDEO,
+        EvidenceKind.CALL_RECORDING,
+    )
+    return UploadResult(
+        case,
+        evidence.id,
+        "File saved, but no readable text was extracted. Upload a text-based file or a clearer "
+        "screenshot instead."
+        if unreadable
+        else None,
+    )
 
 
 def _all_findings(case: Case) -> list[Finding]:
@@ -213,6 +272,8 @@ class CaseService:
         student: StudentContext,
         listing: Listing | None = None,
         landlord: Landlord | None = None,
+        *,
+        initial_uploads: list[InitialUpload] | None = None,
     ) -> Case:
         """New case: all 8 checks UNVERIFIED and a first score of 100.
 
@@ -237,7 +298,7 @@ class CaseService:
         case.score_history.append(first)
         # Kept in the chat history: no stream is connected yet when a case opens.
         said = _say(case, note) if note else None
-        await self.repo.create(case)
+        await self.repo.create(case, uploads=initial_uploads)
         await self._emit(case.case_id, ScoreUpdated(score=first))
         if said:
             await self._emit(case.case_id, said)
@@ -249,30 +310,111 @@ class CaseService:
             self._schedule(case.case_id)
         return case
 
+    async def get_uploads(self, case_id: str) -> list[InitialUpload]:
+        """Return durable initial upload progress, including on a different device."""
+        await self._load(case_id)
+        return await self.repo.get_uploads(case_id)
+
+    async def skip_upload(self, case_id: str, request_id: str) -> list[InitialUpload]:
+        """Release one failed/interrupted attachment only after the student's explicit choice."""
+        async with self._locks[case_id]:
+            case = await self._load(case_id)
+            uploads = await self.repo.get_uploads(case_id)
+            item = next((u for u in uploads if u.request_id == request_id), None)
+            if item is None:
+                raise CaseNotFoundError(request_id)
+            if item.state != "pending":
+                return uploads  # idempotent after a lost response or completed upload
+            if case.status == "decided":
+                raise CaseClosedError(case_id)
+            item.state = "skipped"
+            # Skipping records no clear: unreadable evidence remains visible as unreadable.
+            await self.repo.save(case, uploads=uploads)
+            self._schedule(case_id)
+        return uploads
+
+    async def _upload_manifest(self, case_id: str, upload: Upload) -> list[InitialUpload]:
+        uploads = await self.repo.get_uploads(case_id)
+        item = next((u for u in uploads if u.request_id == upload.request_id), None)
+        if item is not None and (
+            item.state != "pending"
+            or item.filename != upload.filename
+            or item.kind != upload.kind
+            or item.size != len(upload.data)
+            or item.note != upload.note
+        ):
+            raise UploadConflictError(
+                "This file does not match the initial attachment, or it was skipped. "
+                "Select the original file, or add a different file using Add evidence."
+            )
+        return uploads
+
     async def add_evidence(self, case_id: str, upload: Upload) -> Case:
+        """Read, save and analyse one upload; preserve the original Case-only service API."""
+        return (await self.accept_evidence(case_id, upload)).case
+
+    async def accept_evidence(self, case_id: str, upload: Upload) -> UploadResult:
         """Read an upload (text and messages) and save it, then analyse in the background.
 
         The read (a vision call for images, 5 to 15 s) runs before the state lock is taken, so
         replies and other uploads to the case are not blocked by it. An image that cannot be read
         is still saved, with a message telling the student what to do, and starts no analysis.
         """
-        await self._load(case_id, must_be_open=True)  # 404 / 409 at once, before reading
+        evidence_id = _upload_id(upload)
+        case = await self._load(case_id)
+        previous = _existing_upload(case, evidence_id)
+        if previous and (not upload.retry_read or not previous.read_error):
+            return previous
+        if case.status == "decided":
+            raise CaseClosedError(case_id)
+        await self._upload_manifest(case_id, upload)
         extracted = await extract(
             upload.kind, upload.filename, upload.data, upload.student_name, self.ctx.llm
         )
+        if evidence_id:
+            extracted = replace(
+                extracted,
+                evidence_id=evidence_id,
+                messages=[
+                    m.model_copy(update={"evidence_id": evidence_id}) for m in extracted.messages
+                ],
+            )
         events: list[StreamEvent] = []
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)  # may have changed meanwhile
+            case = await self._load(case_id)  # another attempt may already have saved the file
+            previous = _existing_upload(case, evidence_id)
+            if previous and (not upload.retry_read or not previous.read_error):
+                return previous
+            if case.status == "decided":
+                raise CaseClosedError(case_id)
+            uploads = await self._upload_manifest(case_id, upload)
+            if previous:
+                # Only a failed read may be retried in place; readable evidence is immutable.
+                case.evidence = [e for e in case.evidence if e.id != evidence_id]
+                case.messages = [m for m in case.messages if m.evidence_id != evidence_id]
             case = await attach(
                 case, upload.kind, upload.filename, upload.data, upload.note, extracted
             )
-            if extracted.error:
-                events.append(_say(case, failure_message(upload.kind, extracted.error)))
-            await self.repo.save(case)
+            saved = _existing_upload(case, extracted.evidence_id)
+            assert saved is not None
+            read_error = (
+                failure_message(upload.kind, extracted.error)
+                if extracted.error
+                else saved.read_error
+            )
+            if read_error:
+                events.append(_say(case, read_error))
+            for item in uploads:
+                if item.request_id == upload.request_id:
+                    item.evidence_id = extracted.evidence_id
+                    item.read_error = read_error
+                    item.state = "pending" if read_error else "accepted"
+            await self.repo.save(case, uploads=uploads)
+            if not read_error:
+                # Queue while holding the state lock: an older round cannot decide before rerun.
+                self._schedule(case_id)
         await self._emit_all(case_id, events)
-        if not extracted.error:  # a failed read adds nothing new for the agents
-            self._schedule(case_id)
-        return case
+        return UploadResult(case, extracted.evidence_id, read_error)
 
     async def analyse(self, case_id: str) -> Case:
         """Run the agents, crosscheck, update checks and score, then ask or decide (awaited)."""
@@ -481,9 +623,18 @@ class CaseService:
         await self._load(case_id, must_be_open=True)  # 404 / 409 at once, before waiting
         async with self._analysis_locks[case_id], self._locks[case_id]:
             case = await self._load(case_id, must_be_open=True)
+            if any(u.state == "pending" for u in await self.repo.get_uploads(case_id)):
+                raise UploadConflictError(
+                    "Initial attachments still need attention. Retry each file or choose "
+                    "Continue without this file before requesting a final decision."
+                )
             return await self._decide(case)
 
     async def _decide(self, case: Case) -> Case:
+        if case.case_id in self._queued or any(
+            u.state == "pending" for u in await self.repo.get_uploads(case.case_id)
+        ):
+            return case  # all initial files must be resolved, and newer evidence analysed first
         if payment_confirmation.awaiting(case) and not decision.hard_flags(case):
             return await self._confirm_payment(case)
         case.decision = decision.decide(case)

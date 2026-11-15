@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { useCase } from "@/lib/useCase";
-import { debrief, type DebriefInput } from "@/lib/api";
+import { debrief, getInitialUploads, type DebriefInput } from "@/lib/api";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { isDecided, openActions } from "@/lib/selectors";
 import { rememberCase, shortAddress } from "@/lib/homes";
@@ -18,6 +18,8 @@ import { NextStep } from "./NextStep";
 import { ActionCards } from "./ActionCards";
 import { AgentsRail } from "./AgentsRail";
 import type { CallContext } from "./CaseCall";
+import { useUploads } from "./UploadProvider";
+import { UploadStatus } from "./UploadStatus";
 
 const SHOW_ACTION_CARDS = true;
 
@@ -33,6 +35,29 @@ function studentName(): string {
 /** Figma "V4 · One home": left is the dashboard (facts + your decision), right is the agents. */
 export function CaseScreen({ caseId }: { caseId: string }) {
   const { state, upload, sendReply, refresh } = useCase(caseId);
+  const { queue, rows } = useUploads();
+  const [uploadsError, setUploadsError] = useState<string | null>(null);
+  const uploads = rows.filter((row) => row.caseId === caseId);
+  const uploading = uploads.some((row) => row.state === "queued" || row.state === "uploading");
+  const busy = state.busy || uploading;
+  const pendingUploads = uploads.some((row) => row.pending);
+  const received = uploads.map((row) => `${row.evidenceId ?? ""}:${row.state}`).join(",");
+  useEffect(() => { if (received) void refresh(); }, [received, refresh]);
+  useEffect(() => {
+    let stopped = false;
+    const sync = async () => {
+      try {
+        const items = await getInitialUploads(caseId);
+        if (!stopped) { queue.syncInitial(caseId, items); setUploadsError(null); }
+      } catch {
+        if (!stopped) setUploadsError("Could not check initial attachment progress. Reconnecting; any pending files still keep the case open.");
+      }
+    };
+    void sync();
+    // Also recovers a response lost after the server saved the file, without sending it again.
+    const interval = setInterval(() => void sync(), pendingUploads || uploadsError ? 5000 : 30000);
+    return () => { stopped = true; clearInterval(interval); };
+  }, [caseId, queue, pendingUploads, uploadsError]);
   // separate conversations with Warden in this home
   const convo = useThreads(caseId);
   const c = state.caseData;
@@ -46,8 +71,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     [upload],
   );
   const onUpload = useCallback(
-    (kind: EvidenceKind, file: File, note?: string) => void upload({ kind, file, note, studentName: studentName() }),
-    [upload],
+    (kind: EvidenceKind, file: File, note?: string) => queue.add(caseId, [{ kind, file, note, studentName: studentName() }]),
+    [caseId, queue],
   );
 
   // A finished call goes to the orchestrator once; the stream then brings the analysis.
@@ -62,9 +87,9 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const view = useMemo(() => {
     if (!c) return null;
     const rows = agentRows(c, state.agentStatus);
-    const working = rows.some((r) => r.chip === "checking") || state.busy;
+    const working = rows.some((r) => r.chip === "checking") || busy;
     return { rows, open: openActions(c), mood: mood(c, working), flags: redFlags(c), cleared: clears(c) };
-  }, [c, state.agentStatus, state.busy]);
+  }, [c, state.agentStatus, busy]);
 
   // Live messages (your replies and Warden's answers over the stream) join the open conversation.
   const seen = useRef(0);
@@ -135,11 +160,14 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             {state.error && (
               <p role="alert" className="rounded-[16px] bg-[#fbe6e1] px-4 py-3 text-[13px] text-[#a8402b]">{state.error}</p>
             )}
+            {uploadsError && <p role="alert" className="rounded-xl bg-field p-3 text-[13px]">{uploadsError}</p>}
+            <UploadStatus rows={uploads} onRetry={(id, file) => void queue.retry(id, file, studentName())}
+              onSkip={(id) => void queue.continueWithout(id)} />
             <VerdictCard c={c} mood={view.mood} />
             {SHOW_ACTION_CARDS && (
               <ActionCards
                 c={c}
-                busy={state.busy}
+                busy={busy}
                 disabled={closed}
                 onAnswer={(id, text) => void sendReply({ text, actionId: id, status: "done" })}
                 onSkip={(id) => void sendReply({ text: "Skip for now", actionId: id, status: "skipped" })}
@@ -150,15 +178,20 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <NextStep
                 key={action.id}
                 action={action}
-                busy={state.busy}
+                busy={busy}
                 onSkip={() => void sendReply({ text: "Skip for now", actionId: action.id, status: "skipped" })}
                 onAnswer={(text) => void sendReply({ text, actionId: action.id, status: "done" })}
                 onPaste={() => document.getElementById("rail-input")?.focus()}
               />
             )}
-            <IssueList c={c} flags={view.flags} cleared={view.cleared} disabled={closed || state.busy} onUpload={onUpload} />
+            <IssueList c={c} flags={view.flags} cleared={view.cleared} disabled={closed || busy} onUpload={onUpload} />
             <StillKeen top={view.flags[0]} />
-            <EvidencePanel c={c} disabled={closed || state.busy} onUpload={onUpload} onPaste={onPaste} />
+            {(closed || busy) && <p role="status" className="text-[13px] text-ink/70">
+              {closed ? "This case has a final decision. New attachments cannot be added."
+                : uploading ? "Your files are being uploaded and read. Add/Paste will be available when this finishes."
+                : "Warden is saving your reply. Add/Paste will be available when this finishes."}
+            </p>}
+            <EvidencePanel c={c} disabled={closed || busy} onUpload={onUpload} onPaste={onPaste} />
           </motion.main>
 
           <div className="sticky top-[96px] h-[calc(100dvh-112px)] max-h-[900px]">
@@ -166,7 +199,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               mood={view.mood}
               rows={view.rows}
               chat={chat}
-              busy={state.busy}
+              busy={busy}
               canReply={!closed && view.open.length > 0}
               closed={closed}
               callCase={c}

@@ -4,6 +4,8 @@ import io
 
 from pypdf import PdfReader
 
+UNREADABLE = "pdf_unreadable"
+
 
 def extract_text(data: bytes) -> str:
     """Text of all pages joined with blank lines."""

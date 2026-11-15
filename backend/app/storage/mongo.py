@@ -5,6 +5,7 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.contracts import Case
+from app.storage.repository import InitialUpload
 
 
 class MongoCaseRepo:
@@ -20,9 +21,11 @@ class MongoCaseRepo:
         """Fail fast when the cluster is unreachable (motor connects lazily)."""
         await self._client.admin.command("ping")
 
-    async def create(self, case: Case) -> Case:
+    async def create(self, case: Case, *, uploads: list[InitialUpload] | None = None) -> Case:
         """Insert a new case and return it."""
-        await self._cases.insert_one(self._doc(case))
+        doc = self._doc(case)
+        doc["initial_uploads"] = [u.model_dump(mode="json") for u in uploads or []]
+        await self._cases.insert_one(doc)
         return case
 
     async def get(self, case_id: str) -> Case | None:
@@ -31,11 +34,20 @@ class MongoCaseRepo:
         if doc is None:
             return None
         doc.pop("_id", None)
+        doc.pop("initial_uploads", None)
         return Case.model_validate(doc)
 
-    async def save(self, case: Case) -> None:
-        """Upsert the case."""
-        await self._cases.replace_one({"_id": case.case_id}, self._doc(case), upsert=True)
+    async def save(self, case: Case, *, uploads: list[InitialUpload] | None = None) -> None:
+        """Save case and optional manifest atomically; ordinary saves preserve intake progress."""
+        fields = case.model_dump(mode="json")
+        if uploads is not None:
+            fields["initial_uploads"] = [u.model_dump(mode="json") for u in uploads]
+        await self._cases.update_one({"_id": case.case_id}, {"$set": fields}, upsert=True)
+
+    async def get_uploads(self, case_id: str) -> list[InitialUpload]:
+        """Load the initial attachment manifest; old cases have no reservations."""
+        doc = await self._cases.find_one({"_id": case_id}, {"initial_uploads": 1})
+        return [InitialUpload.model_validate(u) for u in (doc or {}).get("initial_uploads", [])]
 
     async def drop(self) -> None:
         """Delete the whole collection (used by tests only)."""

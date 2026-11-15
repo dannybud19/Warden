@@ -2,16 +2,42 @@
 
 from datetime import datetime
 from typing import Literal, Self
+from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.contracts import Landlord, Listing, StudentContext
+from app.contracts import Case, EvidenceKind, Landlord, Listing, StudentContext
+
+
+class InitialUploadRequest(BaseModel):
+    """Reserve a file before opening a case; no file contents are stored in this manifest."""
+
+    request_id: UUID
+    filename: str = Field(min_length=1, max_length=255)
+    kind: EvidenceKind
+    size: int = Field(ge=0)
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class EvidenceReceipt(BaseModel):
+    """Optional upload response: stored evidence can still have an extraction error."""
+
+    case: Case
+    evidence_id: str
+    read_error: str | None = None
 
 
 class OpenCaseRequest(BaseModel):
     student: StudentContext = StudentContext()
     listing: Listing | None = None
     landlord: Landlord | None = None
+    initial_uploads: list[InitialUploadRequest] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def _unique_uploads(self) -> Self:
+        if len({u.request_id for u in self.initial_uploads}) != len(self.initial_uploads):
+            raise ValueError("initial_uploads must have unique request_id values")
+        return self
 
 
 class ReplyRequest(BaseModel):

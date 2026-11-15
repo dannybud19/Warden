@@ -2,13 +2,15 @@
 
 from datetime import UTC, datetime
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
-from app.api.schemas import DebriefRequest, OpenCaseRequest, ReplyRequest
+from app.api.schemas import DebriefRequest, EvidenceReceipt, OpenCaseRequest, ReplyRequest
 from app.contracts import Case, Decision, EvidenceKind
 from app.orchestrator.debrief import CallAnswer, CallDebrief, CallLine
 from app.orchestrator.service import CaseService, Upload
+from app.storage.repository import InitialUpload
 
 router = APIRouter()
 
@@ -20,7 +22,26 @@ def _service(request: Request) -> CaseService:
 @router.post("/cases")
 async def open_case(body: OpenCaseRequest, request: Request) -> Case:
     """Open a case at score 100 with all checks unverified."""
-    return await _service(request).open_case(body.student, body.listing, body.landlord)
+    return await _service(request).open_case(
+        body.student,
+        body.listing,
+        body.landlord,
+        initial_uploads=[
+            InitialUpload.model_validate(u.model_dump(mode="json")) for u in body.initial_uploads
+        ],
+    )
+
+
+@router.get("/cases/{case_id}/uploads")
+async def uploads(case_id: str, request: Request) -> list[InitialUpload]:
+    """Read initial attachment progress, including unfinished uploads after a reload."""
+    return await _service(request).get_uploads(case_id)
+
+
+@router.post("/cases/{case_id}/uploads/{request_id}/skip")
+async def skip_upload(case_id: str, request_id: UUID, request: Request) -> list[InitialUpload]:
+    """Explicitly continue without one initial file; never marks a check as cleared."""
+    return await _service(request).skip_upload(case_id, str(request_id))
 
 
 @router.post("/cases/{case_id}/evidence")
@@ -32,15 +53,41 @@ async def add_evidence(
     text: Annotated[str | None, Form()] = None,
     note: Annotated[str | None, Form()] = None,
     student_name: Annotated[str | None, Form()] = None,
-) -> Case:
+    request_id: Annotated[UUID | None, Form()] = None,
+    retry_read: Annotated[bool, Form()] = False,
+    include_receipt: bool = False,
+) -> Case | EvidenceReceipt:
     """Upload a file or paste text (exactly one of the two), then analyse."""
     if (file is None) == (not text):
         raise HTTPException(422, "send exactly one of `file` and `text`")
     if file is not None:
-        upload = Upload(kind, await file.read(), file.filename, note, student_name)
+        upload = Upload(
+            kind,
+            await file.read(),
+            file.filename,
+            note,
+            student_name,
+            str(request_id) if request_id else None,
+            retry_read,
+        )
     else:
-        upload = Upload(kind, (text or "").encode(), None, note, student_name)
-    return await _service(request).add_evidence(case_id, upload)
+        upload = Upload(
+            kind,
+            (text or "").encode(),
+            None,
+            note,
+            student_name,
+            str(request_id) if request_id else None,
+            retry_read,
+        )
+    result = await _service(request).accept_evidence(case_id, upload)
+    if include_receipt:
+        return EvidenceReceipt(
+            case=result.case,
+            evidence_id=result.evidence_id,
+            read_error=result.read_error,
+        )
+    return result.case
 
 
 @router.post("/cases/{case_id}/messages")

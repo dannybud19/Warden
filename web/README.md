@@ -37,11 +37,23 @@ credentials, nonstandard ports, non-image responses and SVG are rejected. Reques
 deadline, at most three redirects per resource, a 1 MiB HTML limit and a 5 MiB image limit. No incoming
 cookies or authorization headers are forwarded. IPv6-only sites use the placeholder for now.
 
-## Upload verification
+## Upload progress and recovery
 
-See [UPLOAD_VERIFICATION.md](UPLOAD_VERIFICATION.md) for the new/existing-case checks and remaining
-issues: hidden errors during new-case uploads, email PDF extraction, and unexplained disabled controls
-after a final decision. The verification did not change upload or case-closing behaviour.
+Both New case and existing cases use the layout's `UploadQueue`. The case page lists each filename,
+progress, and outcome; successful files are kept when a neighbour fails. **Retry — select file** always
+opens a new file picker. A receipt distinguishes saved/read from saved/unreadable. Session storage keeps
+progress metadata, never file bytes. The server recognises the same retry identity and bytes, so a lost
+response does not duplicate evidence. Audio/video are labelled saved without claiming media analysis.
+
+New case sends an initial attachment manifest before checks start. Any unfinished or unreadable initial
+file keeps the case open until a successful retry or **Continue without this file**. The server manifest
+restores progress after a reload or on another device; Mongo keeps it across server restarts. Skipping
+does not clear a check. The case page polls this status to recover lost responses. Add/Paste controls
+explain when an upload/reply is running or a final decision has closed the case.
+
+Email PDFs now use text extraction and OCR for scanned pages. Install the backend's updated lockfile
+(`cd backend && uv sync`) and restart the API before testing. Limits and the offline verification results
+are in [UPLOAD_VERIFICATION.md](UPLOAD_VERIFICATION.md) and the [intake README](../backend/app/intake/README.md).
 
 ## Getting Started
 
