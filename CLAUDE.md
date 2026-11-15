@@ -13,6 +13,7 @@ Keep the last 8; delete older lines.
 
 | When | Change | What it means for you |
 | --- | --- | --- |
+| Sun afternoon | **A home never closes: continuous grading, no final verdict** (Danny, `feat/continuous-grading`) | `decision.decide(case)` runs at the end of **every** analysis round and is stored on `case.decision` as the live assessment (streamed as `decision_made` right after `score_updated`). Nothing sets `status = "decided"` any more; a case stored as decided loads as open. No auto-decide on hard flags or when nothing is left to ask: that round message now names what is still unverified and invites more evidence (`RoundInput.nothing_left`). Uploads, replies, debriefs and skips are accepted at any time (no 409, `CaseClosedError` is gone); `POST /cases/{id}/decide` just returns the live assessment. Payment rule unchanged: a payment hard flag counts only after an explicit yes. No contract changes. **Tests:** expect `status == "open"` and read the verdict from `case.decision`; there is no `decided` state to wait for. Web: no verdict/409 paths, upload tiles are never disabled (files are queued; inputs take several files), and "Your attachments", the info notes and the evidence list are collapsible |
 | Sun morning | **Risk gauge and verification progress** (Bill, delegated UI) | The dial now shows evidence-based categories: Unknown risk (neutral, no needle), Concerns found (amber), High risk (`likely_scam`, red), or No red flags remaining (all eight checks cleared, green). The separate bar beneath is `(1 - score / 100) × 100%`; 84 remaining means 16% verified. Final decisions do not force completion, and progress cannot change the risk category. Explanation: About risk and verification. No backend score or contract changes. See `web/README.md` |
 | Sun morning | **Upload recovery and email PDF OCR** (Bill, delegated) | New/existing cases show per-file progress, errors and Retry (always reselect). New case reserves its initial files before checks start; failed files hold the case open until retry or explicit skip, persisted alongside Case in Mongo. Receipt opt-in and request UUIDs prevent duplicate retries. Email PDFs use text extraction plus bounded OCR for scans. **Team: run `cd backend && uv sync` and restart the API** for new PDFium/Pillow dependencies. No frozen contract changes. See `web/UPLOAD_VERIFICATION.md` and the intake README |
 | Sun morning | **Yet to verify and listing photos** (Bill, delegated UI) | The gauge keeps the backend's weighted 0–100 number, now labelled **Yet to verify**, with its explanation behind an information control. Verdict/check states determine colour; a low number never overrides a scam verdict. Home cards and case headers fetch listing photos through the web-only `/api/listing-photo` route; `v=2` bypasses the earlier cached OpenRent logo, and unavailable photos show a labelled default. No contract schema or scoring formula change. The upload audit found hidden new-case upload errors and incorrect email PDF extraction; see `web/UPLOAD_VERIFICATION.md` and `web/README.md` |
@@ -20,7 +21,6 @@ Keep the last 8; delete older lines.
 | Sun 03:30 | **Screenshot OCR and image intake** (WS C, Danny) | Chat screenshots become messages (right bubbles = student, left = agent, a name shown on a bubble wins) and images uploaded as contract, document, listing or email become text; the web's chat images sent as `chat_export` are stored as `chat_screenshot` and overlapping screenshots are de-duplicated. The vision call runs outside the case lock (`intake.extract` then `attach`). OCR text is masked like any upload and the raw image is not kept once it is read. Unreadable, empty, corrupt, HEIC/TIFF or over-5 MB files give the student a friendly message, never a 500; WhatsApp `.zip` exports are read. Also: `wait_idle` no longer spins (no test workaround needed) and Anthropic `max_tokens` is 4096. See `backend/app/intake/README.md` |
 | Sun 03:00 | **User-testing fixes: pasted chats, upload feedback, overtaken steps** (Georgi) | A chat pasted as "Name: message" lines (no export timestamps, also WhatsApp Web copies) is now split into messages with sides (new `intake/transcript.py`); before, it was one message from `unknown` and nothing was flagged. WhatsApp exports from 12-hour phones ("2:05 pm") parse. The round message gets `RoundInput.checked` (what was read this round and what it found, e.g. "the contract: nothing flagged") and `answered` notes (how a reply was recorded), and sentences already said in the last turns are dropped. Open steps the case has overtaken are closed in the analysis (`service._retire_settled`): skipped when their check is cleared, done when the case already has the thing (contract uploaded, company number known); the consultant never proposes those (`already_answered`). An action's `answer` is the part of the reply about that step when the reader quotes 3+ words (payment confirmations keep the whole reply). Cross-check: the name typed with an agency is the agent, so it is not compared with a contract's landlord, and "Mira" matches "Ms Mira Vale". A blank chat message is 422 (a skip from a card may have no text). **Payment confirmation (Bill's rule, changed):** it is now asked even when three steps are already open (so four can be open), and any reply while it is open gets a round message; before, the agency check's three steps left it unasked while it blocked everything, and the chat stopped replying |
 | Sun 01:30 | **Chat follows the conversation; payment confirmation asked once; Word contracts** (Georgi) | Round messages now get `RoundInput.history` (last 6 chat turns, always) and question grounding uses finding *details* (evidence ids as plain words, most serious first), so follow-ups like "how do they disagree?" get the actual values and the student's news is acknowledged. A non-yes answer or skip to a payment confirmation keeps the concern pending (never cleared, cannot close the case) but is **not asked again**; only unanswered ones (`payment_confirmation.awaiting`) hold up next steps. Free text targets an open confirmation only when it is 3 words or fewer. Intake reads `.docx` (new `intake/docx.py`) and no longer decodes images as text; contract and document uploads accept PDF, Word, text and photos, and each evidence type shows its formats |
-| Sat 21:00 | **LLM reply parser, round message, Cross-checker recap and chat history** (WS A + J wiring, Danny) | Contracts (additive): `AgentReport.summary: str \| None` and `Case.chat: list[ChatTurn]` (`role` student/orchestrator, `text`, `at`, `action_ids`); run `make schema` after rebasing. Free-text replies are read by an LLM and may answer several actions; with no API key, or when the LLM fails, a keyword fallback runs only if the reply targets an action or exactly one is open, so **tests that reply in free text with several open actions must pass `action_id`**. `status` without `action_id` is now 422. After every round that does not decide: the Cross-checker recap (when it changed), then one round message (max 60 words, template fallback). The orchestrator wraps `crosschecker.review()` in a 30 s deadline and only relays a recap that passes its rules. Replies can also fill case fields (company number, landlord name, rent, deposit, move-in date) and ask questions (answered from the case only). New route `POST /cases/{id}/decide` (decide now; 409 once decided). With `STORAGE=mongo` the app pings Atlas at startup and fails fast. An open payment confirmation (Bill's rule) is answered first: free text targets it, and only a plain "yes" confirms it, on the LLM and the keyword path. Web: `web/src/lib/demo.ts` needs `summary: null` and `chat: []` to type-check (`next build` fails on main too) |
 
 ## 1. The product in 30 seconds
 
@@ -37,8 +37,9 @@ WhatsApp/email text, call recordings, videos, documents, the contract.
   "book an in-person viewing").
 - The student always makes the final call on the property. We advise; we never decide for them.
 - Answers and new evidence move the score. The score only goes down when something is verified.
-- When nothing useful is left to check, or a hard red flag is confirmed, it gives a **verdict**:
+- Every round ends with a **live assessment** (never final; a home never closes):
   `likely_scam`, `not_verified`, `proceed_with_care` or `no_red_flags_remaining`. Never "safe".
+  The student can keep adding files, answering and calling at any time, and every input regrades it.
 
 Hackathon: Imperial AI Hackathon, Autonomous Agents track. Sponsors we target: Linkup (live web search with
 cited URLs), MongoDB (case storage), and the Best-Designed AI Product prize (Figma). Submit on Devpost by
@@ -106,7 +107,7 @@ Key ideas:
 | `in_person_viewing` | 0.10 | `fair_price` | 0.05 |
 
 Score = `100 * Σ(w·s) / Σw`, where s = 1 if a check is unverified or suspicious, and `1 - clear_confidence`
-if cleared. Hard flags close the case early: payment before viewing or to a pre-paid card, a company
+if cleared. Hard flags make the live assessment `likely_scam` at once: payment before viewing or to a pre-paid card, a company
 number that doesn't exist on Companies House or a dissolved or liquidated company, or a contract address
 that doesn't match the listing.
 Full rules: `docs/architecture.md` section 7.
@@ -121,7 +122,7 @@ Full rules: `docs/architecture.md` section 7.
 | `Finding` | A flag or clear: check id, severity, confidence, `supports` (suspicious/cleared), `hard_flag`, evidence quotes |
 | `Check`, `Action` | One of the 8 checks with its state; a question or action for the student, with status and outcome |
 | `AgentReport` | What one agent returns: status, input_hash, facts, findings, optional `summary` (the Cross-checker recap) |
-| `ScoreResult`, `Decision` | Score with per-check contributions; final verdict with summary and reasons |
+| `ScoreResult`, `Decision` | Score with per-check contributions; the live assessment (verdict, summary, reasons), redone every round |
 | `StreamEvent` | `agent_started`, `agent_finished`, `score_updated`, `actions_proposed`, `orchestrator_message`, `decision_made` |
 
 ### API
@@ -131,7 +132,7 @@ Full rules: `docs/architecture.md` section 7.
 | POST | `/cases` | Open a case |
 | POST | `/cases/{id}/evidence` | Upload a file or pasted text (`kind`, `note`) |
 | POST | `/cases/{id}/messages` | Student reply (`text`, optional `action_id` + `status`; `status` alone is 422) |
-| POST | `/cases/{id}/decide` | Decide now on what is verified so far |
+| POST | `/cases/{id}/decide` | Recompute and return the live assessment (closes nothing) |
 | GET | `/cases/{id}` and `/cases/{id}/decision` | Read state |
 | WS | `/cases/{id}/stream` | Live StreamEvents |
 
@@ -159,8 +160,8 @@ Full rules: `docs/architecture.md` section 7.
 Phase 0 (the foundation) is done: everything runs end to end on stubs and `make check` is green. Real agent
 logic is the work of the workstreams. Things that surprise people:
 
-- **Default stubs end the case on the first upload.** The stub reports contain hard flags, so uploading the
-  sample WhatsApp chat decides `likely_scam` straight away (or, if the home was added with an agency
+- **Default stubs read as a likely scam on the first upload.** The stub reports contain hard flags, so
+  uploading the sample WhatsApp chat makes the assessment `likely_scam` straight away (the case stays open) (or, if the home was added with an agency
   name or number, as soon as it is added). To see the question and reply loop, run
   `DEFAULT_AGENT_MODE=real make dev` (agents not built yet return empty reports).
 - **Agent modes:** `AGENT_MODE_<NAME>=real` in `.env` switches one agent; `.env` values are read.

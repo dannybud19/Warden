@@ -12,8 +12,9 @@ A student who has already picked a property uploads every piece of communication
 as it happens (chat screenshots, WhatsApp/email text, call recordings, videos, documents, the contract).
 The case starts at maximum suspicion (score 100, every check unverified). Independent checker agents flag
 every suspicious signal. An orchestrator tracks 8 checks, asks the student clarifying questions or suggests
-actions, and adjusts the score from their answers. When nothing useful is left to ask, or a hard red flag
-is confirmed, it gives a final decision with the full evidence trail.
+actions, and adjusts the score from their answers. A home never closes: every round ends with a **live
+assessment** (verdict, summary and reasons) that the next file, answer or call grades again. There is
+no final verdict.
 
 ---
 
@@ -101,7 +102,7 @@ Warden/
         crosscheck.py            fact comparison rules
         checks.py                check tracker: findings and answers to check states
         conversation.py          chat with the student, answer parsing
-        decision.py              final decision rules
+        decision.py              live assessment rules (run every round)
         service.py               CaseService: the use cases the API calls
       intake/
         service.py               upload to Evidence + extracted text
@@ -141,7 +142,8 @@ Warden/
    If the landlord has a company name or number, the agency check starts at once in the background.
    Optional `initial_uploads` reserves the wizard's file list before any check starts. Its progress
    is stored beside Case (not in the frozen shared schema), atomically with evidence updates. Pending
-   files block all final decisions until accepted or explicitly skipped; failed reads remain pending.
+   files stay retryable until accepted or explicitly skipped; failed reads remain pending. They do not
+   hold the case: every round is graded live on the evidence it has.
 2. `add_evidence(case_id, upload) -> Case`: intake extracts text and messages and saves them, returns the
    Case, then analyses in the background.
 
@@ -149,7 +151,8 @@ Warden/
    finishes; progress and results arrive as `StreamEvent`s (a client that connects late is sent
    `agent_started` for the agents still running). One analysis runs per case at a time (analysis lock);
    its results are applied to the latest stored case under a short state lock, so uploads and replies are
-   never blocked or overwritten, and a request that arrives while one is queued shares it. A failed
+   never blocked or overwritten, and a request that arrives while one is queued shares it. Input that
+   arrives while a round runs schedules the next round, which starts as soon as this one ends. A failed
    analysis becomes an `orchestrator_message`. `analyse(case_id)` is the awaited form, used by tests.
 3. `analyse(case_id)`:
    1. For each agent in the registry: skip if a `Need` is missing (`SKIPPED` report). Skip if
@@ -164,16 +167,21 @@ Warden/
    4. `checks.update(case)`: a check becomes SUSPICIOUS if it has any `supports="suspicious"` finding with
       severity >= MEDIUM and confidence >= 0.6; CLEARED if it has `supports="cleared"` evidence or
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
-   5. `scoring.score()` appends a ScoreResult.
+   5. `scoring.score()` appends a ScoreResult, and `decision.decide(case)` stores the **live
+      assessment** on `case.decision`. Both are saved and streamed every round: `score_updated`, then
+      `decision_made` (the assessment). When the verdict moves, it is also said in the chat
+      ("Updated assessment: …"), never as final. `case.status` stays `"open"`; a case stored as
+      `"decided"` by an older version loads as open.
    6. Payment hard flags first require a targeted confirmation of their quoted evidence. Yes confirms
       that concern; no/unsure/skip (or a longer answer) keeps the concern on record without clearing
       the payment check, and is not asked again for the same evidence: the round carries on with the
-      consultant's next steps. Other hard flags still decide immediately. Confirmations are bound to a finding
+      consultant's next steps. Other hard flags make the assessment `likely_scam` at once. Confirmations are bound to a finding
       and its evidence, so changing the quoted demand requires a new answer.
-   7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
-      Else store and emit any new actions, then one **round message** (`orchestrator/composer.py`): what
+   7. Else `consultant.propose_actions()`. Store and emit any new actions, then one **round message** (`orchestrator/composer.py`): what
       changed (score delta, checks that moved, checks that did not run, notes about the reply), then the
-      steps by count. An LLM writes it (max 60 words); a validator (no "safe"/"scam"/"genuine", no
+      steps by count. When it returns `[]` and no actions are open, the round message instead names
+      the checks still unverified and invites more evidence (`RoundInput.nothing_left`); the case
+      stays open. An LLM writes it (max 60 words); a validator (no "safe"/"scam"/"genuine", no
       number that is not in its input, no 6+ digit run, no JSON) falls back to a fixed template.
    Steps 3 to 7 apply their results in short locked steps; the Cross-checker, the consultant and the
    composer run between them, so no LLM call ever holds the state lock. Every orchestrator message is
@@ -194,10 +202,8 @@ Warden/
    through its input hash. A question from the student is answered in the round message from the
    case's own findings and checks only, or the message says it cannot tell yet. Then the background
    analysis.
-5. `decide(case_id)` (also `POST /cases/{id}/decide`, the student's final say): waits for a running
-   analysis, then `decision.decide(case)` applies the verdict rules from the team doc and writes the summary.
-   Returns 409 while initial attachments are pending. Automatic decisions wait too, including hard flags.
-   A queued rerun prevents an older analysis from deciding before newer evidence has been assessed.
+5. `decide(case_id)` (also `POST /cases/{id}/decide`): waits for a running analysis, then recomputes
+   and returns the live assessment. It closes nothing and can be called any number of times.
 
 Scoring formula (team doc): `score = 100 * sum(w_i * s_i) / sum(w_i)`, with s = 1 for UNVERIFIED or
 SUSPICIOUS and s = 1 - clear_confidence for CLEARED. Weights in `aggregators/scoring/weights.yaml`:
@@ -213,7 +219,7 @@ no_pressure: 0.10
 fair_price: 0.05
 ```
 
-Verdict rules (`decision.py`):
+Verdict rules (`decision.py`, applied every round as the live assessment):
 
 | Verdict | Rule |
 | --- | --- |
@@ -222,22 +228,22 @@ Verdict rules (`decision.py`):
 | proceed_with_care | Those three CLEARED, some other check not CLEARED |
 | no_red_flags_remaining | Every check CLEARED. Never call it "safe" |
 
-Hard flags (a finding with `hard_flag=true` can close the case as `likely_scam`): payment before a viewing
+Hard flags (a confirmed finding with `hard_flag=true` makes the assessment `likely_scam`): payment before a viewing
 or to a pre-paid card, a company **number** that does not exist on Companies House, a dissolved or
 liquidated company, and a contract address that does not match the listing. Only the register can hard-flag
 the agency: a company **name** with no match is suspicious (high severity, asks for the number), never a
 hard flag.
 
 Payment hard flags require an explicit student yes to their targeted confirmation question before
-closure. The orchestrator prioritises these questions even for SUSPICIOUS payment checks; this is an
+they count. The orchestrator prioritises these questions even for SUSPICIOUS payment checks; this is an
 exception to the consultant's usual UNVERIFIED-only selection. Free chat targets an open payment
 confirmation first when the reply is a bare answer (3 words or fewer); a longer reply is read
 against every open action, the confirmation included. These questions parse only an exact yes
 (optional terminal punctuation) as confirmation; no, unsure, skip or longer answers remain neutral,
-keep the concern pending (it cannot close the case) and are not asked again for the same evidence.
+keep the concern pending (it is not a hard flag) and are not asked again for the same evidence.
 Payment confirmations count towards the same maximum of three open actions as consultant questions.
-If all three slots are occupied, the case stays open and a confirmation is offered when a slot opens.
-Identity/contract hard flags still close immediately, including when a payment question is pending.
+An unanswered confirmation is asked even when three steps are open.
+Identity/contract hard flags count at once, including when a payment question is pending.
 
 API (`api/`):
 
@@ -248,9 +254,9 @@ API (`api/`):
 | GET | /cases/{id}/uploads | Initial attachment manifest with pending/accepted/skipped state |
 | POST | /cases/{id}/uploads/{request_id}/skip | Explicitly continue without this initial file; returns manifest |
 | POST | /cases/{id}/messages | `{text, evidence_ids?, action_id?, status?}` -> Case (`status` without `action_id`: 422) |
-| POST | /cases/{id}/decide | Case: decide now on what is verified so far (waits for a running analysis; 409 once decided) |
+| POST | /cases/{id}/decide | Case with the live assessment recomputed (waits for a running analysis; closes nothing) |
 | GET | /cases/{id} | Case |
-| GET | /cases/{id}/decision | Decision or 404 |
+| GET | /cases/{id}/decision | The live assessment, or 404 before the first round |
 | WS | /cases/{id}/stream | StreamEvent JSON |
 
 ### API details
@@ -265,26 +271,27 @@ API (`api/`):
   to `conversation.parse`.
 - `POST /cases/{id}/evidence`: multipart fields `file` (optional), `text` (optional, for pasted
   email), `kind`, `note`, `student_name`. Exactly one of `file` and `text` is required (422 otherwise).
-  Optional UUID `request_id` makes identical retries idempotent, even after closure; `retry_read=true`
+  Optional UUID `request_id` makes identical retries idempotent; `retry_read=true`
   reruns an unreadable extraction in place. Read failures appear in `read_error` even with HTTP 200.
   `initial_uploads` contains `{request_id, filename, kind, size, note?}` (max 20, unique UUIDs).
   The server persists state, evidence id and read error; skip never clears a check. Existing API clients
   without a manifest or receipt opt-in retain the original request/response behavior.
 - `WS /cases/{id}/stream`: on connect, send a `score_updated` with the latest score, then forward bus
   events as `event.model_dump_json()` until disconnect, then unsubscribe.
-- Errors: unknown case gives 404, decided case gives 409, validation gives 422.
+- Errors: unknown case gives 404, an initial-attachment mismatch gives 409, validation gives 422.
+  There is no closed case: uploads, replies and call debriefs are accepted at any time.
 
 ### Web presentation
 
 The product gauge displays risk categories from evidence and verdicts: **Unknown risk** (neutral,
 no needle), **Concerns found** (amber, including unconfirmed payment concerns), **High risk** (red,
-`likely_scam` verdict), and **No red flags remaining** (green, only when all eight checks are cleared).
+`likely_scam` assessment), and **No red flags remaining** (green, only when all eight checks are cleared).
 It does not display a numerical probability or use the verification score to position its needle.
 
 Below the dial, **Verification progress** uses `1 - current_score / 100`, displayed as a percentage:
 84 remaining means 16% progress. Unverified and suspicious checks retain their weight; cleared checks
 reduce it according to confidence. This is weighted verification rather than a count of finished tasks.
-A final decision never forces the bar to 100%, and progress never overrides a risk warning. The
+The assessment never forces the bar to 100%, and progress never overrides a risk warning. The
 “About risk and verification” disclosure explains both displays. Backend scoring and shared contracts
 remain unchanged; the mapping and presentation live in `web/src/lib/present.ts` and `RiskGauge.tsx`.
 
@@ -296,8 +303,9 @@ add evidence, verify a property or change any backend schema. Limits and offline
 in `web/README.md`. Image requests include a selection version (`v=2`) to avoid reusing an earlier
 portal logo from the browser's one-hour cache when image-selection rules change.
 
-Evidence controls are disabled while an upload/reply request is running and after a final decision;
-the page now explains why. New files on decided cases receive 409; retries can recover existing receipts.
+Evidence controls are never disabled: files are queued, so the student can add more (one after another
+or several at once) while others upload. Only a pasted text's Send button waits for its request.
+Retries can recover existing receipts.
 The shared upload queue shows each filename, retains successful uploads, and always requires fresh file
 selection for retry. Initial files are reserved before case creation returns; failed files keep the
 case open until retry or explicit skip, with status restored from the server after reload.

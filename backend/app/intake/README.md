@@ -10,7 +10,7 @@ from it. It works in two steps, so the slow part never holds the case lock:
 | `ingest(...)` | Old one-call API (`extract` then `attach`); `llm=None` by default | Caller decides |
 
 `CaseService.add_evidence` calls `extract` first (no lock), then takes the lock only to reload the
-case (409 if it was decided meanwhile), `attach` and save. Replies and other uploads to the same case
+case, `attach` and save (a case never closes, so there is no 409). Replies and other uploads to the same case
 are never blocked by a vision call. The HTTP request itself still waits for it (about 5 to 15 s for an
 image).
 
@@ -73,15 +73,15 @@ This OCR addition applies to email PDFs; other PDF intake paths retain their exi
 The original `add_evidence -> Case` API remains. `accept_evidence -> UploadResult` also reports
 `evidence_id` and `read_error`: HTTP success means the upload was saved, not necessarily read.
 The web sends a UUID `request_id`; retries of identical bytes reuse the saved evidence, including after
-a lost response followed by a final decision. `retry_read=true` reruns an unreadable extraction in place,
+a lost response. `retry_read=true` reruns an unreadable extraction in place,
 without duplicating its evidence or messages. Every web retry requires selecting the same file again.
 
 New-case files are reserved before checks start. Their manifest is stored beside Case, atomically with
 its evidence updates; normal Mongo case saves preserve it. Every initial file must be read successfully
 (or stored, for currently unsupported audio/video) or explicitly skipped using **Continue without this
-file** before any final decision. Failed reads keep that hold. Mongo preserves it across API restarts;
-memory storage, like its cases, is lost on restart. Skipping never clears a check. A queued rerun also
-prevents an older analysis from deciding before newly arrived evidence has been assessed.
+file**. Failed reads stay pending (retryable) but do not hold the case: every round is graded live.
+Mongo preserves the manifest across API restarts; memory storage, like its cases, is lost on restart.
+Skipping never clears a check. Evidence that arrives during a round is graded by the next round.
 
 ## Limits
 

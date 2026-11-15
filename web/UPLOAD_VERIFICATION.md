@@ -9,9 +9,9 @@ Implemented on `fix/bill-upload-recovery`, based on `main` at `878bd51`.
 - **Incorrectly read:** Email PDFs were decoded as UTF-8 bytes. The checker received
   `%PDF-1.7…` and PDF instructions instead of “Your viewing is confirmed for Tuesday.” HTTP 200
   only meant that the evidence record had been saved.
-- **Temporarily disabled:** while a screenshot upload waits for OCR, Add/Paste controls are disabled
-  until that request finishes. A final decision also disables uploads, permanently for that case.
-  The page now explains which condition applies.
+- **Temporarily disabled (fixed Sun 15 Nov):** while a screenshot upload waited for OCR, Add/Paste
+  controls were disabled until that request finished, and a final decision disabled uploads for good.
+  Now uploads are queued and never disabled, and a home never closes.
 
 ## Result
 
@@ -20,8 +20,8 @@ a shared upload queue, showing every filename and progress on the case page. Suc
 saved when another file fails. **Retry — select file** always requires selecting the original file
 again; files are never retained for an automatic retry. Browser session storage holds metadata only.
 
-Each initial attachment keeps the case open until it is successfully read or the student explicitly
-chooses **Continue without this file**. Unreadable files retain the hold. Skipping never clears a check.
+Each initial attachment stays pending until it is successfully read or the student explicitly
+chooses **Continue without this file**; meanwhile the case is graded live on the files it has. Skipping never clears a check.
 The backend stores this manifest beside the shared Case, without changing the frozen contracts. Mongo
 preserves it across API restarts; memory storage remains temporary like its cases. The case page reloads
 server progress and can recover a lost upload response without sending the file again. Older analyses

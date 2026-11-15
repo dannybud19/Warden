@@ -3,8 +3,9 @@
 Owner: Georgi (WS F). Picks the next 1 to 3 questions or actions for the student.
 The student never has more than 3 open at once: unanswered ones count, so answering one brings one
 new one.
-Returning `[]` means there is nothing to add right now. The orchestrator makes the final decision
-only when the list is empty and no action is still open.
+Returning `[]` means there is nothing to add right now. When the list is empty and no action is still
+open, the orchestrator's round message names what is still unverified and invites more evidence; the
+case stays open (there is no final decision).
 
 ## How it chooses
 
