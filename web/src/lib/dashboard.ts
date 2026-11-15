@@ -56,7 +56,21 @@ const SOURCE: Record<string, string> = {
   crosscheck: "Compared across what you sent",
 };
 
+// The agency checker reads several places, not just the register: label each finding by where it came from.
+const AGENCY_SOURCE: [RegExp, string][] = [
+  [/^(scam-report|negative-review)/, "From reviews and posts online"],
+  [/^rogue-checker/, "London Rogue Landlord Checker"],
+  [/^(redress-member|cmp-member)/, "Checked with redress and money-protection schemes"],
+  [/^(webmail|lookalike-domain|new-domain)/, "Checked their email address"],
+  [/^phone-scam/, "Checked their phone number online"],
+  [/^postcode/, "Checked the postcode"],
+];
+
 export function sourceOf(f: Finding): string {
+  if (f.agent === "companies_house") {
+    const slug = f.id.split(":")[1] ?? "";
+    return AGENCY_SOURCE.find(([re]) => re.test(slug))?.[1] ?? "Checked on Companies House";
+  }
   return SOURCE[f.agent] ?? "From what you sent";
 }
 

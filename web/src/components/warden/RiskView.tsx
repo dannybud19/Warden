@@ -278,6 +278,7 @@ export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: nu
 // ---- 3. Why Warden thinks so: every issue, one row each, one open at a time ----
 
 function severityOf(f: Finding): { label: string; color: string; bg: string } {
+  if (f.supports === "cleared") return { label: "Checks out", color: "#1f7a60", bg: "#e3f4ec" };
   if (f.hard_flag || f.severity === "critical" || f.severity === "high") return { label: "High", color: "#b8432f", bg: "#fcebe7" };
   if (f.severity === "medium") return { label: "Medium", color: "#8a5f12", bg: "#fbf2df" };
   return { label: "Low", color: "#5f6f73", bg: "#eef3f4" };
@@ -295,7 +296,9 @@ function IssueRow({
   const quotes = (f.evidence ?? []).filter((r) => r.quote);
   const ev = (c.evidence ?? []).find((e) => e.id === f.evidence?.[0]?.evidence_id);
   const date = ev ? new Date(ev.uploaded_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" }) : null;
-  const settle = SETTLE[f.check_id as CheckId];
+  const cleared = f.supports === "cleared";
+  // a clear needs nothing settling
+  const settle = cleared ? undefined : SETTLE[f.check_id as CheckId];
   const input = useRef<HTMLInputElement>(null);
 
   return (
@@ -307,13 +310,14 @@ function IssueRow({
         className="flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-field/70"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-[12px]" style={{ background: sev.bg, color: sev.color }}>
-          <Icon size={20} strokeWidth={1.8} />
+          {cleared ? <Check size={20} strokeWidth={2.2} /> : <Icon size={20} strokeWidth={1.8} />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[16px] font-medium leading-[1.35]">{f.title}</span>
           <span className="mt-0.5 block text-[13px] text-muted">{[sourceOf(f), date].filter(Boolean).join(" · ")}</span>
         </span>
-        <span className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ background: sev.bg, color: sev.color }}>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ background: sev.bg, color: sev.color }}>
+          {cleared && <Check size={12} strokeWidth={2.6} aria-hidden />}
           {sev.label}
         </span>
         <motion.span animate={{ rotate: open ? 90 : 0 }} className="shrink-0 text-ink/40">
@@ -385,13 +389,27 @@ function IssueRow({
 }
 
 export function IssueList({
-  c, flags, disabled, onUpload,
-}: { c: Case; flags: Finding[]; disabled: boolean; onUpload: (kind: EvidenceKind, file: File) => void }) {
+  c, flags, cleared, disabled, onUpload,
+}: {
+  c: Case; flags: Finding[]; cleared: Finding[]; disabled: boolean;
+  onUpload: (kind: EvidenceKind, file: File) => void;
+}) {
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const notes = infoNotes(c);
-  if (!flags.length && !notes.length) return null;
-  // the worst issue starts open; after that, one row at a time
+  if (!flags.length && !cleared.length && !notes.length) return null;
+  // the worst issue starts open; after that, one row at a time across both lists
   const current = openId === undefined ? flags[0]?.id : openId;
+  const row = (f: Finding) => (
+    <IssueRow
+      key={f.id}
+      f={f}
+      c={c}
+      open={current === f.id}
+      onToggle={() => setOpenId(current === f.id ? null : f.id)}
+      disabled={disabled}
+      onUpload={onUpload}
+    />
+  );
   return (
     <motion.section variants={rise}>
       {flags.length > 0 && (
@@ -402,18 +420,20 @@ export function IssueList({
             </h2>
             <p className="text-[14px] text-muted">Tap an issue for the evidence</p>
           </div>
-          <ul className={`${card} overflow-hidden`}>
-            {flags.map((f) => (
-              <IssueRow
-                key={f.id}
-                f={f}
-                c={c}
-                open={current === f.id}
-                onToggle={() => setOpenId(current === f.id ? null : f.id)}
-                disabled={disabled}
-                onUpload={onUpload}
-              />
-            ))}
+          <ul className={`${card} overflow-hidden`}>{flags.map(row)}</ul>
+        </>
+      )}
+      {/* What checked out: same rows, green, so the student sees the proof and its sources too. */}
+      {cleared.length > 0 && (
+        <>
+          <div className={`mb-3 flex items-baseline justify-between px-1 ${flags.length ? "mt-7" : ""}`}>
+            <h2 className="text-[21px] font-medium tracking-[-0.02em]">
+              What checks out <span className="text-muted">· {cleared.length}</span>
+            </h2>
+            <p className="text-[14px] text-muted">Good signs, not a guarantee</p>
+          </div>
+          <ul className="overflow-hidden rounded-[24px] border border-[#cfeadd] bg-[#f6fbf8]/90 shadow-card backdrop-blur-[15px]">
+            {cleared.map(row)}
           </ul>
         </>
       )}

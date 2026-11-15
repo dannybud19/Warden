@@ -88,6 +88,8 @@ const NOT_AN_UPLOAD: Record<string, string> = {
   companies_house: "Companies House register",
   web: "Web search",
   london_rogue_checker: "London rogue landlord checker",
+  postcodes_io: "Postcode lookup",
+  rdap: "Domain registration record",
 };
 
 const when = (iso: string) =>

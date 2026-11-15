@@ -9,7 +9,7 @@ import { isDecided, openActions } from "@/lib/selectors";
 import { rememberCase, shortAddress } from "@/lib/homes";
 import { useThreads } from "@/lib/threads";
 import { DEMO_CASE_ID } from "@/lib/demo";
-import { agentRows, answerSuggestion, mood, redFlags, type Suggestion } from "@/lib/present";
+import { agentRows, answerSuggestion, clears, mood, redFlags, type Suggestion } from "@/lib/present";
 import type { ChatEntry, EvidenceKind } from "@/lib/types";
 import { Mascot, stagger } from "./primitives";
 import { EvidencePanel, IssueList, RiskHeader, StillKeen, VerdictCard } from "./RiskView";
@@ -50,7 +50,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     if (!c) return null;
     const rows = agentRows(c, state.agentStatus);
     const working = rows.some((r) => r.chip === "checking") || state.busy;
-    return { rows, open: openActions(c), mood: mood(c, working), flags: redFlags(c) };
+    return { rows, open: openActions(c), mood: mood(c, working), flags: redFlags(c), cleared: clears(c) };
   }, [c, state.agentStatus, state.busy]);
 
   // Live messages (your replies and Warden's answers over the stream) join the open conversation.
@@ -133,7 +133,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
                 onPaste={() => document.getElementById("rail-input")?.focus()}
               />
             )}
-            <IssueList c={c} flags={view.flags} disabled={closed || state.busy} onUpload={onUpload} />
+            <IssueList c={c} flags={view.flags} cleared={view.cleared} disabled={closed || state.busy} onUpload={onUpload} />
             <StillKeen top={view.flags[0]} />
             <EvidencePanel c={c} disabled={closed || state.busy} onUpload={onUpload} onPaste={onPaste} />
           </motion.main>
