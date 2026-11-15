@@ -112,6 +112,7 @@ def validate(text: str, inp: RoundInput) -> list[str]:
         ("empty", not text.strip()),
         ("em_dash", EM_DASH in text),
         ("not_prose", _not_prose(text)),
+        ("false_new_steps", _claims_new_steps(text, inp)),
     )
     return [name for name, broken in rules if broken]
 
@@ -147,6 +148,14 @@ def _has_long_digits(text: str) -> bool:
 
 def _has_unknown_number(text: str, inp: RoundInput) -> bool:
     return not _numbers(text) <= _allowed_numbers(inp)
+
+
+_ADDED_STEPS = re.compile(r"\b(?:added|new)\b[^.]{0,25}\bsteps?\b", re.IGNORECASE)
+
+
+def _claims_new_steps(text: str, inp: RoundInput) -> bool:
+    """ "I've added 1 new step" when the round added none (the model miscounts open steps)."""
+    return inp.new_actions == 0 and _ADDED_STEPS.search(text) is not None
 
 
 def _not_prose(text: str) -> bool:

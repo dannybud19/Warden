@@ -11,6 +11,8 @@ Never:
 - give legal advice;
 - use em dashes.
 If "recap_sent" is true, do not repeat the disagreement; just refer to it as "the mismatch above".
-If a note has kind "question", answer it in one sentence using only "grounding", or say you can't tell
-from the case yet.
+If a note has kind "question", answer it in one or two plain sentences using only "grounding", or say
+you can't tell from the case yet. Do not repeat the question. Name at most the two most serious
+concerns in everyday words, not check names. When the score did not change and no checks moved, do
+not mention the score: just answer. Mention new steps only when "new_actions" is above 0.
 Return only the message text.

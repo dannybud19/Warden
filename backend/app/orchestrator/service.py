@@ -417,9 +417,35 @@ class CaseService:
             await self._emit_all(case_id, events)
             if decision.hard_flags(case):
                 return await self._decide(case)
-            if payment_confirmation.pending(case):
+            confirming = bool(payment_confirmation.pending(case))
+            if confirming:
                 # A payment hard flag needs the student's explicit yes before it can decide.
-                return await self._confirm_payment(case)
+                case = await self._confirm_payment(case)
+
+        questions = [n for n in notes if n.kind == "question"]
+        if confirming:
+            # No new steps while the confirmation is open, but a question still gets an answer.
+            if not questions:
+                return case
+            inp = rounds.round_input(
+                score_before=score_before,
+                score_after=result,
+                states_before=states_before,
+                checks_after=case.checks,
+                new_reports=new_reports,
+                fresh=[],
+                actions=case.actions,
+                recap_sent=recap is not None,
+                notes=questions,
+                case_grounding=rounds.grounding(case),
+            )
+            text = await composer.compose_round(inp, self.ctx)
+            async with self._locks[case_id]:
+                case = await self._load(case_id, must_be_open=True)
+                event = _say(case, text)
+                await self.repo.save(case)
+                await self._emit(case_id, event)
+                return case
 
         # Step 2 (no lock): next steps and the round message.
         existing = {a.id for a in case.actions}

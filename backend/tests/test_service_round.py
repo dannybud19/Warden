@@ -2,6 +2,7 @@
 
 import asyncio
 import dataclasses
+import json
 from collections.abc import Callable
 from typing import Any
 
@@ -14,13 +15,18 @@ from app.contracts import (
     AgentReport,
     AgentStatus,
     Case,
+    Category,
+    CheckId,
     CheckState,
     EvidenceKind,
+    EvidenceRef,
     Fact,
     FactKey,
+    Finding,
     Landlord,
     Listing,
     OrchestratorMessage,
+    Severity,
     StreamEvent,
     StudentContext,
 )
@@ -436,3 +442,53 @@ async def test_decide_waits_for_the_running_analysis(make_service: MakeService) 
     assert decided.status == "decided"
     assert "gate" in decided.reports  # the decision saw the finished analysis
     await service.wait_idle()
+
+
+class PaymentFlagAgent(BaseAgent):
+    """Raises a payment hard flag, so the case waits for the student's confirmation."""
+
+    name = "payment_flag"
+    requires = frozenset({Need.MESSAGES})
+
+    async def run(self, case: Case, ctx: AgentContext) -> AgentReport:
+        quote = case.messages[0].text
+        finding = Finding(
+            id=f"{self.name}:before_viewing",
+            agent=self.name,
+            check_id=CheckId.PAYMENT_SAFETY,
+            title="Money requested before any viewing",
+            detail="Asked to pay before a viewing.",
+            category=Category.PAYMENT,
+            severity=Severity.CRITICAL,
+            confidence=0.9,
+            evidence=[EvidenceRef(evidence_id=case.messages[0].evidence_id, quote=quote)],
+            supports="suspicious",
+            hard_flag=True,
+        )
+        return self.report(case, findings=[finding])
+
+
+async def test_a_question_is_answered_while_a_payment_confirmation_waits(
+    make_service: MakeService, bus: EventBus, ctx: AgentContext
+) -> None:
+    """Asking Warden something must not answer (and re-ask) the confirmation question."""
+    assert isinstance(ctx.llm, FakeLLM)
+    question = "so what are the issues with this property"
+    ctx.llm.responses[question] = json.dumps({"updates": [], "question": question})
+    service = make_service([PaymentFlagAgent()])
+    case = await service.open_case(StudentContext(), LISTING, None)
+    queue = bus.subscribe(case.case_id)
+    case = await add_evidence_and_settle(
+        service, case.case_id, Upload(EvidenceKind.EMAIL, b"Send the deposit before the viewing.")
+    )
+    (confirm,) = [a for a in case.actions if a.status == ActionStatus.OPEN]
+    assert conversation.is_payment_confirmation(confirm.id)
+    _drain(queue)
+
+    case = await reply_and_settle(service, case.case_id, question)
+    assert [(a.id, a.status) for a in case.actions if a.status == ActionStatus.OPEN] == [
+        (confirm.id, ActionStatus.OPEN)
+    ]
+    (message,) = _messages(_drain(queue))
+    assert "I can't answer that from your case yet." in message  # FakeLLM: the honest template
+    assert case.status == "open"

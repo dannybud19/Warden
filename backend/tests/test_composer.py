@@ -52,6 +52,16 @@ def test_validate_accepts_good_message() -> None:
     assert validate(GOOD, BASE) == []
 
 
+def test_validate_rejects_new_steps_when_none_were_added() -> None:
+    """The model counted an open step as new (seen live on Gemini Flash-Lite)."""
+    quiet = RoundInput(score_before=100, score_after=100, new_actions=0, open_actions=1)
+    assert validate("I can't tell from the case yet. I've added 1 new step below.", quiet) == [
+        "false_new_steps"
+    ]
+    assert validate("I can't tell from the case yet. 1 step is still open below.", quiet) == []
+    assert validate("I've added 2 new steps below.", BASE) == []
+
+
 def test_validate_too_long() -> None:
     assert validate(" ".join(["word"] * 61), BASE) == ["too_long"]
     assert validate(" ".join(["word"] * 60), BASE) == []

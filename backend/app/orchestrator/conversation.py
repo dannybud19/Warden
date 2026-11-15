@@ -105,11 +105,33 @@ def confirmation_outcome(text: str) -> Outcome:
     return "flags" if text.strip().lower().rstrip(".! ") == "yes" else "neutral"
 
 
-def _target(case: Case, action_id: str | None) -> str | None:
+_QUESTION_START = re.compile(
+    r"^\s*(?:so\s*,?\s*|and\s+|but\s+|ok(?:ay)?\s*,?\s*)?"
+    r"(?:what|why|how|who|when|where|which|is|are|was|were|do|does|did|can|could|should|"
+    r"would|will|shall|may|might|am)\b",
+    re.IGNORECASE,
+)
+
+
+def looks_like_question(text: str) -> bool:
+    """True when the reply opens with a question to us ("what are the issues?", "is this
+    normal"), so it is never recorded as the answer to an open action. Only the first sentence
+    counts: "yes, the rent is 950. Is that normal?" is an answer first."""
+    first = re.split(r"(?<=[.!?])\s+", text.strip(), maxsplit=1)[0]
+    return first.endswith("?") or bool(_QUESTION_START.match(first))
+
+
+def _target(case: Case, action_id: str | None, text: str) -> str | None:
     """The action a reply is about: the one named, else an open payment confirmation (which
-    must be answered before anything else), else None (free text over every open action)."""
+    must be answered before anything else), else None (free text over every open action).
+
+    A question is never aimed at the confirmation: it goes to the reader with every open
+    action, which picks up the question and answers nothing it does not answer.
+    """
     if action_id is not None:
         return action_id
+    if looks_like_question(text):
+        return None
     return next(
         (
             a.id
@@ -159,7 +181,10 @@ def _done(
 
 
 def _fallback(actions: list[Action], text: str, evidence_ids: list[str]) -> ParseResult:
-    """Keyword reading: only safe when exactly one action can be the one answered."""
+    """Keyword reading: only safe when exactly one action can be the one answered. A question
+    answers nothing; it is kept so the round message can reply to it."""
+    if looks_like_question(text):
+        return ParseResult(used_fallback=True, question=_question(text))
     if len(actions) != 1:
         return ParseResult(used_fallback=True, unmatched=True)
     update = _done(actions[0].id, keyword_outcome(text), "", evidence_ids)
@@ -254,7 +279,7 @@ def parse(
     is not modified. Raises InvalidActionError for an unknown or closed `action_id`.
     """
     validate_target(case, action_id)
-    target = _target(case, action_id)
+    target = _target(case, action_id, text)
     result = _settled_without_llm(case, evidence_ids, target, status) or _keyword_reading(
         _prompt_actions(case, target), text, evidence_ids
     )
@@ -283,7 +308,7 @@ async def read_reply(
     its outcome follows `confirmation_outcome` on both paths.
     """
     validate_target(case, action_id)
-    action_id = _target(case, action_id)
+    action_id = _target(case, action_id, text)
     settled = _settled_without_llm(case, evidence_ids, action_id, status)
     if settled is not None:
         return settled
