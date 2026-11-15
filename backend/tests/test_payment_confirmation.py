@@ -121,9 +121,11 @@ async def test_direct_decide_cannot_bypass_confirmation(make_service: MakeServic
     assert len(case.actions) == 1
 
 
-async def test_payment_confirmation_waits_for_room_in_the_open_action_limit(
+async def test_payment_confirmation_is_asked_even_when_three_steps_are_open(
     make_service: MakeService,
 ) -> None:
+    """The agency check opens three steps when a home is added. Waiting for room then left the
+    concern unasked while it blocked every other step, and the chat went silent."""
     service, case = await payment_case(make_service)
     case.actions = [
         Action(
@@ -140,15 +142,25 @@ async def test_payment_confirmation_waits_for_room_in_the_open_action_limit(
     ]
     await service.repo.save(case)
     case = await service.analyse(case.case_id)
-    assert case.decision is None and len(case.actions) == 3
-    assert not any(a.id.startswith(payment_confirmation.PREFIX) for a in case.actions)
-
-    case = await reply_and_settle(service, case.case_id, "unsure", action_id=case.actions[0].id)
     open_actions = [a for a in case.actions if a.status == ActionStatus.OPEN]
-    assert case.decision is None and len(open_actions) == 3
     confirmations = [a for a in open_actions if a.id.startswith(payment_confirmation.PREFIX)]
+    assert case.decision is None and len(open_actions) == 4
     assert len(confirmations) == 1
     assert "Pay the deposit before any viewing." in confirmations[0].text
+
+
+async def test_a_statement_gets_a_reply_while_a_confirmation_is_open(
+    make_service: MakeService,
+) -> None:
+    """Not a question and not an answer to the confirmation: the student must still hear back."""
+    service, case = await payment_case(make_service)
+    said = len([t for t in case.chat if t.role == "orchestrator"])
+    case = await reply_and_settle(
+        service, case.case_id, "I just checked with the agent, it was a typo in the contract"
+    )
+    assert case.chat[-1].role == "orchestrator"
+    assert len([t for t in case.chat if t.role == "orchestrator"]) == said + 1
+    assert any(a.status == ActionStatus.OPEN for a in case.actions)  # still to be confirmed
 
 
 async def test_free_chat_prioritises_payment_confirmation_over_old_questions(
