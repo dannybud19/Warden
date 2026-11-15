@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { motion } from "motion/react";
 import { useCase } from "@/lib/useCase";
+import { debrief, type DebriefInput } from "@/lib/api";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { isDecided, openActions } from "@/lib/selectors";
 import { rememberCase, shortAddress } from "@/lib/homes";
@@ -28,7 +29,7 @@ function studentName(): string {
 
 /** Figma "V4 · One home": left is the dashboard (facts + your decision), right is the agents. */
 export function CaseScreen({ caseId }: { caseId: string }) {
-  const { state, upload, sendReply } = useCase(caseId);
+  const { state, upload, sendReply, refresh } = useCase(caseId);
   // separate conversations with Warden in this home
   const convo = useThreads(caseId);
   const c = state.caseData;
@@ -44,6 +45,15 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const onUpload = useCallback(
     (kind: EvidenceKind, file: File) => void upload({ kind, file, studentName: studentName() }),
     [upload],
+  );
+
+  // A finished call goes to the orchestrator once; the stream then brings the analysis.
+  const onCallDebrief = useCallback(
+    async (payload: DebriefInput) => {
+      await debrief(caseId, payload);
+      await refresh();
+    },
+    [caseId, refresh],
   );
 
   const view = useMemo(() => {
@@ -146,7 +156,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               busy={state.busy}
               canReply={!closed && view.open.length > 0}
               closed={closed}
-              onAnswer={action ? (text) => void sendReply({ text, actionId: action.id, status: "done" }) : undefined}
+              callCase={c}
+              onCallDebrief={onCallDebrief}
               onAsk={ask}
               onSend={(text) => void sendReply({ text })}
               onUpload={onUpload}

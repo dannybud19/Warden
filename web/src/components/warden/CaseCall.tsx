@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, PhoneOff } from "lucide-react";
 import { WardenOrb, type OrbMood } from "../onboarding/WardenOrb";
+import type { DebriefInput } from "@/lib/api";
+import type { Case } from "@/lib/types";
 
 /** What Warden knows about this home when the call starts (ElevenLabs dynamic variables). */
 export type CallContext = {
@@ -16,11 +18,14 @@ export type CallContext = {
 };
 
 type Props = {
+  /** The case as the page holds it now; the call's client tools read it (no backend call). */
+  caseData: Case;
   context: CallContext;
   /** Each spoken line, so it lands in this home's chat history. */
   onLine: (role: "student" | "orchestrator", text: string) => void;
-  /** The student told Warden how the letting agent answered the open question. */
-  onAnswer?: (answer: string) => void;
+  /** Sends the finished call to the orchestrator once, after hang-up. Rejects with ApiError
+   * (409 when the home was decided during the call). */
+  onDebrief: (payload: DebriefInput) => Promise<void>;
   onEnd: () => void;
 };
 
@@ -33,7 +38,7 @@ export function CaseCall(props: Props) {
   );
 }
 
-function Call({ context, onLine, onAnswer, onEnd }: Props) {
+function Call({ context, onLine, onEnd }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
   const levelRef = useRef(0);
@@ -42,10 +47,9 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
   const convo = useConversation({
     clientTools: {
       record_answer: (params: Record<string, unknown>) => {
-        const answer = String(params.answer ?? "").trim();
-        if (!answer || !onAnswer) return "There's no open question to answer right now.";
-        onAnswer(answer);
-        return "Recorded. Tell them you've passed it to your team and they'll see the check update shortly.";
+        // Phase 1 skeleton: subagent C stores the answer and debriefs after the call.
+        void params;
+        return "Noted. I'll check it after the call.";
       },
     },
     onMessage: (m) => {

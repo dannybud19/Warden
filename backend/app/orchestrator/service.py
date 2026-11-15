@@ -39,6 +39,7 @@ from app.orchestrator import (
     composer,
     conversation,
     crosscheck,
+    debrief,
     decision,
     fields,
     payment_confirmation,
@@ -271,6 +272,17 @@ class CaseService:
             )
         self._schedule(case_id)
         return case
+
+    async def debrief(self, case_id: str, call: debrief.CallDebrief) -> Case:
+        """Save a finished voice call and apply what it answered, then analyse in the background
+        (plan WS V 4.2).
+
+        The transcript becomes one `call_recording` evidence item, the student's lines become
+        messages and every line a chat turn. Explicit answers are applied first, then the
+        student's side is read like a chat reply. Every parse runs on a snapshot without the
+        state lock, like `reply`. Only the short thanks message is emitted over the stream.
+        """
+        raise NotImplementedError
 
     def running_agents(self, case_id: str) -> list[str]:
         """Agents that have started and not finished for this case (sorted)."""

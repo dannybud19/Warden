@@ -5,7 +5,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { ChevronDown, Maximize2, MessageSquare, Phone, Plus, Trash2, X } from "lucide-react";
-import type { ChatEntry, EvidenceKind } from "@/lib/types";
+import type { Case, ChatEntry, EvidenceKind } from "@/lib/types";
+import type { DebriefInput } from "@/lib/api";
 import { agentSummary, type AgentRow, type Mood, type Suggestion, type Tone } from "@/lib/present";
 import { AnimatedWarden } from "./AnimatedWarden";
 import { Mascot } from "./primitives";
@@ -211,8 +212,10 @@ type Props = {
   /** Enables "Call Warden" for this home. */
   callContext?: CallContext;
   onCallLine?: (role: "student" | "orchestrator", text: string) => void;
-  /** Set when there's an open question: a call can record the letting agent's answer to it. */
-  onAnswer?: (text: string) => void;
+  /** The case the call's questions come from (read in the browser during the call). */
+  callCase?: Case;
+  /** Sends the finished call to the orchestrator (POST /cases/{id}/debrief). */
+  onCallDebrief?: (payload: DebriefInput) => Promise<void>;
 };
 
 export function AgentsRail(props: Props) {
@@ -320,7 +323,7 @@ function ChatDrawer({ onClose, children, threads }: { onClose: () => void; child
 
 /** The conversation: history that fills the space, suggestions, and the message box or call bar. */
 function ChatPane({
-  chat, busy, canReply, closed, onAsk, onSend, onUpload, threads, callContext, onCallLine, onAnswer, onExpand, roomy = false,
+  chat, busy, canReply, closed, onAsk, onSend, onUpload, threads, callContext, onCallLine, callCase, onCallDebrief, onExpand, roomy = false,
 }: Props & { onExpand?: () => void; roomy?: boolean }) {
   const [text, setText] = useState("");
   const [inCall, setInCall] = useState(false);
@@ -408,8 +411,14 @@ function ChatPane({
         )}
       </div>
 
-      {inCall && callContext ? (
-        <CaseCall context={callContext} onLine={(role, t) => onCallLine?.(role, t)} onAnswer={onAnswer} onEnd={() => setInCall(false)} />
+      {inCall && callContext && callCase && onCallDebrief ? (
+        <CaseCall
+          caseData={callCase}
+          context={callContext}
+          onLine={(role, t) => onCallLine?.(role, t)}
+          onDebrief={onCallDebrief}
+          onEnd={() => setInCall(false)}
+        />
       ) : (
         <>
           <div className="mt-3 flex flex-wrap gap-1.5 px-1">
