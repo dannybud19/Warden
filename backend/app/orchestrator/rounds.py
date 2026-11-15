@@ -15,6 +15,7 @@ from app.contracts import (
     Check,
     CheckId,
     CheckState,
+    EvidenceKind,
     ScoreResult,
     Severity,
 )
@@ -25,8 +26,24 @@ from app.orchestrator.conversation import ParseResult
 # A flagged answer about money: ask for the message itself so an agent can quote it (decision 19).
 PAYMENT_WORDS = re.compile(r"\b(pay|paid|paying|payment|deposit|bank|transfer)", re.IGNORECASE)
 NOT_RUN_MARKER = ":not-run-"
-MAX_GROUNDING = 8
-MAX_GROUNDING_FINDINGS = 4
+MAX_GROUNDING = 14
+MAX_GROUNDING_FINDINGS = 6
+MAX_DETAIL_WORDS = 30
+MAX_HISTORY_TURNS = 6
+MAX_TURN_WORDS = 60
+
+# How an evidence id reads in a finding's detail, e.g. "'950' (from the contract)".
+EVIDENCE_WORDS: dict[EvidenceKind, str] = {
+    EvidenceKind.CHAT_SCREENSHOT: "a chat screenshot",
+    EvidenceKind.CHAT_EXPORT: "your chats",
+    EvidenceKind.EMAIL: "an email",
+    EvidenceKind.CALL_RECORDING: "a call recording",
+    EvidenceKind.VIDEO: "the viewing video",
+    EvidenceKind.DOCUMENT: "a document",
+    EvidenceKind.CONTRACT: "the contract",
+    EvidenceKind.LISTING: "the listing",
+}
+_EVIDENCE_ID = re.compile(r"\bev_[A-Za-z0-9]+\b")
 
 
 def label(check_id: CheckId) -> str:
@@ -76,17 +93,46 @@ def changed_recap(previous: str | None, current: str | None) -> str | None:
 
 def grounding(case: Case) -> list[str]:
     """What the composer may use to answer a student's question: the case's own findings first
-    (suspicious, medium or worse), then every check's state. Capped so the prompt stays small."""
+    (suspicious, medium or worse, most serious first, with their detail so it can say *how*,
+    e.g. which sources disagree on the rent), then every check's state. Capped so the prompt
+    stays small."""
     medium = SEVERITY_RANK[Severity.MEDIUM]
-    findings = [
-        f.title
-        for r in case.reports.values()
-        for f in r.findings
-        if f.supports == "suspicious" and SEVERITY_RANK[f.severity] >= medium
-    ]
+    serious = sorted(
+        (
+            f
+            for r in case.reports.values()
+            for f in r.findings
+            if f.supports == "suspicious" and SEVERITY_RANK[f.severity] >= medium
+        ),
+        key=lambda f: SEVERITY_RANK[f.severity],
+        reverse=True,
+    )
+    findings = [_finding_line(case, f.title, f.detail) for f in serious]
     checks = [f"{label(c.id)}: {c.state.value}" for c in case.checks]
     unique = list(dict.fromkeys(findings))[:MAX_GROUNDING_FINDINGS]
     return [*unique, *checks][:MAX_GROUNDING]
+
+
+def _finding_line(case: Case, title: str, detail: str) -> str:
+    """ "Title: detail", with evidence ids in plain words and the detail capped."""
+    kinds = {e.id: EVIDENCE_WORDS.get(e.kind, "a document") for e in case.evidence}
+    readable = _EVIDENCE_ID.sub(lambda m: kinds.get(m.group(0), "an upload"), detail)
+    return f"{title}: {_cap_words(readable, MAX_DETAIL_WORDS)}" if readable.strip() else title
+
+
+def history(case: Case) -> list[str]:
+    """The last few chat turns, so the composer can tell what a follow-up question refers to
+    ("how do they disagree?" after "Two sources disagree on the rent.")."""
+    who = {"student": "student", "orchestrator": "you"}
+    return [
+        f"{who[t.role]}: {_cap_words(t.text, MAX_TURN_WORDS)}"
+        for t in case.chat[-MAX_HISTORY_TURNS:]
+    ]
+
+
+def _cap_words(text: str, limit: int) -> str:
+    words = text.split()
+    return " ".join(words) if len(words) <= limit else " ".join(words[:limit]) + "…"
 
 
 def round_input(
@@ -101,10 +147,12 @@ def round_input(
     recap_sent: bool,
     notes: list[RoundNote],
     case_grounding: list[str] | None = None,
+    case_history: list[str] | None = None,
 ) -> RoundInput:
     """Everything the composer needs about one analysis. `actions` already includes `fresh`.
 
-    `case_grounding` is sent only when a note carries a student question.
+    `case_grounding` is sent only when a note carries a student question; `case_history` is
+    always sent, so the message can acknowledge what the student just told us.
     """
     asked = any(n.kind == "question" for n in notes)
     return RoundInput(
@@ -117,4 +165,5 @@ def round_input(
         recap_sent=recap_sent,
         notes=tuple(notes),
         grounding=tuple(case_grounding or []) if asked else (),
+        history=tuple(case_history or []),
     )

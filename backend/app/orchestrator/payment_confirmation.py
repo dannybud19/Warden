@@ -45,21 +45,41 @@ def confirmed(case: Case, finding: Finding) -> bool:
 
 
 def pending(case: Case) -> list[Finding]:
-    """Unconfirmed payment concerns, including ones denied, skipped or answered uncertainly."""
+    """Unconfirmed payment concerns, including ones denied, skipped or answered uncertainly.
+
+    They never decide the case on their own (`decision.hard_flags` needs a confirmed one)."""
     return [finding for finding in payment_flags(case) if not confirmed(case, finding)]
 
 
+def answered(case: Case, finding: Finding) -> bool:
+    """The student has replied to (or skipped) a confirmation about this exact evidence."""
+    prefix = action_prefix(finding)
+    return any(
+        action.id.startswith(prefix) and action.status != ActionStatus.OPEN
+        for action in case.actions
+    )
+
+
+def awaiting(case: Case) -> list[Finding]:
+    """Pending concerns the student has not answered yet: only these hold up the next steps.
+
+    A no, unsure, longer answer or skip keeps the concern (payment safety stays suspicious and
+    the case cannot close on it) but is not asked again, so the conversation moves on instead
+    of repeating the same question. New evidence for the concern is a new finding and is asked.
+    """
+    return [finding for finding in pending(case) if not answered(case, finding)]
+
+
 def questions(case: Case, limit: int = 3) -> list[Action]:
-    """Ask about missing confirmations; follow up on a denial without clearing payment safety."""
+    """Ask once about each unanswered payment concern, within the open-action limit."""
     limit -= sum(action.status == ActionStatus.OPEN for action in case.actions)
     if limit <= 0:
         return []
     proposed = []
-    for finding in pending(case):
+    for finding in awaiting(case):
         prefix = action_prefix(finding)
-        previous = [action for action in case.actions if action.id.startswith(prefix)]
-        if any(action.status == ActionStatus.OPEN for action in previous):
-            continue
+        if any(a.id.startswith(prefix) for a in case.actions):
+            continue  # already asked and still open
         if finding.id == "message_checker:payment_before_viewing":
             ask = "Are they requiring payment before you or someone you trust can view in person?"
         elif finding.id == "message_checker:untraceable_payment":
@@ -67,17 +87,15 @@ def questions(case: Case, limit: int = 3) -> list[Action]:
         else:
             ask = "Are they requiring payment under the conditions described in this warning?"
         quotes = " / ".join(f"“{ref.quote}”" for ref in finding.evidence)
-        lead = (
-            "The concern is unresolved. Please check the full messages or provide more context. "
-            if previous
-            else "Please confirm this payment concern before we reach a decision. "
-        )
         proposed.append(
             Action(
-                id=f"{prefix}{len(previous) + 1}",
+                id=f"{prefix}1",
                 check_id=CheckId.PAYMENT_SAFETY,
                 kind=ActionKind.QUESTION,
-                text=f"{lead}{finding.title}: {quotes} {ask} Reply exactly yes, no, or unsure.",
+                text=(
+                    "Please confirm this payment concern before we reach a decision. "
+                    f"{finding.title}: {quotes} {ask} Reply yes, no, or unsure."
+                ),
             )
         )
         if len(proposed) == limit:

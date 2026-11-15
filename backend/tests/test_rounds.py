@@ -8,10 +8,15 @@ from app.contracts import (
     ActionStatus,
     AgentReport,
     AgentStatus,
+    Case,
     Category,
+    ChatTurn,
     Check,
     CheckId,
     CheckState,
+    Evidence,
+    EvidenceKind,
+    EvidenceRef,
     Finding,
     ScoreResult,
     Severity,
@@ -120,3 +125,75 @@ def test_round_input_counts_and_rounds_scores() -> None:
     assert (inp.score_before, inp.score_after) == (100, 82)
     assert (inp.new_actions, inp.open_actions, inp.recap_sent) == (1, 1, True)
     assert inp.notes == (RoundNote(kind="dropped"),)
+
+
+def _rent_case() -> Case:
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+    rent = Finding(
+        id="crosscheck:rent_pcm",
+        agent="crosscheck",
+        check_id=CheckId.CONTRACT_CONSISTENCY,
+        title="Rent differs between sources",
+        detail="'850' (from listing); '950' (from ev_c1)",
+        category=Category.CONSISTENCY,
+        severity=Severity.HIGH,
+        confidence=0.9,
+        evidence=[EvidenceRef(evidence_id="ev_c1", quote="950")],
+    )
+    minor = rent.model_copy(
+        update={"id": "x:minor", "title": "Minor thing", "severity": Severity.MEDIUM}
+    )
+    report = AgentReport(
+        agent="crosscheck",
+        version="1",
+        status=AgentStatus.OK,
+        input_hash="h",
+        findings=[minor, rent],
+    )
+    return Case(
+        case_id="c",
+        created_at=at,
+        evidence=[Evidence(id="ev_c1", kind=EvidenceKind.CONTRACT, uploaded_at=at)],
+        checks=[Check(id=CheckId.CONTRACT_CONSISTENCY, state=CheckState.SUSPICIOUS)],
+        reports={"crosscheck": report},
+        chat=[
+            ChatTurn(role="orchestrator", text="Two sources disagree on the rent.", at=at),
+            ChatTurn(role="student", text="how do they disagree", at=at),
+        ],
+    )
+
+
+def test_grounding_gives_finding_detail_in_plain_words_most_serious_first() -> None:
+    lines = rounds.grounding(_rent_case())
+    assert lines[0] == (
+        "Rent differs between sources: '850' (from listing); '950' (from the contract)"
+    )
+    assert lines[1].startswith("Minor thing")
+    assert "contract consistency: suspicious" in lines
+
+
+def test_history_lets_a_follow_up_question_see_the_last_turns() -> None:
+    assert rounds.history(_rent_case()) == [
+        "you: Two sources disagree on the rent.",
+        "student: how do they disagree",
+    ]
+
+
+def test_round_input_always_sends_history_and_grounding_only_with_a_question() -> None:
+    at = datetime(2026, 11, 14, tzinfo=UTC)
+    common = {
+        "score_before": None,
+        "score_after": ScoreResult(at=at, score=80.0, contributions={}),
+        "states_before": {},
+        "checks_after": [],
+        "new_reports": {},
+        "fresh": [],
+        "actions": [],
+        "recap_sent": False,
+        "case_grounding": ["g"],
+        "case_history": ["student: hi"],
+    }
+    asked = rounds.round_input(**common, notes=[RoundNote(kind="question", text="how?")])
+    assert (asked.history, asked.grounding) == (("student: hi",), ("g",))
+    told = rounds.round_input(**common, notes=[])
+    assert (told.history, told.grounding) == (("student: hi",), ())

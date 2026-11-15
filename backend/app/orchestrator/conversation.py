@@ -121,16 +121,27 @@ def looks_like_question(text: str) -> bool:
     return first.endswith("?") or bool(_QUESTION_START.match(first))
 
 
+SHORT_ANSWER_WORDS = 3
+
+
+def is_short_answer(text: str) -> bool:
+    """A bare answer like "yes", "no", "not sure": it can only mean the confirmation."""
+    return len(text.split()) <= SHORT_ANSWER_WORDS
+
+
 def _target(case: Case, action_id: str | None, text: str) -> str | None:
-    """The action a reply is about: the one named, else an open payment confirmation (which
-    must be answered before anything else), else None (free text over every open action).
+    """The action a reply is about: the one named, else an open payment confirmation for a bare
+    answer (it must be answered before anything else), else None (free text over every open
+    action, which may answer the confirmation too: only a plain yes ever confirms it).
 
     A question is never aimed at the confirmation: it goes to the reader with every open
     action, which picks up the question and answers nothing it does not answer.
     """
     if action_id is not None:
         return action_id
-    if looks_like_question(text):
+    if looks_like_question(text) or not is_short_answer(text):
+        # NOTE: a longer reply ("they no longer want money first and the viewing is booked")
+        # is read against every open action, the confirmation included, so nothing in it is lost.
         return None
     return next(
         (

@@ -26,8 +26,8 @@ from app.contracts import (
 from app.core.agent import AgentContext, BaseAgent
 from app.orchestrator import payment_confirmation
 from app.orchestrator.checks import initial_checks
-from app.orchestrator.conversation import parse
-from app.orchestrator.service import CaseService
+from app.orchestrator.conversation import _target, parse  # pyright: ignore[reportPrivateUsage]
+from app.orchestrator.service import CONFIRM_PAYMENT_TEXT, CaseService
 from tests.conftest import reply_and_settle
 
 MakeService = Callable[[list[BaseAgent] | None], CaseService]
@@ -81,7 +81,7 @@ async def test_payment_waits_for_targeted_confirmation(
 
 
 @pytest.mark.parametrize("answer", ["no", "unsure", "yes, but only after viewing", "confirmed", ""])
-async def test_non_confirmation_preserves_concern_and_asks_for_clarification(
+async def test_non_confirmation_preserves_concern_without_asking_again(
     make_service: MakeService, answer: str
 ) -> None:
     service, case = await payment_case(make_service)
@@ -90,7 +90,11 @@ async def test_non_confirmation_preserves_concern_and_asks_for_clarification(
     assert case.status == "open" and case.decision is None
     old = next(a for a in case.actions if a.id == action.id)
     assert old.answer == answer and old.outcome == "neutral"
-    assert any(a.status == ActionStatus.OPEN and "unresolved" in a.text for a in case.actions)
+    # Answered once: the conversation moves on instead of repeating the same question.
+    confirmations = [a for a in case.actions if a.id.startswith(payment_confirmation.PREFIX)]
+    assert confirmations == [old]
+    assert payment_confirmation.pending(case) and not payment_confirmation.awaiting(case)
+    assert case.chat[-1].text != CONFIRM_PAYMENT_TEXT
     assert (
         next(c for c in case.checks if c.id == CheckId.PAYMENT_SAFETY).state
         == CheckState.SUSPICIOUS
@@ -107,7 +111,7 @@ async def test_skipping_cannot_confirm_or_clear_payment(
     )
     assert case.decision is None
     assert case.actions[0].outcome == "neutral"
-    assert any(a.status == ActionStatus.OPEN for a in case.actions)
+    assert payment_confirmation.pending(case)  # skipping keeps the concern; it is not asked again
 
 
 async def test_direct_decide_cannot_bypass_confirmation(make_service: MakeService) -> None:
@@ -205,3 +209,20 @@ async def test_unrelated_hard_flag_still_decides_immediately(make_service: MakeS
     case = await service.analyse(case.case_id)
     assert case.decision and case.decision.verdict == Verdict.LIKELY_SCAM
     assert "company_test:dissolved" in case.decision.finding_ids
+
+
+async def test_long_reply_is_read_against_every_open_action(make_service: MakeService) -> None:
+    _, case = await payment_case(make_service)
+    case.actions.append(
+        Action(
+            id="view",
+            check_id=CheckId.IN_PERSON_VIEWING,
+            kind=ActionKind.ACTION,
+            text="Book an in-person viewing.",
+        )
+    )
+    long_reply = "they no longer want the money before the viewing and we booked one"
+    assert _target(case, None, long_reply) is None  # every open action, not only the confirmation
+    confirmation = case.actions[0].id
+    assert _target(case, None, "no") == confirmation
+    assert _target(case, None, "not sure") == confirmation

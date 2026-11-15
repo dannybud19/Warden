@@ -451,13 +451,13 @@ const KIND_NAME: Record<EvidenceKind, string> = {
 };
 
 /** What the student can always add, whatever state the checks are in. */
-const ADDABLE: { kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; paste?: string }[] = [
-  { kind: "chat_export", label: "Chats", icon: MessageSquare, accept: ".txt,.zip,image/*", paste: "Paste a WhatsApp chat or messages…" },
-  { kind: "email", label: "Emails", icon: Mail, accept: ".eml,.pdf,.txt,image/*", paste: "Paste the email, including who it's from…" },
-  { kind: "contract", label: "Contract", icon: FileText, accept: ".pdf,image/*" },
-  { kind: "video", label: "Viewing video", icon: Video, accept: "video/*" },
-  { kind: "document", label: "Payment details", icon: Banknote, accept: ".pdf,image/*" },
-  { kind: "document", label: "Other document", icon: Upload, accept: ".pdf,image/*,.txt" },
+const ADDABLE: { kind: EvidenceKind; label: string; icon: LucideIcon; accept: string; formats: string; paste?: string }[] = [
+  { kind: "chat_export", label: "Chats", icon: MessageSquare, accept: ".txt,.zip,image/*", formats: "WhatsApp export (.txt, .zip) or screenshot", paste: "Paste a WhatsApp chat or messages…" },
+  { kind: "email", label: "Emails", icon: Mail, accept: ".eml,.pdf,.txt,image/*", formats: ".eml, PDF, text or screenshot", paste: "Paste the email, including who it's from…" },
+  { kind: "contract", label: "Contract", icon: FileText, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word (.docx), text or photo" },
+  { kind: "video", label: "Viewing video", icon: Video, accept: "video/*", formats: "Any video (MP4, MOV…)" },
+  { kind: "document", label: "Payment details", icon: Banknote, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo" },
+  { kind: "document", label: "Other document", icon: Upload, accept: ".pdf,.docx,.txt,image/*", formats: "PDF, Word, text or photo" },
 ];
 
 export function EvidencePanel({
@@ -520,7 +520,10 @@ export function EvidencePanel({
             className="flex items-center gap-3 rounded-[16px] bg-field p-3"
           >
             <span className="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-[#2f6f73] shadow-tab"><a.icon size={17} strokeWidth={1.8} /></span>
-            <span className="min-w-0 flex-1 truncate text-[14px]">{a.label}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14px]">{a.label}</span>
+              <span className="block truncate text-[11.5px] text-muted" title={a.formats}>{a.formats}</span>
+            </span>
             {a.paste && (
               <button
                 type="button"

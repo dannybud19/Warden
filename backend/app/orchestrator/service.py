@@ -54,8 +54,8 @@ CROSSCHECK_TIMEOUT_S = 30.0
 CONSULTANT_TIMEOUT_S = 30.0
 
 CONFIRM_PAYMENT_TEXT = (
-    "A payment concern needs your confirmation before we reach a decision. "
-    "Answer the questions below; a no or unsure answer will keep it open for clarification."
+    "Your messages mention a payment concern. Please answer the question below. Only a yes "
+    "confirms it; a no or unsure keeps it on record and we move on to the next checks."
 )
 
 FAILED_ANALYSIS_TEXT = (
@@ -302,7 +302,7 @@ class CaseService:
             return await self._decide(case)
 
     async def _decide(self, case: Case) -> Case:
-        if payment_confirmation.pending(case) and not decision.hard_flags(case):
+        if payment_confirmation.awaiting(case) and not decision.hard_flags(case):
             return await self._confirm_payment(case)
         case.decision = decision.decide(case)
         case.status = "decided"
@@ -432,7 +432,7 @@ class CaseService:
             await self._emit_all(case_id, events)
             if decision.hard_flags(case):
                 return await self._decide(case)
-            confirming = bool(payment_confirmation.pending(case))
+            confirming = bool(payment_confirmation.awaiting(case))
             if confirming:
                 # A payment hard flag needs the student's explicit yes before it can decide.
                 case = await self._confirm_payment(case)
@@ -453,6 +453,7 @@ class CaseService:
                 recap_sent=recap is not None,
                 notes=questions,
                 case_grounding=rounds.grounding(case),
+                case_history=rounds.history(case),
             )
             text = await composer.compose_round(inp, self.ctx)
             async with self._locks[case_id]:
@@ -483,6 +484,7 @@ class CaseService:
             recap_sent=recap is not None,
             notes=notes,
             case_grounding=rounds.grounding(case),
+            case_history=rounds.history(case),
         )
         text = await composer.compose_round(inp, self.ctx)
 

@@ -108,6 +108,7 @@ Warden/
         whatsapp.py              WhatsApp .txt export parser
         ocr.py                   screenshot to text (vision model)
         pdf.py                   PDF to text
+        docx.py                  Word (.docx) to text, standard library only
         audio.py                 call recording to transcript (later)
       storage/
         repository.py            CaseRepository protocol
@@ -162,8 +163,9 @@ Warden/
       answers and no open suspicious finding; otherwise UNVERIFIED. Suspicious always wins over cleared.
    5. `scoring.score()` appends a ScoreResult.
    6. Payment hard flags first require a targeted confirmation of their quoted evidence. Yes confirms
-      that concern; no/unsure/skip keeps the case open and asks for clarification without clearing the
-      payment check. Other hard flags still decide immediately. Confirmations are bound to a finding
+      that concern; no/unsure/skip (or a longer answer) keeps the concern on record without clearing
+      the payment check, and is not asked again for the same evidence: the round carries on with the
+      consultant's next steps. Other hard flags still decide immediately. Confirmations are bound to a finding
       and its evidence, so changing the quoted demand requires a new answer.
    7. Else `consultant.propose_actions()`. If it returns `[]` and no actions are open: `decide()`.
       Else store and emit any new actions, then one **round message** (`orchestrator/composer.py`): what
@@ -224,8 +226,10 @@ hard flag.
 Payment hard flags require an explicit student yes to their targeted confirmation question before
 closure. The orchestrator prioritises these questions even for SUSPICIOUS payment checks; this is an
 exception to the consultant's usual UNVERIFIED-only selection. Free chat targets an open payment
-confirmation first. These questions parse only an exact yes (optional terminal punctuation) as
-confirmation; no, unsure or longer ambiguous answers remain neutral and trigger clarification.
+confirmation first when the reply is a bare answer (3 words or fewer); a longer reply is read
+against every open action, the confirmation included. These questions parse only an exact yes
+(optional terminal punctuation) as confirmation; no, unsure, skip or longer answers remain neutral,
+keep the concern pending (it cannot close the case) and are not asked again for the same evidence.
 Payment confirmations count towards the same maximum of three open actions as consultant questions.
 If all three slots are occupied, the case stays open and a confirmation is offered when a slot opens.
 Identity/contract hard flags still close immediately, including when a payment question is pending.
