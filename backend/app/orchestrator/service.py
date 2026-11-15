@@ -282,7 +282,82 @@ class CaseService:
         student's side is read like a chat reply. Every parse runs on a snapshot without the
         state lock, like `reply`. Only the short thanks message is emitted over the stream.
         """
-        raise NotImplementedError
+        snapshot = await self._load(case_id, must_be_open=True)
+        # NOTE: mask first, so nothing stored or sent to an LLM holds a full bank account.
+        call = debrief.masked(call)
+        if not call.lines:
+            return snapshot  # nothing was said: nothing to save
+        evidence_id = new_id("ev")
+        evidence = debrief.build_evidence(evidence_id, call.lines, datetime.now(UTC))
+        messages = debrief.build_messages(evidence_id, call.lines)
+        turns = debrief.build_chat_turns(call.lines)
+
+        # Explicit answers first (like an action-card reply), each on a working copy where the
+        # earlier ones are already applied, so the transcript reading only sees what is still open.
+        kept, dropped_ids = debrief.split_answers(snapshot, call.answers)
+        working = snapshot.model_copy(deep=True)
+        readings: list[tuple[conversation.ParseResult, str, bool]] = []
+        for answer in kept:
+            try:
+                result = await conversation.read_reply(
+                    working,
+                    answer.answer,
+                    [evidence_id],
+                    answer.action_id,
+                    answer.status,
+                    self.ctx,
+                )
+            except conversation.InvalidActionError:
+                dropped_ids.append(answer.action_id)
+                continue
+            working.actions, _ = conversation.apply(working.actions, result, answer.answer)
+            readings.append((result, answer.answer, False))
+
+        text = debrief.student_text(call.lines)
+        if text:
+            try:
+                transcript = await conversation.read_reply(
+                    working, text, [evidence_id], None, None, self.ctx
+                )
+            except Exception as exc:  # noqa: BLE001 - the transcript must be saved whatever happens
+                # Log the error type only: messages can echo the student's words.
+                self.ctx.log.warning("debrief parse failed: %s", type(exc).__name__)
+                transcript = conversation.ParseResult()
+            readings.append((transcript, text, True))
+
+        async with self._locks[case_id]:
+            case = await self._load(case_id, must_be_open=True)
+            case.evidence.append(evidence)
+            case.messages.extend(messages)
+            case.chat.extend(turns)
+            applied = 0
+            changed_fields: list[RoundNote] = []
+            notes: list[RoundNote] = []
+            for result, reading_text, is_transcript in readings:
+                # A call is a story, not a reply to one step: matching no step needs no note.
+                skip = {"dropped", "unmatched"} if is_transcript else {"dropped"}
+                case.actions, dropped = conversation.apply(case.actions, result, reading_text)
+                dropped_ids.extend(dropped)
+                applied += sum(1 for u in result.updates if u.action_id not in dropped)
+                changed = fields.apply_fields(case, result.field_updates)
+                changed_fields.extend(changed)
+                checks = {a.id: a.check_id for a in case.actions}
+                notes.extend(
+                    n
+                    for n in rounds.reply_notes(result, dropped, reading_text, checks)
+                    if n.kind not in skip
+                )
+            if dropped_ids:
+                notes.append(RoundNote(kind="dropped"))  # once, not per action
+            event = _say(case, debrief.THANKS_TEXT)
+            await self.repo.save(case)
+            self._notes[case_id].extend(
+                [*notes, *changed_fields, debrief.summary_note(applied, len(changed_fields))]
+            )
+        # Only the thanks message: the browser already showed the call's own lines.
+        await self._emit(case_id, event)
+        self._schedule(case_id)
+        return case
 
     def running_agents(self, case_id: str) -> list[str]:
         """Agents that have started and not finished for this case (sorted)."""

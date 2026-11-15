@@ -7,11 +7,13 @@ call is never stored or sent to an LLM in full (phone and company numbers stay a
 """
 
 from collections.abc import Sequence
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime
 from typing import Literal
 
-from app.contracts import Case, ChatTurn, Evidence, Message
+from app.contracts import ActionStatus, Case, ChatTurn, Evidence, EvidenceKind, Message
+from app.core.ids import new_id
+from app.intake.redact import mask_sensitive
 from app.orchestrator.composer import RoundNote
 from app.orchestrator.conversation import ReplyStatus
 
@@ -52,41 +54,87 @@ class CallDebrief:
     source: Literal["call"] = "call"
 
 
+def _mask(text: str) -> str:
+    return mask_sensitive(text).strip()
+
+
 def masked(call: CallDebrief) -> CallDebrief:
-    """The same call with every line's text and every answer masked; blank lines dropped."""
-    raise NotImplementedError
+    """The same call with every line's text and every answer masked; blank lines dropped.
+
+    Masking runs before anything is stored or sent to an LLM, so a bank account said on the
+    call never leaves this function in full. Phone and company numbers are not masked.
+    """
+    lines = tuple(replace(line, text=text) for line in call.lines if (text := _mask(line.text)))
+    answers = tuple(
+        replace(answer, answer=text) for answer in call.answers if (text := _mask(answer.answer))
+    )
+    return replace(call, lines=lines, answers=answers)
+
+
+def _utc(at: datetime) -> datetime:
+    return at.replace(tzinfo=UTC) if at.tzinfo is None else at.astimezone(UTC)
 
 
 def transcript_text(lines: Sequence[CallLine]) -> str:
     """One line per turn: `[HH:MM] You: ...` / `[HH:MM] Warden: ...` (UTC)."""
-    raise NotImplementedError
+    speaker = {"student": "You", "orchestrator": "Warden"}
+    return "\n".join(f"[{_utc(ln.at):%H:%M}] {speaker[ln.role]}: {ln.text}" for ln in lines)
 
 
 def student_text(lines: Sequence[CallLine], max_chars: int = PARSER_MAX_CHARS) -> str:
     """The student's lines joined with newlines, cut to the last `max_chars` characters."""
-    raise NotImplementedError
+    text = "\n".join(line.text for line in lines if line.role == "student")
+    return text[-max_chars:] if max_chars > 0 else ""
 
 
 def build_evidence(evidence_id: str, lines: Sequence[CallLine], uploaded_at: datetime) -> Evidence:
     """The call as one `call_recording` evidence item with the transcript as extracted text."""
-    raise NotImplementedError
+    return Evidence(
+        id=evidence_id,
+        kind=EvidenceKind.CALL_RECORDING,
+        uploaded_at=uploaded_at,
+        filename=None,
+        extracted_text=transcript_text(lines),
+        note=EVIDENCE_NOTE,
+    )
 
 
 def build_messages(evidence_id: str, lines: Sequence[CallLine]) -> list[Message]:
     """One `Message` per student line (`sender="student"`, `channel="call"`)."""
-    raise NotImplementedError
+    return [
+        Message(
+            id=new_id("msg"),
+            evidence_id=evidence_id,
+            sender="student",
+            sent_at=line.at,
+            channel="call",
+            text=line.text,
+        )
+        for line in lines
+        if line.role == "student"
+    ]
 
 
 def build_chat_turns(lines: Sequence[CallLine]) -> list[ChatTurn]:
     """One `ChatTurn` per line, in order, with the line's own time."""
-    raise NotImplementedError
+    return [ChatTurn(role=line.role, text=line.text, at=line.at, action_ids=[]) for line in lines]
 
 
 def split_answers(case: Case, answers: Sequence[CallAnswer]) -> tuple[list[CallAnswer], list[str]]:
     """(answers whose action is open in `case`, ids dropped: unknown, closed or repeated)."""
-    raise NotImplementedError
+    open_ids = {a.id for a in case.actions if a.status == ActionStatus.OPEN}
+    kept: list[CallAnswer] = []
+    seen: set[str] = set()
+    dropped: list[str] = []
+    for answer in answers:
+        if answer.action_id in open_ids and answer.action_id not in seen:
+            seen.add(answer.action_id)
+            kept.append(answer)
+        else:
+            dropped.append(answer.action_id)
+    return kept, dropped
 
 
 def summary_note(answers: int, facts: int) -> RoundNote:
     """The round note `call debrief: N answers, M facts` (kind `answered`)."""
-    raise NotImplementedError
+    return RoundNote(kind="answered", text=f"call debrief: {answers} answers, {facts} facts")
