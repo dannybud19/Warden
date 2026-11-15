@@ -26,13 +26,22 @@ The photo is presentation only: it never clears a check or establishes that the 
 Missing links, blocked sites, missing/broken images and timeouts retain the existing default picture
 with a visible **Default placeholder** badge, also shown during loading. Sites requiring login,
 JavaScript or an anti-bot challenge can fall back; the preview does not bypass those restrictions.
-The browser caches successful previews for one hour and failures for one minute.
+The browser caches successful previews for one hour and failures for one minute. Image requests
+include a selection version (`v=2`) so the earlier cached OpenRent logo is replaced on the next page
+load. Bump that version when selection changes; a server-side fix alone cannot invalidate a fresh
+browser cache entry. OpenRent's generic share logo is skipped in favour of its JSON-LD property photo.
 
 Only public HTTPS destinations are fetched. Each redirect and image host is checked; connections
 are pinned to checked public IPv4 addresses with hostname TLS verification. Private/reserved IPs,
 credentials, nonstandard ports, non-image responses and SVG are rejected. Requests share a ten-second
 deadline, at most three redirects per resource, a 1 MiB HTML limit and a 5 MiB image limit. No incoming
 cookies or authorization headers are forwarded. IPv6-only sites use the placeholder for now.
+
+## Upload verification
+
+See [UPLOAD_VERIFICATION.md](UPLOAD_VERIFICATION.md) for the new/existing-case checks and remaining
+issues: hidden errors during new-case uploads, email PDF extraction, and unexplained disabled controls
+after a final decision. The verification did not change upload or case-closing behaviour.
 
 ## Getting Started
 

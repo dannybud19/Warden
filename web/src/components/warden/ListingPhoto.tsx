@@ -9,7 +9,8 @@ export function ListingPhoto({
 }: {
   listingUrl?: string | null; fallback?: string; sizes: string; priority?: boolean; compact?: boolean;
 }) {
-  const source = listingUrl ? `/api/listing-photo?url=${encodeURIComponent(listingUrl)}` : null;
+  // Bump when image selection changes so an earlier cached portal logo is not reused.
+  const source = listingUrl ? `/api/listing-photo?v=2&url=${encodeURIComponent(listingUrl)}` : null;
   const [loaded, setLoaded] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const available = source !== null && failed !== source;

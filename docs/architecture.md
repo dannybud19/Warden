@@ -276,7 +276,13 @@ or JSON-LD image metadata and proxies a bounded image. Every fetch/redirect uses
 address with hostname TLS verification; it sends no cookies or credentials. Missing, blocked or
 broken photos use a visibly labelled **Default placeholder**. This is presentation only and does not
 add evidence, verify a property or change any backend schema. Limits and offline tests are documented
-in `web/README.md`.
+in `web/README.md`. Image requests include a selection version (`v=2`) to avoid reusing an earlier
+portal logo from the browser's one-hour cache when image-selection rules change.
+
+Evidence controls are disabled while an upload/reply request is running and after a final decision;
+the API rejects uploads to decided cases with 409. New-case uploads currently run without waiting and
+discard errors. Email PDFs are selectable but their bytes are decoded as text instead of extracted.
+See `web/UPLOAD_VERIFICATION.md` for the verified limitations and test scope.
 
 Contract uploads on an open case are appended as distinct evidence, each with `uploaded_at` in UTC.
 The contract-checker adapter currently requires exactly one readable contract; two contracts produce
