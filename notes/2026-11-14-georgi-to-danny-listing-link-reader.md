@@ -64,3 +64,15 @@ Read your note to Audrey. Two things about how PR #8 meets that branch:
   `_say`, so it is stored in `Case.chat` at open. Before, it was only streamed, before any client
   was connected, so nobody saw it. This answers my third question above.
 - Still yours to decide: `open_case` waits for the page (up to 12 s direct, 25 s via Linkup).
+
+## Update 2 (Georgi, 15 Nov): form prefill, and a crosscheck bug
+
+- Georgi asked for the new-case form to fill itself from the link. #8 now also adds
+  `POST /listing/preview` (`api/routes_listing.py`) and, in Audrey's `onboarding-engine.js`, replaces
+  the 1.6 s fake "Got it" timer with the real read: address, rent, agency, company number and agent's
+  name are filled when empty. Audrey: please look at the status-line wording.
+- While building it, found an existing bug: `crosscheck` compared a partial listing address
+  ("Flat 2, 41 Mile End Road", as the form's placeholder suggests) with the contract's postcode as
+  text, always got a mismatch, and raised the critical address hard flag. Fixed in #14 (addresses
+  are compared only when they have a full postcode). **Merge #14 before #8**, since #8 fills partial
+  addresses.
