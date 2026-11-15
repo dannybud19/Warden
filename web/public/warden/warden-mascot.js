@@ -167,11 +167,32 @@
   const FS = `
   precision mediump float;
   uniform sampler2D uTex; uniform float uAlpha; uniform vec4 uClipR; uniform float uClipMode; uniform float uBias, uMul;
+  uniform float uHappy; uniform vec2 uHE1, uHE2, uHER, uHEOn;
   varying vec2 vUV; varying float vShade; varying vec2 vRest; varying float vFade;
+  // happy eyes: paint over the eye with the body on either side of it, then draw a rounded arc in the eye's colour
+  vec4 happyEye(vec4 col, vec2 px, vec2 c) {
+    float m = 1.0 - smoothstep(0.66, 0.84, length((px - c) / uHER));
+    float k = uHER.x * 0.95, t = clamp((px.x - c.x + k) / (2.0 * k), 0.0, 1.0);
+    vec4 bl = texture2D(uTex, vec2(c.x - k, px.y) / 1024.0, uBias);
+    vec4 br = texture2D(uTex, vec2(c.x + k, px.y) / 1024.0, uBias);
+    col = mix(col, mix(bl, br, t), m * uHappy);
+    float R = uHER.x * 0.6, T = uHER.x * 0.2, L = R * 0.25;
+    vec2 q = px - (c + vec2(0.0, R * 0.2)); q.y *= 1.15;
+    float d = q.y <= 0.0 ? abs(length(q) - R) : length(vec2(abs(q.x) - R, max(q.y - L, 0.0)));
+    float arc = 1.0 - smoothstep(T - 1.2, T + 1.2, d);
+    vec4 ink = texture2D(uTex, (c + vec2(0.0, uHER.y * 0.2)) / 1024.0, uBias);
+    return mix(col, vec4(ink.rgb, 1.0) * max(col.a, ink.a), arc * uHappy);
+  }
   void main() {
     bool inside = vRest.x >= uClipR.x && vRest.x <= uClipR.z && vRest.y >= uClipR.y && vRest.y <= uClipR.w;
     if ((uClipMode > 0.5 && uClipMode < 1.5 && !inside) || (uClipMode > 1.5 && inside)) discard;
-    vec4 c = texture2D(uTex, vUV, uBias); c.rgb *= 1.0 + vShade; gl_FragColor = c * uAlpha * uMul * vFade;
+    vec4 c = texture2D(uTex, vUV, uBias);
+    if (uHappy > 0.001) {
+      vec2 px = vUV * 1024.0;
+      if (uHEOn.x > 0.5) c = happyEye(c, px, uHE1);
+      if (uHEOn.y > 0.5) c = happyEye(c, px, uHE2);
+    }
+    c.rgb *= 1.0 + vShade; gl_FragColor = c * uAlpha * uMul * vFade;
   }`;
 
   const CSS = `
@@ -221,7 +242,8 @@
       this.stateT0 = performance.now(); this.nextHop = 0; this.nextShake = 0;
       this.blinkAt = 1200; this.blinkDouble = false;
       this.prevA1 = 0; this.clothPhase = 0; this.clothAmp = 3;
-      this.$.stage.addEventListener('click', () => this.poke());
+      this.$.stage.addEventListener('click', () => { this.happy(); this.poke(); });
+      this.happyT0 = -1e9; this.happyMs = 0;
     }
 
     get look() { return this._look || 0; }
@@ -250,7 +272,10 @@
       this.initGL();
       this._ready = true;
       const first = this.state;
-      if (first !== 'default' && !(this.quiet && first === 'thinking')) { this.shown = first === 'thinking' ? 'default' : first; if (first === 'thinking') this.go('thinking'); }
+      this.settleUntil = performance.now() + 4000;   // the first mood change after load swaps in place
+      if (first === 'thinking' && !this.quiet) {     // start as the three dots, without melting into them
+        const s = this.sim; s.P = 0; s.vP = 0; s.pTarget = 0; s.dotsOn = 1; s.dotsT0 = performance.now();
+      } else if (first !== 'default' && first !== 'thinking') this.shown = first;
       this.last = performance.now(); this.acc = 0;
       const loop = now => { if (!this.isConnected) { this._started = false; return; } this.frame(now); requestAnimationFrame(loop); };
       requestAnimationFrame(loop);
@@ -320,6 +345,10 @@
     go(target) {
       if (!['thinking', ...STATES].includes(target)) target = 'default';
       if (this.quiet) { if (target !== 'thinking' && target !== this.shown) this.swapTo(target); return; }
+      if (this.settleUntil && performance.now() < this.settleUntil && target !== 'thinking' && !this.sim.dotsOn) {
+        this.settleUntil = 0; this.swapTo(target, true); return;
+      }
+      this.settleUntil = 0;
       if (this.busy()) { this.queued = target; return; }
       const cur = this.sim.dotsOn ? 'thinking' : this.shown;
       if (target === cur) { this.poke(); return; }
@@ -350,6 +379,9 @@
       this.nextHop = now + 1800; this.nextShake = now + (target === 'stop' ? 3400 : 1500);
       this.dispatchEvent(new CustomEvent('wardenstatechange', { detail: { state: target }, bubbles: true, composed: true }));
     }
+
+    /** Happy eyes (^ ^) for a moment; tapping Warden does this. */
+    happy(ms = 1100) { const now = performance.now(); if (now - this.happyT0 > this.happyMs) this.happyT0 = now; this.happyMs = now - this.happyT0 + ms; }
 
     poke() {
       if (this.busy() || this.sim.dotsOn) return;
@@ -532,6 +564,11 @@
         }
       });
 
+      // happy eyes: ease in, hold, ease out
+      const ht = now - this.happyT0;
+      const happy = ht < 0 || ht > this.happyMs + 220 ? 0 : smooth(0, 110, ht) * (1 - smooth(this.happyMs, this.happyMs + 220, ht));
+      if (happy > 0) this.blinkAt = Math.max(this.blinkAt, now + 400);
+
       // blink
       let blink = 0;
       if (!this.reduce && now > this.blinkAt) {
@@ -573,6 +610,8 @@
         gl.uniform1f(U.uRigOn, 0); gl.uniform1f(U.uClipMode, 0);
         gl.uniform1f(U.uMOn, 0);
         gl.uniform2f(U.uE1, ...r.eyes[0]); gl.uniform2f(U.uE2, ...r.eyes[1]); gl.uniform2f(U.uER, ...r.eyeR); gl.uniform2f(U.uEOn, ...r.eyeOn);
+        gl.uniform1f(U.uHappy, live ? happy : 0);
+        gl.uniform2f(U.uHE1, ...r.eyes[0]); gl.uniform2f(U.uHE2, ...r.eyes[1]); gl.uniform2f(U.uHER, ...r.eyeR); gl.uniform2f(U.uHEOn, ...r.eyeOn);
         gl.uniform3f(U.uCapR, ...r.cap);
         const A = r.armA;
         gl.uniform1f(U.uAOn, A ? 1 : 0);
@@ -598,7 +637,7 @@
         gl.bindTexture(gl.TEXTURE_2D, this.tex[L.tex]);
         gl.uniform1f(U.uAlpha, alpha);
         for (const n of ['uAOn', 'uBOn', 'uPOn', 'uMOn']) gl.uniform1f(U[n], 0);
-        gl.uniform2f(U.uEOn, 0, 0); gl.uniform3f(U.uCapR, 0, 0, -1e4);
+        gl.uniform2f(U.uEOn, 0, 0); gl.uniform1f(U.uHappy, 0); gl.uniform3f(U.uCapR, 0, 0, -1e4);
         gl.uniform1f(U.uJelly, 0);
         const C = L.cloth;
         gl.uniform1f(U.uCOn, C ? 1 : 0);

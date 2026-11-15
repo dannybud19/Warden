@@ -129,7 +129,8 @@ export function HomesView() {
   // The mascot mirrors the home that needs the student most.
   // Warden's pose follows the riskiest home, not the one that needs the student first.
   const riskiest = [...homes].sort((a, b) => HOME_STATUS[a.status].rank - HOME_STATUS[b.status].rank)[0];
-  const heroState: WardenState = loading ? "thinking" : riskiest ? MASCOT_FOR[riskiest.status] : "default";
+  // while homes load Warden simply stands there (no melting into dots), then takes on their mood
+  const heroState: WardenState = !loading && riskiest ? MASCOT_FOR[riskiest.status] : "default";
 
   return (
     <div>
@@ -152,14 +153,9 @@ export function HomesView() {
             >
               <Image src="/warden/rail-halo.svg" alt="" width={320} height={320} unoptimized className="absolute inset-[-30%] max-w-none" />
             </motion.div>
-            <motion.div
-              className="absolute left-1/2 top-0 -translate-x-1/2"
-              initial={{ opacity: 0, y: 24, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ type: "spring", stiffness: 180, damping: 16, delay: 0.15 }}
-            >
+            <div className="absolute left-1/2 top-0 -translate-x-1/2">
               <AnimatedWarden state={heroState} width={262} lively />
-            </motion.div>
+            </div>
           </div>
 
           <motion.div
