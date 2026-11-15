@@ -44,6 +44,8 @@ def _sniff_media_type(image: bytes) -> str:
 class AnthropicLLM:
     """Thin adapter over `anthropic.AsyncAnthropic`. Not exercised in tests (no network)."""
 
+    MAX_TOKENS = 4096  # a dense document photo, transcribed verbatim inside JSON, needs the room
+
     def __init__(self, settings: Settings) -> None:
         self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         self._model = settings.llm_model
@@ -51,7 +53,7 @@ class AnthropicLLM:
     async def _create(self, system: str, content: Any, model: str | None) -> str:
         response = await self._client.messages.create(
             model=model or self._model,
-            max_tokens=2048,
+            max_tokens=self.MAX_TOKENS,
             system=system,
             messages=[{"role": "user", "content": content}],
         )
