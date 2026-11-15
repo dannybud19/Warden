@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
+import { useRef, useState, useSyncExternalStore } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Globe, HelpCircle, Info, KeyRound,
   Mail, MessageSquare, Mic, PoundSterling, Share, Trash2, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
 } from "lucide-react";
 import { Cell, Pie, PieChart, Tooltip } from "recharts";
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
-import { riskDisplay, type Mood } from "@/lib/present";
+import { riskDisplay, verificationProgress, type Mood } from "@/lib/present";
 import { SETTLE, sourceOf, tiles } from "@/lib/dashboard";
 import { detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors";
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { SourceLinks, rise } from "./primitives";
 import { PILL } from "./Dashboard";
 import { ListingPhoto } from "./ListingPhoto";
+import { RiskGauge } from "./RiskGauge";
 
 const RED = "#e06a52";
 const GREEN = "#2e9a7c";
@@ -57,80 +58,6 @@ function ago(iso: string | undefined, tick: number | null): string | null {
   if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
   const d = Math.round(h / 24);
   return `${d} day${d === 1 ? "" : "s"} ago`;
-}
-
-// ---- Gauge: the backend score sets the arc length; the case status sets its colour. ----
-
-const DIAL = { cx: 130, cy: 124, r: 100, width: 22, from: 210, sweep: 240, slices: 120 };
-/** Point on the dial for a risk value 0..100 (0 bottom-left, 100 bottom-right). */
-function dialPoint(v: number, r = DIAL.r): [number, number] {
-  const a = ((DIAL.from - (DIAL.sweep * v) / 100) * Math.PI) / 180;
-  return [DIAL.cx + r * Math.cos(a), DIAL.cy - r * Math.sin(a)];
-}
-
-function arcPath(v0: number, v1: number): string {
-  const [x0, y0] = dialPoint(v0);
-  const [x1, y1] = dialPoint(v1);
-  return `M ${x0} ${y0} A ${DIAL.r} ${DIAL.r} 0 0 1 ${x1} ${y1}`;
-}
-
-// Thin slices keep the existing arc animation while using one status colour.
-const SLICES = Array.from({ length: DIAL.slices }, (_, i) => {
-  const v0 = (i / DIAL.slices) * 100;
-  const v1 = ((i + 1) / DIAL.slices) * 100;
-  return { v0, v1, d: arcPath(v0, Math.min(100, v1 + 0.3)) };
-});
-
-/** A tapered needle from the hub to just inside the arc. */
-function needlePath(v: number): string {
-  const [tx, ty] = dialPoint(v, DIAL.r - DIAL.width / 2 - 8);
-  const [lx, ly] = dialPoint(v + 25, 5);
-  const [rx, ry] = dialPoint(v - 25, 5);
-  const [bx, by] = dialPoint(v + 50, 12);
-  return `M ${tx} ${ty} L ${lx} ${ly} L ${bx} ${by} L ${rx} ${ry} Z`;
-}
-
-function RiskGauge({ risk }: { risk: ReturnType<typeof riskDisplay> }) {
-  const mv = useMotionValue(0);
-  const needle = useTransform(mv, needlePath);
-  const [n, setN] = useState(0);
-  useEffect(() => mv.on("change", setN), [mv]);
-  useEffect(() => {
-    const ctl = animate(mv, risk.value, { duration: 1.4, ease: [0.22, 1, 0.36, 1] });
-    return () => ctl.stop();
-  }, [mv, risk.value]);
-
-  const [sx, sy] = dialPoint(0);
-  const [ex, ey] = dialPoint(Math.max(n, 0.5));
-  const [hx, hy] = dialPoint(100);
-  return (
-    <div className="relative h-[214px] w-[260px] shrink-0" role="img" aria-label={`Yet to verify: ${risk.value} out of 100. ${risk.headline}`}>
-      <svg width={260} height={200} viewBox="0 0 260 200" className="overflow-visible">
-        <g>
-          {SLICES.map((sl) => (
-            <path key={`t${sl.v0}`} d={sl.d} fill="none" stroke={TRACK} strokeWidth={DIAL.width} />
-          ))}
-          <circle cx={hx} cy={hy} r={DIAL.width / 2} fill={TRACK} />
-        </g>
-        <circle cx={sx} cy={sy} r={DIAL.width / 2} fill={risk.color} />
-        {/* filled up to the score */}
-        {SLICES.filter((sl) => sl.v0 < n).map((sl) => (
-          <path key={sl.v0} d={sl.v1 > n ? arcPath(sl.v0, n) : sl.d} fill="none" stroke={risk.color} strokeWidth={DIAL.width} />
-        ))}
-        <circle cx={ex} cy={ey} r={DIAL.width / 2} fill={risk.color} />
-        <circle cx={ex} cy={ey} r={5} fill="white" />
-        <motion.path d={needle} fill="#17393e" style={{ filter: "drop-shadow(0 2px 3px rgba(16,40,44,.25))" }} />
-        <circle cx={DIAL.cx} cy={DIAL.cy} r={9} fill="#17393e" />
-        <circle cx={DIAL.cx} cy={DIAL.cy} r={3.5} fill="white" />
-      </svg>
-      <div className="absolute inset-x-0 top-[142px] text-center">
-        <p className="text-[34px] font-semibold leading-none tracking-[-0.04em] tabular-nums" style={{ color: risk.color }}>
-          {risk.value}<span className="text-[14px] font-medium text-muted">/100</span>
-        </p>
-        <p className="mt-1.5 text-[16px] font-medium leading-none" style={{ color: risk.color }}>Yet to verify</p>
-      </div>
-    </div>
-  );
 }
 
 // ---- 1. Header ----
@@ -243,8 +170,8 @@ export function VerdictCard({ c, mood }: { c: Case; mood: Mood }) {
   const updated = ago(history[history.length - 1]?.at ?? c.created_at, tick);
 
   return (
-    <motion.section variants={rise} className={`${card} flex items-center gap-8 px-8 py-7`}>
-      <RiskGauge risk={risk} />
+    <motion.section variants={rise} className={`${card} flex flex-col items-center gap-8 px-8 py-7 sm:flex-row`}>
+      <RiskGauge risk={risk} progress={verificationProgress(c)} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium" style={{ background: pill.bg, color: pill.fg }}>
@@ -261,12 +188,17 @@ export function VerdictCard({ c, mood }: { c: Case; mood: Mood }) {
         </AnimatePresence>
         <details className="mt-4 text-[13px] leading-[1.5] text-muted">
           <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal [&::-webkit-details-marker]:hidden">
-            <Info size={15} aria-hidden /> About “Yet to verify”
+            <Info size={15} aria-hidden /> About risk and verification
           </summary>
           <p className="mt-2">
-            Higher numbers mean more uncertainty or unresolved concerns remain. The score falls as
-            important checks are cleared with confidence. It is not a scam probability or a percentage
-            of checks left. A low number never cancels a warning above.
+            Risk reflects the evidence and Warden’s verdict. Unknown means important checks are still
+            unverified. Unconfirmed payment concerns are amber; a likely-scam verdict is high
+            risk. “No red flags remaining” requires all checks to be cleared and is not a guarantee.
+          </p>
+          <p className="mt-2">
+            Verification progress is 100 minus the “Yet to verify” score. Important checks contribute
+            more, and confidence affects the result. It is not the percentage of tasks completed:
+            progress can stay low even after a scam is identified. It never overrides the risk warning.
           </p>
         </details>
       </div>

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { load } from "./load-typescript.mjs";
-const { mood, riskDisplay, actionCardStatus } = load("../src/lib/present.ts");
+const { mood, riskDisplay, verificationProgress, actionCardStatus } = load("../src/lib/present.ts");
 
 const CHECKS = [
   "landlord_identity", "payment_safety", "right_to_let", "in_person_viewing",
@@ -15,10 +15,14 @@ const concern = { id: "payment", check_id: "payment_safety", supports: "suspicio
 const reports = (finding) => ({ message_checker: { findings: [finding] } });
 const payment = { id: "act_confirm_payment_123", check_id: "payment_safety", status: "open" };
 
-test("a fresh score of 100 is neutral, not a scam verdict", () => {
+test("a fresh case has unknown risk and zero verification progress", () => {
   const c = makeCase();
   assert.equal(mood(c, false).state, "default");
-  assert.equal(riskDisplay(c, mood(c, false)).value, 100);
+  const risk = riskDisplay(c, mood(c, false));
+  assert.equal(risk.category, "unknown");
+  assert.equal(risk.label, "Unknown risk");
+  assert.equal(risk.needlePosition, null);
+  assert.equal(verificationProgress(c), 0);
 });
 
 test("one cleared check does not make an incomplete case green", () => {
@@ -87,21 +91,68 @@ test("checking does not hide an existing warning", () => {
   assert.equal(mood(makeCase({ reports: reports(concern) }), true).state, "amber");
 });
 
-test("the displayed score is exact in every colour and follows the latest snapshot", () => {
+test("risk comes from findings and verdicts while progress follows the latest weighted score", () => {
   const cases = [
-    { decision: { verdict: "likely_scam" }, score: 12.34 },
-    { reports: reports(concern), score: 95.45 },
-    { checks: CHECKS.map((id) => ({ id, state: "cleared" })), score: 42.86 },
-    { score: 87.65 },
+    { decision: { verdict: "likely_scam" }, score: 12.34, expectedRisk: "high", expectedProgress: 87.66 },
+    { reports: reports(concern), score: 95.45, expectedRisk: "concerns", expectedProgress: 4.55 },
+    { checks: CHECKS.map((id) => ({ id, state: "cleared" })), score: 42.86, expectedRisk: "no_red_flags", expectedProgress: 57.14 },
+    { score: 87.65, expectedRisk: "unknown", expectedProgress: 12.35 },
   ];
-  for (const { score, ...data } of cases) {
+  for (const { score, expectedRisk, expectedProgress, ...data } of cases) {
     const c = makeCase({ ...data, score_history: [{ score: 100 }, { score }] });
     const status = mood(c, false);
     const display = riskDisplay(c, status);
-    assert.equal(display.value, score);
+    assert.equal(display.category, expectedRisk);
+    assert.equal(verificationProgress(c), expectedProgress);
     assert.equal(display.headline, status.title);
-    assert.equal(display.color, status.accent);
+    assert.equal("value" in display, false); // no invented numerical risk probability
   }
+});
+
+test("a final scam verdict can have zero progress and a low remaining score never clears high risk", () => {
+  for (const score of [100, 84, 0]) {
+    const c = makeCase({ status: "decided", decision: { verdict: "likely_scam" }, score_history: [{ score }] });
+    const display = riskDisplay(c, mood(c, false));
+    assert.equal(display.category, "high");
+    assert.equal(display.label, "High risk");
+    assert.equal(verificationProgress(c), 100 - score);
+  }
+});
+
+test("unknown stays neutral even after some verification, and a numeric score alone cannot clear risk", () => {
+  const c = makeCase({ score_history: [{ score: 84 }] });
+  c.checks[0].state = "cleared";
+  assert.equal(verificationProgress(c), 16);
+  assert.equal(riskDisplay(c, mood(c, false)).category, "unknown");
+  c.score_history[0].score = 0;
+  assert.equal(riskDisplay(c, mood(c, false)).category, "unknown");
+});
+
+test("payment confirmation and incomplete checks cannot become a green risk category", () => {
+  const c = makeCase({ actions: [payment], reports: reports(concern) });
+  assert.equal(riskDisplay(c, mood(c, false)).category, "concerns");
+  const partial = makeCase({ checks: CHECKS.slice(0, 7).map((id) => ({ id, state: "cleared" })) });
+  assert.equal(riskDisplay(partial, mood(partial, false)).category, "unknown");
+  const cleared = makeCase({ checks: CHECKS.map((id) => ({ id, state: "cleared" })) });
+  assert.equal(riskDisplay(cleared, mood(cleared, false)).label, "No red flags remaining");
+});
+
+test("a progress change cannot move the risk needle while the evidence and verdict stay the same", () => {
+  for (const data of [{}, { reports: reports(concern) }, { decision: { verdict: "likely_scam" } }]) {
+    const before = makeCase({ ...data, score_history: [{ score: 100 }] });
+    const after = makeCase({ ...data, score_history: [{ score: 20 }] });
+    const original = riskDisplay(before, mood(before, false));
+    const changed = riskDisplay(after, mood(after, true));
+    assert.equal(changed.category, original.category);
+    assert.equal(changed.needlePosition, original.needlePosition);
+  }
+});
+
+test("progress handles absent and invalid score snapshots without a broken bar", () => {
+  assert.equal(verificationProgress(makeCase()), 0);
+  for (const score of [NaN, Infinity]) assert.equal(verificationProgress(makeCase({ score_history: [{ score }] })), 0);
+  assert.equal(verificationProgress(makeCase({ score_history: [{ score: -10 }] })), 100);
+  assert.equal(verificationProgress(makeCase({ score_history: [{ score: 110 }] })), 0);
 });
 
 test("a neutral or unparsed answer is answered, not cleared", () => {

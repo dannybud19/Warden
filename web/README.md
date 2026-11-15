@@ -1,20 +1,33 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Yet to verify
+## Risk gauge and verification progress
 
-The gauge is labelled **Yet to verify** and displays the exact latest backend score as `84/100`, without
-rounding it or changing it to fit a colour. It measures remaining weighted uncertainty or concerns:
-unverified and suspicious checks keep their full weight; cleared checks reduce it according to their
-confidence. Clearing landlord identity (weight 20%) at 80% confidence takes 100 to 84. It is neither
-a scam probability nor a percentage of unfinished checks. The explanation is behind the keyboard-
-accessible “About Yet to verify” information button. A red verdict always takes precedence over a low
-number, and the gauge remains visible. The shared presentation in
-`src/lib/present.ts` drives the headline, gauge colour and status pill: neutral for unverified checks,
-amber for concerns or a targeted payment-confirmation question, red only for a `likely_scam` verdict,
-and green only when all eight checks are cleared. Neutral answers are labelled "Answered", not "Done".
+The dial displays **risk categories** from the existing evidence and verdict, with fixed positions
+instead of a numeric risk estimate:
+
+| Category | When it appears | Presentation |
+| --- | --- | --- |
+| Unknown risk | Important checks remain unverified, with no supported concern yet | Neutral grey; no directional needle |
+| Concerns found | Suspicious checks/findings, a flagged answer, payment confirmation, or `proceed_with_care` | Amber |
+| High risk | The final verdict is `likely_scam` | Red; takes precedence over progress |
+| No red flags remaining | All eight checks are cleared and no warning takes precedence | Green; never a guarantee |
+
+The separate **Verification progress** bar below the dial is `1 - current_score / 100`, displayed as
+a percentage (equivalently `100 - current_score`). A score of 84 produces 16%; 100 produces 0%; 0
+produces 100%. It uses the latest backend score without changing the scoring formula. Unverified and
+suspicious checks retain their weight, and clears reduce it according to confidence. Therefore it is
+weighted verification, not a count of finished tasks, and can stay at 0% after a scam is identified.
+Finishing an assessment never forces this bar to 100% or changes the risk category.
+
+The keyboard-accessible “About risk and verification” disclosure explains both displays. The dial has
+an accessible risk label; the bar exposes its percentage with `role="progressbar"`. Animations respect
+reduced-motion preferences. `src/lib/present.ts` derives the risk category from the same evidence/verdict
+logic used by the headline, while `RiskGauge.tsx` renders the two displays. No backend/shared-contract
+changes are needed. Neutral answers remain labelled "Answered", not "Done".
 
 Run `corepack pnpm test`, `corepack pnpm typecheck`, `corepack pnpm lint` and `corepack pnpm build`
-from this folder. The presentation regression tests are offline and use the existing TypeScript compiler.
+from this folder. The 54 frontend tests are offline and include the production gauge's rendered labels,
+neutral unknown state, exact progress calculation, and a scam warning that survives any progress value.
 
 ## Listing photos
 

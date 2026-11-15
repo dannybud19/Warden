@@ -276,12 +276,17 @@ API (`api/`):
 
 ### Web presentation
 
-The product gauge labels the existing weighted score **Yet to verify** and keeps its exact value out
-of 100. Unverified and suspicious checks retain their weight; cleared checks reduce it according to
-confidence. This is not a scam probability or a count of checks left. The explanation is behind an
-information control. Status colours follow verdicts and evidence: neutral when unverified, amber
-for concerns/payment confirmation, red only for `likely_scam`, green only when all eight checks are
-cleared. The gauge remains visible next to a scam verdict; it never overrides that warning.
+The product gauge displays risk categories from evidence and verdicts: **Unknown risk** (neutral,
+no needle), **Concerns found** (amber, including unconfirmed payment concerns), **High risk** (red,
+`likely_scam` verdict), and **No red flags remaining** (green, only when all eight checks are cleared).
+It does not display a numerical probability or use the verification score to position its needle.
+
+Below the dial, **Verification progress** uses `1 - current_score / 100`, displayed as a percentage:
+84 remaining means 16% progress. Unverified and suspicious checks retain their weight; cleared checks
+reduce it according to confidence. This is weighted verification rather than a count of finished tasks.
+A final decision never forces the bar to 100%, and progress never overrides a risk warning. The
+“About risk and verification” disclosure explains both displays. Backend scoring and shared contracts
+remain unchanged; the mapping and presentation live in `web/src/lib/present.ts` and `RiskGauge.tsx`.
 
 The Next.js-only `GET /api/listing-photo?url=...` route reads a public listing's Open Graph, Twitter
 or JSON-LD image metadata and proxies a bounded image. Every fetch/redirect uses a checked public IPv4

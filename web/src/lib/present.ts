@@ -234,9 +234,39 @@ export function mood(c: Case, working: boolean): Mood {
   return pick("default", "Not verified yet", "Unverified checks remain. Add evidence or complete the open steps before paying.");
 }
 
-/** Display the exact backend score, using the same status as the headline and mascot. */
+export type RiskCategory = "unknown" | "concerns" | "high" | "no_red_flags";
+
+export interface RiskDisplay {
+  category: RiskCategory;
+  label: string;
+  color: string;
+  /** A category's fixed place on the dial, not a numerical risk estimate. Unknown has no needle. */
+  needlePosition: number | null;
+  headline: string;
+  sub: string;
+}
+
+const RISK_CATEGORIES: Record<RiskCategory, Pick<RiskDisplay, "label" | "color" | "needlePosition">> = {
+  unknown: { label: "Unknown risk", color: "#728990", needlePosition: null },
+  concerns: { label: "Concerns found", color: "#d99a2b", needlePosition: 50 },
+  high: { label: "High risk", color: "#e06a52", needlePosition: 86 },
+  no_red_flags: { label: "No red flags remaining", color: "#2e9a7c", needlePosition: 14 },
+};
+
+/** Evidence and verdict determine risk; the weighted verification score never moves this needle. */
 export function riskDisplay(c: Case, status: Mood) {
-  return { value: currentScore(c), color: status.accent, headline: status.title, sub: status.sub };
+  const evidenceState = mood(c, false).state;
+  const category: RiskCategory = evidenceState === "red" ? "high"
+    : evidenceState === "stop" || evidenceState === "amber" ? "concerns"
+    : evidenceState === "green" ? "no_red_flags" : "unknown";
+  return { category, ...RISK_CATEGORIES[category], headline: status.title, sub: status.sub } satisfies RiskDisplay;
+}
+
+/** The user's exact weighted progress formula, as a percentage, independent of a final verdict. */
+export function verificationProgress(c: Case): number {
+  const remaining = currentScore(c);
+  if (!Number.isFinite(remaining)) return 0;
+  return Math.max(0, Math.min(100, Number((100 * (1 - remaining / 100)).toFixed(2))));
 }
 
 export type CardStatus = "todo" | "done" | "answered" | "flagged" | "skipped";
