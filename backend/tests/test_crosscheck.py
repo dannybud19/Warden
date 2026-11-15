@@ -37,6 +37,27 @@ def test_contract_vs_listing_address_is_a_critical_hard_flag(fake_agency_case: C
     assert {r.evidence_id for r in finding.evidence} == {"listing", "ev_contract"}
 
 
+@pytest.mark.parametrize(
+    "listing_address", ["Boardwalk Place, London, E14", "Flat 2, 41 Mile End Road", "W12"]
+)
+def test_a_partial_listing_address_is_never_a_hard_flag(
+    fake_agency_case: Case, listing_address: str
+) -> None:
+    """Without a full postcode there is nothing to compare reliably (was a false hard flag)."""
+    listing = fake_agency_case.listing
+    assert listing is not None
+    case = fake_agency_case.model_copy(
+        update={"listing": listing.model_copy(update={"address": listing_address})}
+    )
+    reports = {
+        "contract_checker": _report(
+            "contract_checker",
+            [_fact(FactKey.ADDRESS, "Flat 3, 12 Elm Road, London W12 8QT", "ev_contract")],
+        )
+    }
+    assert [f for f in compare(case, reports) if f.id == "crosscheck:address"] == []
+
+
 def test_matching_values_give_no_findings(fake_agency_case: Case) -> None:
     reports = {
         "contract_checker": _report(

@@ -100,6 +100,16 @@ def normalise(key: FactKey, value: str) -> str:
             return value.strip().lower()
 
 
+def _comparable(fact: Fact) -> bool:
+    """An address is compared only when it has a full postcode.
+
+    Listings and students often give a partial address ("Elm Road, London, W12", "Flat 2, 41 Mile
+    End Road"). Compared as text with a contract's postcode it always differs, which raised a
+    critical address hard flag and closed genuine cases as likely scams.
+    """
+    return fact.key != FactKey.ADDRESS or POSTCODE_RE.search(fact.value) is not None
+
+
 def _contract_ids(case: Case) -> set[str]:
     return {e.id for e in case.evidence if e.kind == EvidenceKind.CONTRACT}
 
@@ -123,7 +133,7 @@ def compare(case: Case, reports: dict[str, AgentReport]) -> list[Finding]:
 
     findings: list[Finding] = []
     for key, (label, check_id, severity) in RULES.items():
-        keyed = [f for f in facts if f.key == key]
+        keyed = [f for f in facts if f.key == key and _comparable(f)]
         if len({normalise(key, f.value) for f in keyed}) < 2:
             continue
         hard = key == FactKey.ADDRESS and _address_is_hard_flag(case, keyed)
