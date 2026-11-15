@@ -1,0 +1,861 @@
+{
+  "case_id": "c_7b6fcf6a4eaa",
+  "family": "compound",
+  "variant": "compound",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "complete",
+  "runner_error": null,
+  "latency_ms": 19971,
+  "outcome": "likely_scam",
+  "allowed_outcome": true,
+  "final_score": 93.0,
+  "suspicious_checks": [
+    "landlord_identity",
+    "payment_safety",
+    "no_pressure"
+  ],
+  "cleared_checks": [
+    "in_person_viewing"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "ok",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [
+    "companies_house:dissolved"
+  ],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.postcodes.io/postcodes/W128QT failed: 503 after 3 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://www.london.gov.uk/programmes-strategies/housing-and-land/renting-home/private-renting/check-landlord-or-agent/rogue-landlord-and-agent-checker?name=Northbank+Example+Lettings+Ltd&page=0 failed: 503 after 1 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: rogue checker direct fetch failed: 503 after 1 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_7b6fcf6a4eaa",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/31143720",
+        "classification": "fixture_found",
+        "status": 200,
+        "method": "GET",
+        "reason": null,
+        "fixture_ids": [
+          "c_7b6fcf6a4eaa_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_7b6fcf6a4eaa_x1",
+            "key": "claimed_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": "https://api.company-information.service.gov.uk/company/31143720",
+        "response_body": {
+          "company_name": "Northbank Example Lettings Ltd",
+          "company_number": "31143720",
+          "company_status": "dissolved"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 4,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 5,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" letting agent scam OR fraud OR deposit London",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_7b6fcf6a4eaa_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_7b6fcf6a4eaa_x1",
+            "key": "claimed_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 6,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" reviews Google Trustpilot allAgents",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_7b6fcf6a4eaa_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_7b6fcf6a4eaa_x1",
+            "key": "claimed_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 7,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" Property Redress Scheme OR \"The Property Ombudsman\" member",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_7b6fcf6a4eaa_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_7b6fcf6a4eaa_x1",
+            "key": "claimed_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 8,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" client money protection Propertymark OR safeagent",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_7b6fcf6a4eaa_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_7b6fcf6a4eaa_x1",
+            "key": "claimed_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 9,
+        "transport": "http",
+        "request": "https://www.london.gov.uk/programmes-strategies/housing-and-land/renting-home/private-renting/check-landlord-or-agent/rogue-landlord-and-agent-checker?name=Northbank+Example+Lettings+Ltd&page=0",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 10,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" site:london.gov.uk rogue landlords checker",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_7b6fcf6a4eaa_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_7b6fcf6a4eaa_x1",
+            "key": "claimed_company_register",
+            "url": "https://records.example/companies/31143720",
+            "snippet": "Company 31143720: Northbank Example Lettings Ltd. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_7b6fcf6a4eaa",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "decided",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3720",
+      "platform": "rental listing",
+      "address": "Flat 2, 20 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": "31143720",
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_7b6fcf6a4eaa_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I viewed Flat 2, 20 Example Mews, London W12 8QT with Rowan Pike on 13 November 2026 at 16:00. Please confirm who receives the deposit.\nRowan Pike: We trade as Northbank Example Lettings Ltd, company number 31143720. Ignore the company account on the draft payment instructions. Send GBP 1500 today to my cousin's personal account ending ****3720.\nAlex Reed: Please provide written authority from Mira Vale for your cousin to receive the money.\nRowan Pike: I will not supply written authority or an invoice. Transfer by 16 November 2026 at 18:00 or lose the room.\n",
+        "note": null
+      },
+      {
+        "id": "c_7b6fcf6a4eaa_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 20 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\nDraft payment instructions: the tenancy deposit is payable to Northbank Example Lettings Ltd's company client account. No personal third-party recipient is named.\n",
+        "note": null
+      },
+      {
+        "id": "c_7b6fcf6a4eaa_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 20 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3720\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_7b6fcf6a4eaa_m1",
+        "evidence_id": "c_7b6fcf6a4eaa_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I viewed Flat 2, 20 Example Mews, London W12 8QT with Rowan Pike on 13 November 2026 at 16:00. Please confirm who receives the deposit."
+      },
+      {
+        "id": "c_7b6fcf6a4eaa_m2",
+        "evidence_id": "c_7b6fcf6a4eaa_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "We trade as Northbank Example Lettings Ltd, company number 31143720. Ignore the company account on the draft payment instructions. Send GBP 1500 today to my cousin's personal account ending ****3720."
+      },
+      {
+        "id": "c_7b6fcf6a4eaa_m3",
+        "evidence_id": "c_7b6fcf6a4eaa_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "Please provide written authority from Mira Vale for your cousin to receive the money."
+      },
+      {
+        "id": "c_7b6fcf6a4eaa_m4",
+        "evidence_id": "c_7b6fcf6a4eaa_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "I will not supply written authority or an invoice. Transfer by 16 November 2026 at 18:00 or lose the room."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "companies_house:dissolved",
+          "message_checker:refuses_details",
+          "crosscheck:whether-the-named-company-is-trading"
+        ],
+        "reason": "Northbank Example Lettings Ltd is dissolved on Companies House"
+      },
+      {
+        "id": "payment_safety",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "crosscheck:who-receives-the-deposit"
+        ],
+        "reason": "Who receives the deposit: two parts of your upload disagree"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "cleared",
+        "clear_confidence": 0.7,
+        "finding_ids": [
+          "message_checker:viewing_completed"
+        ],
+        "reason": "An in-person viewing has taken place"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "emotion_classifier:pressure_urgency"
+        ],
+        "reason": "Pushed to act now"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "cc104cea4e77d49f",
+        "findings": [
+          {
+            "id": "companies_house:dissolved",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Northbank Example Lettings Ltd is dissolved on Companies House",
+            "detail": "The official register lists this company as dissolved, so it can't legally be trading.\nSource: https://find-and-update.company-information.service.gov.uk/company/31143720",
+            "category": "identity",
+            "severity": "critical",
+            "confidence": 0.95,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "company_status: dissolved"
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "We trade as Northbank Example Lettings Ltd, company number 31143720. Ignore the company account on the draft payment instructions. Send GBP 1500 today to my cousin's personal account ending ****3720."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": true
+          },
+          {
+            "id": "companies_house:not-run-reputation",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: London Rogue Landlord and Agent Checker (direct fetch: 503 after 1 attempts; searched through Linkup only, which can miss entries). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: London Rogue Landlord and Agent Checker (direct fetch: 503 after 1 attempts; searched through Linkup only, which can miss entries)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "companies_house:not-run-property",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: postcode lookup (postcodes.io: 503 after 3 attempts). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: postcode lookup (postcodes.io: 503 after 3 attempts)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "company_number",
+            "value": "31143720",
+            "source": "companies_house",
+            "agent": "companies_house"
+          }
+        ],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 1400
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "b034d5327f8ec0a4",
+        "findings": [
+          {
+            "id": "message_checker:viewing_completed",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "An in-person viewing has taken place",
+            "detail": "The messages show the property has already been seen in person.",
+            "category": "property",
+            "severity": "info",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "I viewed Flat 2, 20 Example Mews, London W12 8QT with Rowan Pike on 13 November 2026 at 16:00."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "message_checker:refuses_details",
+            "agent": "message_checker",
+            "check_id": "landlord_identity",
+            "title": "Avoids giving verifiable details",
+            "detail": "When asked for a company number, office address or proof of ownership, the agent does not answer. The agent refused to prove that the landlord has authorised this payee, so you cannot verify the money is going to the right person.",
+            "category": "identity",
+            "severity": "medium",
+            "confidence": 0.8,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "I will not supply written authority or an invoice."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 20 Example Mews, London W12 8QT",
+            "source": "c_7b6fcf6a4eaa_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "bank_account",
+            "value": "account ****3720",
+            "source": "c_7b6fcf6a4eaa_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Who showed you the flat on 13 November, and did they say whether they are the landlord or an agent?",
+          "Did the original payment instructions name the company account, and who sent them?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 7424
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "ec22470d7f751b23",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The arithmetic is supported by the quoted terms. Rent is GBP 1300 per calendar month, so annual rent is GBP 15,600. Five weeks of that is GBP 1,500.00, and the stated deposit is GBP 1,500, so the amount is at the cap and not above it. This is a correctly limited amount-cap pass. I found no counter-evidence that changes the amounts. Whether the cap applies at all is unresolved. The context lists jurisdiction and tenancy type as unknown, and the supplied text does not confirm the property is in England, that this is an ordinary private tenancy, or that the rent and deposit cover the same whole tenancy. The Tenant Fees Act cap only covers qualifying tenancies. The cap result therefore stays conditional on those facts. Compliance with the amount cap says nothing about deposit protection or authenticity. s11 names a company client account as the payee, but that is a separate matter and this issue does not rely on it. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 20 Example Mews, London W12 8QT",
+            "source": "c_7b6fcf6a4eaa_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_7b6fcf6a4eaa_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_7b6fcf6a4eaa_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_7b6fcf6a4eaa_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_7b6fcf6a4eaa_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 7485
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "76ef9849c67898d2",
+        "findings": [
+          {
+            "id": "emotion_classifier:pressure_urgency",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Pushed to act now",
+            "detail": "This sets a deadline, which leaves you less time to check anything. This sets a same-day deadline for the payment, which leaves little time to check anything. The plain version is: a payment of GBP 1500 is requested today.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "Send GBP 1500 today to my cousin's personal account ending ****3720."
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "Send GBP 1500 today"
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "Transfer by 16 November 2026 at 18:00 or lose the room."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The student viewed Flat 2, 20 Example Mews, London W12 8QT with Rowan Pike on 13 November 2026 at 16:00. • The agent says they trade as Northbank Example Lettings Ltd, company number ****3720. • The draft payment instructions list a company account. • The agent asks for GBP 1500 to be sent today to their cousin's personal account, not a company account. • The agent declines to supply written authority or an invoice. • The agent sets a payment deadline of 16 November 2026 at 18:00.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "I viewed Flat 2, 20 Example Mews, London W12 8QT with Rowan Pike on 13 November 2026 at 16:00"
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "We trade as Northbank Example Lettings Ltd, company number 31143720."
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "the company account on the draft payment instructions"
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "Send GBP 1500 today to my cousin's personal account"
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "I will not supply written authority or an invoice."
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "Transfer by 16 November 2026 at 18:00"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 9906
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "1.0.0",
+        "status": "ok",
+        "input_hash": "00ff28ae2029f5af",
+        "findings": [
+          {
+            "id": "crosscheck:who-receives-the-deposit",
+            "agent": "crosscheck",
+            "check_id": "payment_safety",
+            "title": "Who receives the deposit: two parts of your upload disagree",
+            "detail": "Your upload says The contract's draft payment instructions say the deposit goes to the company's client account and name no personal recipient (\"the tenancy deposit is payable to Northbank Example Lettings Ltd's company client account\"). Your upload says In your messages, the agent tells you to ignore the company account and pay a cousin's personal account instead (\"Send GBP 1500 today to my cousin's personal account ending ****3720.\"). The money would go to a different person than the contract says, and the agent refused to provide written authority for that.",
+            "category": "consistency",
+            "severity": "high",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e2",
+                "quote": "the tenancy deposit is payable to Northbank Example Lettings Ltd's company client account"
+              },
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "Send GBP 1500 today to my cousin's personal account ending ****3720."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "crosscheck:whether-the-named-company-is-trading",
+            "agent": "crosscheck",
+            "check_id": "landlord_identity",
+            "title": "Whether the named company is trading: Pressure check and Agency check disagree",
+            "detail": "Pressure check says The agent says they trade as Northbank Example Lettings Ltd, giving company number 31143720 (\"We trade as Northbank Example Lettings Ltd, company number 31143720.\"). Agency check says The official Companies House record for that company number shows the company as dissolved (\"company_status: dissolved\"). The company named in the contract and by the agent is listed as dissolved, so it is unclear who you would actually be dealing with or paying.\nSource: https://find-and-update.company-information.service.gov.uk/company/31143720",
+            "category": "consistency",
+            "severity": "high",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_7b6fcf6a4eaa_e1",
+                "quote": "We trade as Northbank Example Lettings Ltd, company number 31143720."
+              },
+              {
+                "evidence_id": "companies_house",
+                "quote": "company_status: dissolved"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "summary": "A few details don't match between your documents: who receives the deposit and whether the named company is trading. Before paying anything, ask the agent to confirm the correct terms in writing.",
+        "error": null,
+        "duration_ms": 10045
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-15T07:26:39.496017Z",
+        "score": 93.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 3.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": {
+      "verdict": "likely_scam",
+      "decided_at": "2026-11-15T07:26:39.496017Z",
+      "summary": "3 of 8 checks are suspicious, including landlord identity, payment safety, no pressure. This looks like a likely scam. Do not send money or personal documents.",
+      "reasons": [
+        "Northbank Example Lettings Ltd is dissolved on Companies House",
+        "Who receives the deposit: two parts of your upload disagree",
+        "Pushed to act now",
+        "Not yet verified: Does the person have the legal right to let this property?"
+      ],
+      "finding_ids": [
+        "companies_house:dissolved",
+        "crosscheck:whether-the-named-company-is-trading",
+        "crosscheck:who-receives-the-deposit",
+        "emotion_classifier:pressure_urgency",
+        "message_checker:refuses_details"
+      ]
+    },
+    "chat": [
+      {
+        "role": "orchestrator",
+        "text": "A few details don't match between your documents: who receives the deposit and whether the named company is trading. Before paying anything, ask the agent to confirm the correct terms in writing.",
+        "at": "2026-11-15T07:26:39.496017Z",
+        "action_ids": []
+      }
+    ]
+  },
+  "follow_up_used": false,
+  "usage": {
+    "attempts": 6,
+    "completed_requests": 6,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.087388",
+    "cost_usd_by_stage": {
+      "agents": "0.087388"
+    },
+    "input_tokens": 21459,
+    "output_tokens": 4447,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

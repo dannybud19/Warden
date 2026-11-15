@@ -1,0 +1,780 @@
+{
+  "case_id": "c_df7011effd5a",
+  "family": "fake_agency",
+  "variant": "concern",
+  "truth": "scam",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "complete",
+  "runner_error": null,
+  "latency_ms": 15672,
+  "outcome": "likely_scam",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [
+    "landlord_identity"
+  ],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "ok",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [
+    "companies_house:dissolved"
+  ],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.postcodes.io/postcodes/W128QT failed: 503 after 3 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://www.london.gov.uk/programmes-strategies/housing-and-land/renting-home/private-renting/check-landlord-or-agent/rogue-landlord-and-agent-checker?name=Northbank+Example+Lettings+Ltd&page=0 failed: 503 after 1 attempts"
+    },
+    {
+      "level": "WARNING",
+      "message": "companies_house: rogue checker direct fetch failed: 503 after 1 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_df7011effd5a",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/company/96779816",
+        "classification": "fixture_found",
+        "status": 200,
+        "method": "GET",
+        "reason": null,
+        "fixture_ids": [
+          "c_df7011effd5a_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_df7011effd5a_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": "https://api.company-information.service.gov.uk/company/96779816",
+        "response_body": {
+          "company_name": "Northbank Example Lettings Ltd",
+          "company_number": "96779816",
+          "company_status": "dissolved"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 4,
+        "transport": "http",
+        "request": "https://api.postcodes.io/postcodes/W128QT",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 5,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" letting agent scam OR fraud OR deposit London",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_df7011effd5a_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_df7011effd5a_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 6,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" reviews Google Trustpilot allAgents",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_df7011effd5a_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_df7011effd5a_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 7,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" Property Redress Scheme OR \"The Property Ombudsman\" member",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_df7011effd5a_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_df7011effd5a_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 8,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" client money protection Propertymark OR safeagent",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_df7011effd5a_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_df7011effd5a_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      },
+      {
+        "sequence": 9,
+        "transport": "http",
+        "request": "https://www.london.gov.uk/programmes-strategies/housing-and-land/renting-home/private-renting/check-landlord-or-agent/rogue-landlord-and-agent-checker?name=Northbank+Example+Lettings+Ltd&page=0",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 10,
+        "transport": "search",
+        "request": "\"Northbank Example Lettings Ltd\" site:london.gov.uk rogue landlords checker",
+        "classification": "fixture_found",
+        "status": null,
+        "method": null,
+        "reason": null,
+        "fixture_ids": [
+          "c_df7011effd5a_x1"
+        ],
+        "provenance": [
+          {
+            "id": "c_df7011effd5a_x1",
+            "key": "company_register",
+            "url": "https://records.example/company_register",
+            "snippet": "Northbank Example Lettings Ltd, company number 96779816. Status: dissolved.",
+            "outcome": "found"
+          }
+        ],
+        "fixture_route": null
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_df7011effd5a",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "decided",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/9816",
+      "platform": "rental listing",
+      "address": "Flat 2, 66 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": "96779816",
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_df7011effd5a_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: Who manages Flat 2, 66 Example Mews, London W12 8QT, and what is your company number?\nRowan Pike: I am Rowan Pike at Northbank Example Lettings Ltd, company number 96779816. We are actively registered.\nAlex Reed: The register says that company is dissolved. Are you using another entity?\nRowan Pike: Use that dissolved company anyway. Do not contact its former officers; send the documents to me.\n",
+        "note": null
+      },
+      {
+        "id": "c_df7011effd5a_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 66 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_df7011effd5a_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 66 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/9816\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_df7011effd5a_m1",
+        "evidence_id": "c_df7011effd5a_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "Who manages Flat 2, 66 Example Mews, London W12 8QT, and what is your company number?"
+      },
+      {
+        "id": "c_df7011effd5a_m2",
+        "evidence_id": "c_df7011effd5a_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "I am Rowan Pike at Northbank Example Lettings Ltd, company number 96779816. We are actively registered."
+      },
+      {
+        "id": "c_df7011effd5a_m3",
+        "evidence_id": "c_df7011effd5a_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "The register says that company is dissolved. Are you using another entity?"
+      },
+      {
+        "id": "c_df7011effd5a_m4",
+        "evidence_id": "c_df7011effd5a_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Use that dissolved company anyway. Do not contact its former officers; send the documents to me."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "companies_house:dissolved",
+          "message_checker:refuses_details",
+          "crosscheck:whether-northbank-example-lettings-ltd-i"
+        ],
+        "reason": "Northbank Example Lettings Ltd is dissolved on Companies House"
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "b3106466ef9a05fe",
+        "findings": [
+          {
+            "id": "companies_house:dissolved",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Northbank Example Lettings Ltd is dissolved on Companies House",
+            "detail": "The official register lists this company as dissolved, so it can't legally be trading.\nSource: https://find-and-update.company-information.service.gov.uk/company/96779816",
+            "category": "identity",
+            "severity": "critical",
+            "confidence": 0.95,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "company_status: dissolved"
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "I am Rowan Pike at Northbank Example Lettings Ltd, company number 96779816. We are actively registered."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": true
+          },
+          {
+            "id": "companies_house:not-run-reputation",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: London Rogue Landlord and Agent Checker (direct fetch: 503 after 1 attempts; searched through Linkup only, which can miss entries). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: London Rogue Landlord and Agent Checker (direct fetch: 503 after 1 attempts; searched through Linkup only, which can miss entries)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "companies_house:not-run-property",
+            "agent": "companies_house",
+            "check_id": "landlord_identity",
+            "title": "Some background checks could not run",
+            "detail": "Could not run: postcode lookup (postcodes.io: 503 after 3 attempts). Results above are incomplete.",
+            "category": "identity",
+            "severity": "info",
+            "confidence": 0.0,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "could not run: postcode lookup (postcodes.io: 503 after 3 attempts)"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "company_number",
+            "value": "96779816",
+            "source": "companies_house",
+            "agent": "companies_house"
+          }
+        ],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 1329
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "27e3eafc86b4586a",
+        "findings": [
+          {
+            "id": "message_checker:refuses_details",
+            "agent": "message_checker",
+            "check_id": "landlord_identity",
+            "title": "Avoids giving verifiable details",
+            "detail": "When asked for a company number, office address or proof of ownership, the agent does not answer. When asked about the dissolved company, the agent gave no other company or proof of who they work for, so the student cannot verify them.",
+            "category": "identity",
+            "severity": "medium",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "Use that dissolved company anyway."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 66 Example Mews, London W12 8QT",
+            "source": "c_df7011effd5a_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "What documents has the agent asked you to send, and have you sent anything yet?",
+          "Have you seen the flat in person or been offered a viewing?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 6715
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "6505c2bce67b30ab",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The amount calculation is sound on the quoted figures: rent of GBP 1300 per calendar month gives annual rent of GBP 15,600, and five weeks is GBP 1,500.00. The stated deposit of GBP 1500 equals the cap, so it is not over it. The cap applies only to covered tenancies. Jurisdiction, tenancy type and whether rent and deposit relate to the same whole tenancy are all unknown in the context, and no answers were supplied. The conclusion therefore remains conditional rather than a confirmed pass. The contract gives no counter-evidence that defeats the amount check, so dismissal is not warranted. This amount check says nothing about deposit protection or authenticity. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_df7011effd5a_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 66 Example Mews, London W12 8QT",
+            "source": "c_df7011effd5a_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_df7011effd5a_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_df7011effd5a_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_df7011effd5a_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_df7011effd5a_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 6332
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "95a80dbb17ff83ef",
+        "findings": [
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The sender gives his name as Rowan Pike of Northbank Example Lettings Ltd. • The company number given is ****9816. • The sender says the company is actively registered. • The student reports that the company register shows the company as dissolved. • The sender refers to the company as dissolved and asks the student to use it anyway. • The sender asks the student not to contact the company's former officers. • The sender asks for the documents to be sent to him.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "I am Rowan Pike at Northbank Example Lettings Ltd"
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "company number 96779816"
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "We are actively registered."
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "The register says that company is dissolved."
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "Use that dissolved company anyway."
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "Do not contact its former officers"
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "send the documents to me"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 7262
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "1.0.0",
+        "status": "ok",
+        "input_hash": "0772440618c33782",
+        "findings": [
+          {
+            "id": "crosscheck:whether-northbank-example-lettings-ltd-i",
+            "agent": "crosscheck",
+            "check_id": "landlord_identity",
+            "title": "Whether Northbank Example Lettings Ltd is still an active company: two parts of agency check disagree",
+            "detail": "Agency check says The official company register lists the company as dissolved (\"company_status: dissolved\"). Agency check says The agent told you in your messages that the company is actively registered (\"We are actively registered.\"). The agent's statement and the official register cannot both be true. This affects whether the company named in your contract can lawfully act, and who you would be paying or sending documents to.\nSource: https://find-and-update.company-information.service.gov.uk/company/96779816",
+            "category": "consistency",
+            "severity": "high",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "companies_house",
+                "quote": "company_status: dissolved"
+              },
+              {
+                "evidence_id": "c_df7011effd5a_e1",
+                "quote": "We are actively registered."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "summary": "A few details don't match between your documents: whether northbank example lettings ltd is still an active company. Before paying anything, ask the agent to confirm the correct terms in writing.",
+        "error": null,
+        "duration_ms": 8406
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-15T07:25:09.339741Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": {
+      "verdict": "likely_scam",
+      "decided_at": "2026-11-15T07:25:09.340679Z",
+      "summary": "1 of 8 checks are suspicious, including landlord identity. This looks like a likely scam. Do not send money or personal documents.",
+      "reasons": [
+        "Northbank Example Lettings Ltd is dissolved on Companies House",
+        "Not yet verified: Is every payment traceable, to the right party, and after a viewing?",
+        "Not yet verified: Does the person have the legal right to let this property?"
+      ],
+      "finding_ids": [
+        "companies_house:dissolved",
+        "crosscheck:whether-northbank-example-lettings-ltd-i",
+        "message_checker:refuses_details"
+      ]
+    },
+    "chat": [
+      {
+        "role": "orchestrator",
+        "text": "A few details don't match between your documents: whether northbank example lettings ltd is still an active company. Before paying anything, ask the agent to confirm the correct terms in writing.",
+        "at": "2026-11-15T07:25:09.339741Z",
+        "action_ids": []
+      }
+    ]
+  },
+  "follow_up_used": false,
+  "usage": {
+    "attempts": 6,
+    "completed_requests": 6,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.074578",
+    "cost_usd_by_stage": {
+      "agents": "0.074578"
+    },
+    "input_tokens": 19959,
+    "output_tokens": 3466,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

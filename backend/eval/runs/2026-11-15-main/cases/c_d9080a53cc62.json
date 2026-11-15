@@ -1,0 +1,538 @@
+{
+  "case_id": "c_d9080a53cc62",
+  "family": "prepaid_payment",
+  "variant": "genuine",
+  "truth": "genuine",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 14946,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 93.0,
+  "suspicious_checks": [],
+  "cleared_checks": [
+    "in_person_viewing"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_d9080a53cc62",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_d9080a53cc62",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/8118",
+      "platform": "rental listing",
+      "address": "Flat 2, 38 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_d9080a53cc62_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I use a prepaid debit card for budgeting. Does that affect paying for Flat 2, 38 Example Mews, London W12 8QT?\nRowan Pike: Your budgeting card is your choice. We never request gift cards, voucher codes or card photos.\nAlex Reed: I viewed the property in person on 13 November 2026 at 16:00. Can I pay from my ordinary bank account instead?\nRowan Pike: Yes, after the signed agreement, to the verified Northbank Example Lettings Ltd client account ending 8118.\n",
+        "note": null
+      },
+      {
+        "id": "c_d9080a53cc62_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 38 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_d9080a53cc62_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 38 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/8118\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_d9080a53cc62_m1",
+        "evidence_id": "c_d9080a53cc62_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I use a prepaid debit card for budgeting. Does that affect paying for Flat 2, 38 Example Mews, London W12 8QT?"
+      },
+      {
+        "id": "c_d9080a53cc62_m2",
+        "evidence_id": "c_d9080a53cc62_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "Your budgeting card is your choice. We never request gift cards, voucher codes or card photos."
+      },
+      {
+        "id": "c_d9080a53cc62_m3",
+        "evidence_id": "c_d9080a53cc62_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "I viewed the property in person on 13 November 2026 at 16:00. Can I pay from my ordinary bank account instead?"
+      },
+      {
+        "id": "c_d9080a53cc62_m4",
+        "evidence_id": "c_d9080a53cc62_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Yes, after the signed agreement, to the verified Northbank Example Lettings Ltd client account ending 8118."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "cleared",
+        "clear_confidence": 0.7,
+        "finding_ids": [
+          "message_checker:viewing_completed"
+        ],
+        "reason": "An in-person viewing has taken place"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for Northbank Example Lettings Ltd's Companies House number so you can look the company up yourself. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-15T07:25:24.979174Z"
+      },
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Mira Vale exactly how and when you would pay the £1,500 deposit and the first month's rent, and into whose account. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-15T07:25:24.979174Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Mira Vale for proof that she or the company owns Flat 2, 38 Example Mews, or has the owner's permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-15T07:25:24.979174Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "5bb4323b65a494df",
+        "findings": [
+          {
+            "id": "message_checker:viewing_completed",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "An in-person viewing has taken place",
+            "detail": "The messages show the property has already been seen in person.",
+            "category": "property",
+            "severity": "info",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_d9080a53cc62_e1",
+                "quote": "I viewed the property in person on 13 November 2026 at 16:00."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 38 Example Mews, London W12 8QT",
+            "source": "c_d9080a53cc62_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Have you checked that Northbank Example Lettings Ltd exists and that the account details match the company's own paperwork?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 3178
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "895fc53fbb9dbebe",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The supplied amounts support the cap calculation. Rent of GBP 1300 per calendar month gives annual rent of GBP 15,600. Five weeks of that is GBP 1,500.00, which equals the stated deposit of GBP 1,500. So the amount is at the cap, not above it, and I am not overturning that calculation. The rulebook cap applies only to covered tenancies. The jurisdiction and tenancy type are unknown in the context, and no answers confirm that the property is in England, that this is an ordinary private tenancy, or that the rent and deposit relate to the same whole tenancy. The contract gives no counter-evidence that defeats the amount-cap pass. A compliant amount says nothing about whether the deposit is protected or the arrangement is authentic. The issue should stay a limited conditional amount-cap pass, subject to confirming scope. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_d9080a53cc62_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_d9080a53cc62_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 38 Example Mews, London W12 8QT",
+            "source": "c_d9080a53cc62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_d9080a53cc62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_d9080a53cc62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_d9080a53cc62_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_d9080a53cc62_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 7225
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "6bd238d3cf380edf",
+        "findings": [
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The agent says they never request gift cards, voucher codes or card photos. • The student viewed the property in person on 13 November 2026 at 16:00. • Payment from an ordinary bank account is accepted. • Payment is to be made after the agreement is signed. • Payment goes to a client account held in the name of Northbank Example Lettings Ltd.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_d9080a53cc62_e1",
+                "quote": "We never request gift cards, voucher codes or card photos."
+              },
+              {
+                "evidence_id": "c_d9080a53cc62_e1",
+                "quote": "I viewed the property in person on 13 November 2026 at 16:00."
+              },
+              {
+                "evidence_id": "c_d9080a53cc62_e1",
+                "quote": "Yes, after the signed agreement"
+              },
+              {
+                "evidence_id": "c_d9080a53cc62_e1",
+                "quote": "after the signed agreement"
+              },
+              {
+                "evidence_id": "c_d9080a53cc62_e1",
+                "quote": "to the verified Northbank Example Lettings Ltd client account"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 7192
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "1.0.0",
+        "status": "ok",
+        "input_hash": "6be4022c5a0cba43",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 2608
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-15T07:25:22.888070Z",
+        "score": 93.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 3.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null,
+    "chat": [
+      {
+        "role": "orchestrator",
+        "text": "Your score is now 93, down from 100, and the in person viewing check is cleared. I read your messages, their tone and the contract, and nothing was flagged in them. The Companies House check didn't finish, so that part is still unchecked. I've added 3 new steps below.",
+        "at": "2026-11-15T07:25:27.984935Z",
+        "action_ids": []
+      }
+    ]
+  },
+  "follow_up_used": false,
+  "usage": {
+    "attempts": 7,
+    "completed_requests": 7,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.070276",
+    "cost_usd_by_stage": {
+      "agents": "0.070276"
+    },
+    "input_tokens": 20963,
+    "output_tokens": 2835,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

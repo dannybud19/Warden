@@ -1,79 +1,92 @@
-# Evaluation fixes — 14 November 2026
+# Current-system evaluation — 15 November 2026
 
-**All three targeted failure categories were addressed and all 40 cases rerun with the live API.**
-This is a development comparison on the same unreviewed synthetic dataset, not an accuracy benchmark.
-The [original run summary](runs/2026-11-14-system/summary.json) and raw outputs remain preserved.
+**All 40 cases ran against the updated application. No model requests failed or were truncated;
+estimated API cost was USD 2.908038.** This is a development comparison, not an accuracy benchmark:
+the labels are unreviewed, cases are related, and only the initial analysis round was exercised.
 
-## What changed
+## Three main findings
 
-- Payment rules distinguish actual demands from denials, ordinary prepaid debit cards and payments
-  explicitly due after viewing. Reassurance in one clause cannot hide a separate positive demand.
-- Landlord-name facts require a full name explicitly assigned the owner/landlord role in the source
-  message. A managing agent's name is not substituted. Being abroad alone is not a viewing barrier;
-  local or completed viewing context no longer creates that warning. Removing these warnings does
-  not verify identity or authority.
-- Explicit timing such as “I will not arrange a viewing until you pay” is recognised. Under Bill's
-  chosen policy, **all payment hard flags require a targeted student confirmation before closure**.
-  Yes confirms that quoted concern; no, unsure, skipped or ambiguous answers preserve it and prompt
-  clarification. Answers are bound to the particular finding and evidence. Company and contract
-  hard flags retain their immediate behavior. The existing schemas and message-checker LLM pass are
-  sufficient; a confirmation reply still triggers the normal agent rerun.
+1. **The payment safeguards held.** All 11 scam-labelled cases had at least one suspicious check;
+   none of the 17 genuine cases or 12 uncertain cases received a `likely_scam` verdict. Six targeted
+   payment-confirmation questions appeared across five cases. The two immediate scam verdicts both
+   had company-register hard flags. The other 38 cases stayed pending; pending means unresolved,
+   not verified or cleared. No student replies were supplied.
+2. **The live cross-checker now contributes evidence.** It returned `ok` on all 40 cases and produced
+   six findings across five cases. For example, it caught a [GBP 1,300 versus GBP 1,400 rent mismatch](runs/2026-11-15-main/cases/c_d7225bb81851.json)
+   and a [contract offering a tenancy while the messages say the owner is only selling](runs/2026-11-15-main/cases/c_9e84e913852a.json).
+   Both add suspicious checks that were absent in the previous run. This demonstrates useful
+   cross-source checking; it does not establish that every generated finding is correct.
+3. **False alarms and wording sensitivity remain.** Two genuine cases still have suspicious checks,
+   down from three. Both are the explained low-rent example and its rewrite; the original also gets
+   an unsupported authority-pressure warning for the representative's stated role. These warnings
+   come from the emotion/pricing checker. All eight wording pairs keep the same outcome, but only
+   seven keep the same suspicious checks and six keep the same cleared checks. Clear-state
+   consistency was eight of eight previously. A single sampled run cannot isolate the cause.
 
-## Before and after
+## Comparison with the previous fixes
 
-Counts are cases, including related wording variants. Categories overlap.
+Counts are cases unless specified. The input dataset is byte-for-byte unchanged.
 
-| Measure | Before | After |
+| Measure | 14 November fixes | 15 November current system |
 | --- | ---: | ---: |
-| Genuine cases incorrectly labelled `likely_scam` | 2/17 | **0/17** |
-| Genuine cases with an untraceable-payment finding | 2 | **0** |
-| Genuine cases with a landlord-name mismatch | 2 | **0** |
-| Genuine cases with an abroad/viewing warning | 3 | **0** |
-| Genuine cases with any suspicious check | 8/17 | **3/17** |
-| Scam cases with at least one suspicious check | 11/11 | **11/11** |
+| Genuine cases labelled `likely_scam` | 0/17 | 0/17 |
+| Genuine cases with suspicious checks | 3/17 | 2/17 |
+| Scam cases with suspicious checks | 11/11 | 11/11 |
+| Immediate scam verdicts / pending cases | 2 / 38 | 2 / 38 |
+| Cases with payment-confirmation questions | 5 | 5 |
+| Wording pairs: identical suspicious / cleared checks | 7/8 / 8/8 | 7/8 / 6/8 |
+| Successful model requests | 201 | 273 |
+| Estimated API cost, USD | 2.251340 | 2.908038 |
 
-The two reported timing failures, [transfer pressure](runs/2026-11-14-fixes/cases/c_a919eb7d9823.json)
-and [fake platform link](runs/2026-11-14-fixes/cases/c_8e908328824a.json), now both carry explicit
-pre-viewing payment candidates and targeted confirmation questions. They stay open until confirmation,
-as requested. Five cases received payment-confirmation questions overall.
+## Coverage and limits
 
-Final initial-round outcomes: **2 `likely_scam`, 38 pending**. Both immediate verdicts were scam cases
-with company-register hard flags. All 17 genuine and all 12 uncertain cases remain pending. The fall
-from five to two immediate scam verdicts reflects the new confirmation policy; it is not a detection
-recall comparison. No scripted student replies were injected in the live run.
+- The production service ran real message, emotion/pricing, contract and company checkers, the LLM
+  cross-checker, scoring, consultant and composer. Message, emotion, contract and cross-check reports
+  returned `ok` in all 40 cases. Video analysis was skipped throughout.
+- Companies House returned `ok` in six cases and `error` in 34: 33 lack suitable register fixtures
+  and one deliberately simulates an outage. This makes 34 runs degraded despite successful model
+  requests. New postcode, rogue-register and search requests also exceed the original fixture
+  coverage. Overall, 39 cases encounter at least one undeclared external request (150 requests,
+  including retries); these are unavailable, never invented negative results or live fallbacks.
+- Inputs already contain extracted text. Upload/OCR, later replies, voice, persistence, contract
+  replacement/history and browser behaviour are outside this 40-case evaluation. The separate
+  semantic LLM grader was not run, matching the previous comparison. These results cannot establish
+  end-to-end completion or real-world detection accuracy.
 
-## Remaining limits
+## Implementation and validation
 
-- The three remaining genuine-case warnings belong to the unchanged emotion/pricing checker:
-  the explained low-rent case and its rewrite trigger the area-price rule; one genuine platform-link
-  rewrite receives an authority-pressure warning. These remain follow-up work.
-- Companies House still lacks fixtures in 33 cases; one case intentionally simulates an outage.
-  Message, emotion and contract reports returned `ok` for all 40. Controlled external responses,
-  unreviewed labels, related cases and one sample per case limit conclusions.
-- This rerun compares application findings and outcomes directly. The separate LLM grader was not
-  rerun; its previously documented grounding-score limitations remain. All eight wording pairs kept
-  their verdict, while one pair differed in suspicious checks.
+The evaluator now inherits the production **4,096-token** cap, accurately records the current
+pipeline, shuts down the service after each case, and accepts newly added optional schema defaults
+without rewriting old fixtures. Validation still rejects unknown fields and prior conversation
+state. A Windows-compatible five-second watchdog replaces the Unix-only test alarm, with approval.
 
-## Validation and reproducibility
+The accompanying UI change preserves the layout and shows the exact backend **Risk score**.
+The shared status controls the gauge and headline: neutral when unverified, amber for concerns or
+payment confirmation, red only for `likely_scam`, and green only when all eight checks are cleared.
+Neutral action answers say “Answered”; the score explanation states that unverified checks keep it
+high and that it is not a probability of a scam.
 
-Tested agent/orchestrator revision: **`33cb579`**, based on main **`881d157`**. The dataset fingerprint
-matches the original run. **616 offline tests passed; 3 MongoDB-dependent tests were skipped.** Ruff,
-format checking, Pyright and all three import-linter contracts passed. The service/reply tests cover
-yes/no/unsure, skipped replies, changed evidence, direct-decision attempts and unrelated hard flags.
+Validation: **1,382 backend tests passed, four skipped; 15 frontend regression tests passed.**
+Ruff, formatting, Pyright, all three import contracts, frontend type checking and production build
+passed. Frontend lint has no errors and one existing unused-disable warning in the generated
+contracts file. Visual browser verification could not finish: computer use stopped because it
+could not reliably identify Chrome's current URL on Windows. Temporary QA services were stopped.
 
-Live rerun: **201 successful model requests, USD 2.251340**, no failed or truncated requests.
-This is token-based list-price cost before promotional credits/tax. It excludes the original
-USD 4.186248 evaluation. Model: Claude Sonnet 5.5. Finished at **20:55:44 UTC**.
+## Reproduce and inspect
 
-Artifacts: [comparison](runs/2026-11-14-fixes/comparison.json),
-[summary](runs/2026-11-14-fixes/summary.json), [configuration](runs/2026-11-14-fixes/metadata.json),
-[usage](runs/2026-11-14-fixes/usage.jsonl) and per-case/raw outputs in that run directory.
+Backend revision **`d91f7fe`**, based on main **`47a492f`**. Model: **Claude Sonnet 5.5**.
+Dataset SHA-256: `9b1df8e02cc05591e192711bbb922cef84a00a0b8ea84adceb72849d1fa7ff80`.
+Finished **07:27:50 UTC, 15 November 2026**. Cost uses provider token usage and recorded list prices,
+before promotional credits/tax; it excludes prior evaluations. The three-case pilot was resumed,
+so it is included once in the totals.
 
-Run a fresh comparison from `backend/` using a new output directory:
+Artifacts: [comparison](runs/2026-11-15-main/comparison.json),
+[summary](runs/2026-11-15-main/summary.json), [configuration](runs/2026-11-15-main/metadata.json),
+[usage](runs/2026-11-15-main/usage.jsonl), plus complete case and raw outputs in the same directory.
+The [previous comparison](runs/2026-11-14-fixes/comparison.json) preserves the earlier fixes' results.
+
+From `backend/`, choose a fresh output directory:
 
 ```powershell
-& D:\Warden\.venv\Scripts\python.exe -X utf8 -m eval.run --live --env-file D:\Warden\.env --output eval/runs/my-fix-check --parallel 3 --no-grade
+& D:\Warden\.venv\Scripts\python.exe -X utf8 -m eval.run --live --env-file D:\Warden\.env --output eval/runs/my-current-check --parallel 3 --no-grade
 ```
-
-The fixes, original dataset and both evaluations are together on **`fix/evaluation-findings`**, in
-`D:\Warden\.worktrees\evaluation-fixes`. This branch has not been pushed.

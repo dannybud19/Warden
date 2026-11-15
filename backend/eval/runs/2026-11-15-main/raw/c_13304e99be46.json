@@ -1,0 +1,500 @@
+{
+  "case_id": "c_13304e99be46",
+  "family": "overpayment",
+  "variant": "unresolved",
+  "truth": "unknown",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 11162,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 100.0,
+  "suspicious_checks": [],
+  "cleared_checks": [],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_13304e99be46",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_13304e99be46",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/7888",
+      "platform": "rental listing",
+      "address": "Flat 2, 58 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_13304e99be46_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I may have paid GBP 200 too much, but one payment is still pending.\nRowan Pike: I can see a pending entry too. Let us wait for the bank to confirm the settled amount.\nAlex Reed: Should I transfer or refund anything now?\nRowan Pike: No. We will reconcile the ledger first and return any actual surplus to its originating account.\n",
+        "note": null
+      },
+      {
+        "id": "c_13304e99be46_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 58 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_13304e99be46_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 58 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/7888\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_13304e99be46_m1",
+        "evidence_id": "c_13304e99be46_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I may have paid GBP 200 too much, but one payment is still pending."
+      },
+      {
+        "id": "c_13304e99be46_m2",
+        "evidence_id": "c_13304e99be46_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "I can see a pending entry too. Let us wait for the bank to confirm the settled amount."
+      },
+      {
+        "id": "c_13304e99be46_m3",
+        "evidence_id": "c_13304e99be46_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "Should I transfer or refund anything now?"
+      },
+      {
+        "id": "c_13304e99be46_m4",
+        "evidence_id": "c_13304e99be46_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "No. We will reconcile the ledger first and return any actual surplus to its originating account."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for the Companies House number for Northbank Example Lettings Ltd. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-15T07:26:01.309398Z"
+      },
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Mira Vale exactly how and when you would pay the deposit and rent for Flat 2, 58 Example Mews. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-15T07:26:01.309398Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask for proof that Mira Vale or Northbank Example Lettings Ltd owns 58 Example Mews or has the owner's permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-15T07:26:01.309398Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 1
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "834673cd1b33eff9",
+        "findings": [],
+        "facts": [],
+        "questions": [
+          "What was the GBP 200 payment for, and did you view the flat in person before paying?",
+          "Who did you pay, and by what method (bank transfer, card or portal)?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 3536
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "ee011a0a8f369ac5",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. This is an amount-cap pass only. Monthly rent of GBP 1300 gives annual rent of GBP 15,600, and five weeks is GBP 1,500.00, so the GBP 1,500 deposit equals the cap and does not exceed it. The calculation was not overturned. The pass stays conditional because the property is in England only by its London address, and the jurisdiction and tenancy type are marked unknown in the context. It is also unconfirmed that this is an ordinary private tenancy rather than an excluded arrangement, and that rent and deposit cover the same whole tenancy. No counter-evidence defeats the calculation. This result says nothing about deposit protection or authenticity. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_13304e99be46_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_13304e99be46_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 58 Example Mews, London W12 8QT",
+            "source": "c_13304e99be46_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_13304e99be46_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_13304e99be46_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_13304e99be46_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_13304e99be46_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "summary": null,
+        "error": null,
+        "duration_ms": 5265
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "0c952392e510e76d",
+        "findings": [
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The student may have overpaid by GBP 200. • One payment is still pending. • The agent can see a pending entry on their side. • The bank has not yet confirmed the settled amount. • The agent says no transfer or refund is needed from the student now. • The agent will reconcile the ledger before anything else happens. • Any actual surplus will be returned to the account it was paid from.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "I may have paid GBP 200 too much"
+              },
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "one payment is still pending"
+              },
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "I can see a pending entry too."
+              },
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "wait for the bank to confirm the settled amount"
+              },
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "No."
+              },
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "We will reconcile the ledger first"
+              },
+              {
+                "evidence_id": "c_13304e99be46_e1",
+                "quote": "return any actual surplus to its originating account"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 5893
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "1.0.0",
+        "status": "ok",
+        "input_hash": "ebcbd0743864e413",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "summary": null,
+        "error": null,
+        "duration_ms": 1296
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-15T07:25:59.150843Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null,
+    "chat": [
+      {
+        "role": "orchestrator",
+        "text": "Your score is still 100. I read your messages, their tone and the contract, and nothing was flagged in any of them. I couldn't check the company records, because that lookup didn't finish. I've added 3 new steps below.",
+        "at": "2026-11-15T07:26:03.104784Z",
+        "action_ids": []
+      }
+    ]
+  },
+  "follow_up_used": false
+}

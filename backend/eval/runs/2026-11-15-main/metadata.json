@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.1",
+  "git_revision": "d91f7fe25dc508b0fb373b158faa7ad5ccff2d85",
+  "dataset_sha256": "9b1df8e02cc05591e192711bbb922cef84a00a0b8ea84adceb72849d1fa7ff80",
+  "model": "claude-sonnet-5-5",
+  "agent_max_tokens": 4096,
+  "rounds": "initial_only",
+  "external_services": "controlled_fixtures",
+  "label_review": "pending_agent_owner_review",
+  "semantic_grading": false,
+  "started_at": "2026-11-15T07:23:19.950487+00:00",
+  "parallel_cases": 3,
+  "pipeline": "Real checkers, LLM cross-checker, scoring, consultant and composer",
+  "not_exercised": [
+    "Upload extraction and OCR (cases already contain extracted text)",
+    "Student replies and later analysis rounds",
+    "Voice calls and debriefs",
+    "Browser UI and persistent storage"
+  ],
+  "unimplemented_capabilities": [
+    "Video analysis",
+    "Uploaded audio transcription",
+    "Contract revision selection and history"
+  ]
+}

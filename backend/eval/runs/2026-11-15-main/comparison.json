@@ -1,0 +1,299 @@
+{
+  "baseline_run": "2026-11-14-fixes",
+  "current_run": "2026-11-15-main",
+  "same_dataset": true,
+  "dataset_sha256": "9b1df8e02cc05591e192711bbb922cef84a00a0b8ea84adceb72849d1fa7ff80",
+  "interpretation": "One sample per unreviewed development case; initial rounds with controlled external responses, no student replies or semantic grader. Pipeline, prompts and model sampling may all affect differences.",
+  "before": {
+    "cases": 40,
+    "genuine_likely_scam": 0,
+    "genuine_with_suspicious_checks": 3,
+    "scam_with_suspicious_checks": 11,
+    "cases_with_open_payment_confirmation": 5,
+    "open_payment_confirmation_questions": 6,
+    "likely_scam": 2,
+    "pending": 38,
+    "wording_pairs_same_suspicious_checks": 7,
+    "wording_pairs_same_cleared_checks": 8,
+    "wording_pairs_same_outcome": 8,
+    "api_requests": 201,
+    "api_cost_usd": "2.251340"
+  },
+  "after": {
+    "cases": 40,
+    "genuine_likely_scam": 0,
+    "genuine_with_suspicious_checks": 2,
+    "scam_with_suspicious_checks": 11,
+    "cases_with_open_payment_confirmation": 5,
+    "open_payment_confirmation_questions": 6,
+    "likely_scam": 2,
+    "pending": 38,
+    "wording_pairs_same_suspicious_checks": 7,
+    "wording_pairs_same_cleared_checks": 6,
+    "wording_pairs_same_outcome": 8,
+    "api_requests": 273,
+    "api_cost_usd": "2.908038"
+  },
+  "agent_statuses": {
+    "companies_house": {
+      "error": 34,
+      "ok": 6
+    },
+    "contract_checker": {
+      "ok": 40
+    },
+    "crosscheck": {
+      "ok": 40
+    },
+    "emotion_classifier": {
+      "ok": 40
+    },
+    "message_checker": {
+      "ok": 40
+    },
+    "video_analysis": {
+      "skipped": 40
+    }
+  },
+  "genuine_suspicious_cases": [
+    {
+      "case_id": "c_14c60e282afe",
+      "family": "deceptive_short_let",
+      "variant": "genuine",
+      "suspicious_checks": [
+        "no_pressure",
+        "fair_price"
+      ]
+    },
+    {
+      "case_id": "c_5ca19646e651",
+      "family": "deceptive_short_let",
+      "variant": "paraphrase",
+      "suspicious_checks": [
+        "fair_price"
+      ]
+    }
+  ],
+  "crosscheck_findings": [
+    {
+      "case_id": "c_7b6fcf6a4eaa",
+      "truth": "scam",
+      "findings": [
+        {
+          "check_id": "payment_safety",
+          "title": "Who receives the deposit: two parts of your upload disagree"
+        },
+        {
+          "check_id": "landlord_identity",
+          "title": "Whether the named company is trading: Pressure check and Agency check disagree"
+        }
+      ]
+    },
+    {
+      "case_id": "c_9e84e913852a",
+      "truth": "scam",
+      "findings": [
+        {
+          "check_id": "landlord_identity",
+          "title": "Whether the named landlord is actually letting the flat: two parts of your upload disagree"
+        }
+      ]
+    },
+    {
+      "case_id": "c_d7225bb81851",
+      "truth": "unknown",
+      "findings": [
+        {
+          "check_id": "contract_consistency",
+          "title": "Monthly rent amount: The contract and Pressure check disagree"
+        }
+      ]
+    },
+    {
+      "case_id": "c_df7011effd5a",
+      "truth": "scam",
+      "findings": [
+        {
+          "check_id": "landlord_identity",
+          "title": "Whether Northbank Example Lettings Ltd is still an active company: two parts of agency check disagree"
+        }
+      ]
+    },
+    {
+      "case_id": "c_e28695b56a10",
+      "truth": "scam",
+      "findings": [
+        {
+          "check_id": "landlord_identity",
+          "title": "Who Rowan Pike is and who they act for: Your upload and Pressure check disagree"
+        }
+      ]
+    }
+  ],
+  "changed_cases": [
+    {
+      "case_id": "c_13304e99be46",
+      "truth": "unknown",
+      "family": "overpayment",
+      "variant": "unresolved",
+      "before": {
+        "outcome": "pending",
+        "suspicious_checks": [],
+        "cleared_checks": [
+          "no_pressure"
+        ]
+      },
+      "after": {
+        "outcome": "pending",
+        "suspicious_checks": [],
+        "cleared_checks": []
+      }
+    },
+    {
+      "case_id": "c_14c60e282afe",
+      "truth": "genuine",
+      "family": "deceptive_short_let",
+      "variant": "genuine",
+      "before": {
+        "outcome": "pending",
+        "suspicious_checks": [
+          "fair_price"
+        ],
+        "cleared_checks": [
+          "in_person_viewing",
+          "no_pressure"
+        ]
+      },
+      "after": {
+        "outcome": "pending",
+        "suspicious_checks": [
+          "no_pressure",
+          "fair_price"
+        ],
+        "cleared_checks": [
+          "in_person_viewing"
+        ]
+      }
+    },
+    {
+      "case_id": "c_2e46a01ef8dd",
+      "truth": "genuine",
+      "family": "fake_platform_link",
+      "variant": "genuine",
+      "before": {
+        "outcome": "pending",
+        "suspicious_checks": [],
+        "cleared_checks": [
+          "payment_safety",
+          "in_person_viewing"
+        ]
+      },
+      "after": {
+        "outcome": "pending",
+        "suspicious_checks": [],
+        "cleared_checks": [
+          "in_person_viewing",
+          "no_pressure"
+        ]
+      }
+    },
+    {
+      "case_id": "c_7b6fcf6a4eaa",
+      "truth": "scam",
+      "family": "compound",
+      "variant": "compound",
+      "before": {
+        "outcome": "likely_scam",
+        "suspicious_checks": [
+          "landlord_identity",
+          "no_pressure"
+        ],
+        "cleared_checks": [
+          "in_person_viewing"
+        ]
+      },
+      "after": {
+        "outcome": "likely_scam",
+        "suspicious_checks": [
+          "landlord_identity",
+          "payment_safety",
+          "no_pressure"
+        ],
+        "cleared_checks": [
+          "in_person_viewing"
+        ]
+      }
+    },
+    {
+      "case_id": "c_9e84e913852a",
+      "truth": "scam",
+      "family": "property_for_sale",
+      "variant": "concern",
+      "before": {
+        "outcome": "pending",
+        "suspicious_checks": [
+          "payment_safety",
+          "right_to_let"
+        ],
+        "cleared_checks": []
+      },
+      "after": {
+        "outcome": "pending",
+        "suspicious_checks": [
+          "landlord_identity",
+          "payment_safety",
+          "right_to_let"
+        ],
+        "cleared_checks": []
+      }
+    },
+    {
+      "case_id": "c_c39be7c7dfec",
+      "truth": "genuine",
+      "family": "fake_platform_link",
+      "variant": "paraphrase",
+      "before": {
+        "outcome": "pending",
+        "suspicious_checks": [
+          "no_pressure"
+        ],
+        "cleared_checks": [
+          "payment_safety",
+          "in_person_viewing"
+        ]
+      },
+      "after": {
+        "outcome": "pending",
+        "suspicious_checks": [],
+        "cleared_checks": [
+          "payment_safety",
+          "in_person_viewing"
+        ]
+      }
+    },
+    {
+      "case_id": "c_d7225bb81851",
+      "truth": "unknown",
+      "family": "robustness",
+      "variant": "robustness",
+      "before": {
+        "outcome": "pending",
+        "suspicious_checks": [],
+        "cleared_checks": [
+          "in_person_viewing",
+          "no_pressure"
+        ]
+      },
+      "after": {
+        "outcome": "pending",
+        "suspicious_checks": [
+          "contract_consistency"
+        ],
+        "cleared_checks": [
+          "in_person_viewing",
+          "no_pressure"
+        ]
+      }
+    }
+  ]
+}
