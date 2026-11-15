@@ -101,12 +101,29 @@ test("HTTP success with an extraction error is visibly unreadable, not successfu
   assert.equal(row.evidenceId, "ev_bad");
 });
 
-test("closed-case rejection explains the restriction while preserving other files", async () => {
-  const queue = new UploadQueue(async () => { throw Object.assign(new Error("decided"), { status: 409 }); }, ids());
-  queue.add("case_closed", [input("contract.pdf", "contract")]);
+test("a 409 shows the server's reason (an attachment conflict) and never claims a final decision", async () => {
+  const reason = "This file does not match the initial attachment, or it was skipped.";
+  const queue = new UploadQueue(async () => { throw Object.assign(new Error(reason), { status: 409 }); }, ids());
+  queue.add("case_1", [input("contract.pdf", "contract")]);
   await tick();
   assert.equal(queue.getSnapshot()[0].state, "failed");
-  assert.match(queue.getSnapshot()[0].message, /final decision/);
+  assert.equal(queue.getSnapshot()[0].message, reason);
+  assert.doesNotMatch(queue.getSnapshot()[0].message, /final decision|decided|verdict/i);
+});
+
+test("files added one after another, the same file twice, and several at once are all sent", async () => {
+  const sent = [];
+  const queue = new UploadQueue(async (_caseId, data) => {
+    sent.push(data.file.name);
+    return receipt(`ev_${sent.length}`);
+  }, ids());
+  queue.add("case_1", [input("chat.txt", "chat_export")]);
+  await tick();
+  queue.add("case_1", [input("chat.txt", "chat_export")]); // the same file picked again
+  queue.add("case_1", [input("email.pdf", "email"), input("contract.pdf", "contract"), input("photo.png")]);
+  await tick();
+  assert.deepEqual(sent, ["chat.txt", "chat.txt", "email.pdf", "contract.pdf", "photo.png"]);
+  assert.deepEqual(queue.getSnapshot().map((r) => r.state), ["saved", "saved", "saved", "saved", "saved"]);
 });
 
 test("stored video and audio do not claim that media analysis happened", async () => {
@@ -218,9 +235,24 @@ test("an unreadable file requires reselection and explicitly asks the backend to
   assert.equal(queue.getSnapshot()[0].pending, false);
 });
 
+test("the attachment panel is collapsed by default: header, description, count and a chevron button", () => {
+  const base = { id: "one", caseId: "case_1", name: "scan.pdf", size: 100, kind: "email", hasFile: false, initial: false, pending: false, message: null };
+  const html = renderToStaticMarkup(createElement(UploadStatus, {
+    rows: [{ ...base, state: "saved" }, { ...base, id: "two", name: "chat.txt", state: "saved" }],
+    onRetry() {}, onSkip() {},
+  }));
+  assert.match(html, /<h2[^>]*><button type="button" aria-expanded="false" aria-controls="[^"]+"/);
+  assert.match(html, /Your attachments/);
+  assert.match(html, /Each file is listed here as it is added\./);
+  assert.match(html, /2 files/);
+  assert.match(html, /lucide-chevron-down/);
+  assert.doesNotMatch(html, /scan\.pdf|chat\.txt/); // the list opens on click
+});
+
 test("the production attachment panel renders filenames, mandatory file pickers, and explicit skip controls", () => {
   const base = { id: "one", caseId: "case_1", name: "scan.pdf", size: 100, kind: "email", hasFile: false, initial: true, pending: true, message: "Could not read every page." };
   const html = renderToStaticMarkup(createElement(UploadStatus, {
+    defaultOpen: true,
     rows: [
       { ...base, state: "unreadable" },
       { ...base, id: "two", name: "chat.txt", state: "saved", pending: false, message: "File added and text read." },
@@ -228,7 +260,7 @@ test("the production attachment panel renders filenames, mandatory file pickers,
   }));
   assert.match(html, /scan.pdf/);
   assert.match(html, /chat.txt/);
-  assert.match(html, /Your case stays open/);
+  assert.match(html, /Retry each file that needs attention, or continue without it/);
   assert.match(html, /Saved, but could not read/);
   assert.equal((html.match(/type="file"/g) ?? []).length, 1);
   assert.match(html, /aria-label="Select scan.pdf to retry"/);

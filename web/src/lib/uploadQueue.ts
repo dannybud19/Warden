@@ -184,8 +184,8 @@ export class UploadQueue {
     } catch (error) {
       const status = error && typeof error === "object" && "status" in error ? error.status : undefined;
       const message = status === 409
-        ? error instanceof Error && !/decided/i.test(error.message) ? error.message
-          : "This case has a final decision, so this file could not be added. Your other uploads are kept."
+        ? error instanceof Error && error.message ? error.message
+          : "This file does not match the attachment it retries. Your other uploads are kept."
         : status === 413 ? "This file is too large. Add a smaller file instead. Your other uploads are kept."
         : status === 415 || status === 422 ? "This file could not be accepted. Check its format and add a supported file. Your other uploads are kept."
         : status === 404 ? "This case could not be found. Return to Cases and open it again before retrying."

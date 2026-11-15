@@ -3,7 +3,6 @@
 import { Suspense } from "react";
 import { useParams } from "next/navigation";
 import { useCase } from "@/lib/useCase";
-import { isDecided } from "@/lib/selectors";
 import { StatusBar } from "@/components/StatusBar";
 import { EvidencePanel } from "@/components/EvidencePanel";
 import { ChecksTable } from "@/components/ChecksTable";
@@ -18,7 +17,7 @@ function CaseView() {
   const { state, refresh, upload, sendReply } = useCase(id);
   const c = state.caseData;
   if (!c) return <main className="page"><p>Loading case…</p><ErrorBanner message={state.error} /></main>;
-  const disabled = isDecided(c) || state.busy;
+  const disabled = state.busy; // a home never closes: only an in-flight request disables
 
   return (
     <main className="page">

@@ -109,9 +109,9 @@ test("risk comes from findings and verdicts while progress follows the latest we
   }
 });
 
-test("a final scam verdict can have zero progress and a low remaining score never clears high risk", () => {
+test("a likely-scam assessment can have zero progress and a low remaining score never clears high risk", () => {
   for (const score of [100, 84, 0]) {
-    const c = makeCase({ status: "decided", decision: { verdict: "likely_scam" }, score_history: [{ score }] });
+    const c = makeCase({ decision: { verdict: "likely_scam" }, score_history: [{ score }] });
     const display = riskDisplay(c, mood(c, false));
     assert.equal(display.category, "high");
     assert.equal(display.label, "High risk");
@@ -224,7 +224,7 @@ test("the needle moves inside the concerns zone as checks clear or turn suspicio
   assert.ok(b.needlePosition > a.needlePosition, `${b.needlePosition} > ${a.needlePosition}`);
 });
 
-test("two suspicious core checks show high risk before the final decision, unless a payment confirmation is pending", () => {
+test("two suspicious core checks show high risk before the backend assessment, unless a payment confirmation is pending", () => {
   const c = makeCase({ reports: reports({ ...concern, hard_flag: false }) });
   c.checks[0].state = "suspicious"; // landlord_identity
   c.checks[1].state = "suspicious"; // payment_safety

@@ -298,7 +298,7 @@ export function riskDisplay(c: Case, status: Mood) {
   return { category, ...base, needlePosition, headline: status.title, sub: status.sub } satisfies RiskDisplay;
 }
 
-/** The user's exact weighted progress formula, as a percentage, independent of a final verdict. */
+/** The user's exact weighted progress formula, as a percentage, independent of the assessment. */
 export function verificationProgress(c: Case): number {
   const remaining = currentScore(c);
   if (!Number.isFinite(remaining)) return 0;

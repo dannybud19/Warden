@@ -15,7 +15,7 @@ import { detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors"
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
 import { PAYMENT_NOTE, addedBySlot, type AddSlot } from "@/lib/evidence";
 import { useRouter } from "next/navigation";
-import { SourceLinks, rise } from "./primitives";
+import { Collapsible, SourceLinks, rise } from "./primitives";
 import { PILL } from "./Dashboard";
 import { ListingPhoto } from "./ListingPhoto";
 import { RiskGauge } from "./RiskGauge";
@@ -191,9 +191,10 @@ export function VerdictCard({ c, mood }: { c: Case; mood: Mood }) {
             <Info size={15} aria-hidden /> About risk and verification
           </summary>
           <p className="mt-2">
-            Risk reflects the evidence and Warden’s verdict. Unknown means important checks are still
-            unverified. Unconfirmed payment concerns are amber; a likely-scam verdict is high
-            risk. “No red flags remaining” requires all checks to be cleared and is not a guarantee.
+            Risk is Warden’s live assessment of the evidence so far, and it is never final: every file,
+            answer or call you add updates it. Unknown means important checks are still unverified.
+            Unconfirmed payment concerns are amber; a likely scam is high risk. “No red flags
+            remaining” requires all checks to be cleared and is not a guarantee.
           </p>
           <p className="mt-2">
             Verification progress is 100 minus the “Yet to verify” score. Important checks contribute
@@ -216,9 +217,9 @@ function severityOf(f: Finding): { label: string; color: string; bg: string } {
 }
 
 function IssueRow({
-  f, c, open, onToggle, disabled, onUpload,
+  f, c, open, onToggle, onUpload,
 }: {
-  f: Finding; c: Case; open: boolean; onToggle: () => void; disabled: boolean;
+  f: Finding; c: Case; open: boolean; onToggle: () => void;
   onUpload: (kind: EvidenceKind, file: File) => void;
 }) {
   const Icon = CHECK_ICON[f.check_id as CheckId] ?? HelpCircle;
@@ -290,7 +291,6 @@ function IssueRow({
                     <>
                       <button
                         type="button"
-                        disabled={disabled}
                         onClick={() => input.current?.click()}
                         className="shrink-0 cursor-pointer rounded-full border border-line bg-white px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50"
                       >
@@ -302,9 +302,9 @@ function IssueRow({
                         accept={settle.upload.accept}
                         hidden
                         onChange={(e) => {
-                          const file = e.target.files?.[0];
+                          const file = e.currentTarget.files?.[0];
                           if (file && settle.upload) onUpload(settle.upload.kind, file);
-                          e.target.value = "";
+                          e.currentTarget.value = ""; // the same file can be picked again
                         }}
                       />
                     </>
@@ -320,9 +320,9 @@ function IssueRow({
 }
 
 export function IssueList({
-  c, flags, cleared, disabled, onUpload,
+  c, flags, cleared, onUpload,
 }: {
-  c: Case; flags: Finding[]; cleared: Finding[]; disabled: boolean;
+  c: Case; flags: Finding[]; cleared: Finding[];
   onUpload: (kind: EvidenceKind, file: File) => void;
 }) {
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
@@ -337,7 +337,6 @@ export function IssueList({
       c={c}
       open={current === f.id}
       onToggle={() => setOpenId(current === f.id ? null : f.id)}
-      disabled={disabled}
       onUpload={onUpload}
     />
   );
@@ -368,13 +367,23 @@ export function IssueList({
           </ul>
         </>
       )}
-      {/* Info notes (e.g. a check that couldn't run) are not flags: one muted line each. */}
-      {notes.map((f) => (
-        <p key={f.id} className="mt-3 flex items-start gap-2 px-1 text-[13.5px] text-muted">
-          <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
-          <span>{detailText(f) || f.title}</span>
-        </p>
-      ))}
+      {/* Info notes (e.g. a check that couldn't run) are not flags: one muted line each, folded away. */}
+      {notes.length > 0 && (
+        <Collapsible
+          className="mt-4 px-1"
+          as="h3"
+          count={notes.length}
+          titleClassName="text-[13.5px] font-medium text-ink/70"
+          title={<span className="flex items-center gap-2"><Info size={16} className="shrink-0" aria-hidden /> Notes from the checks</span>}
+        >
+          {notes.map((f) => (
+            <p key={f.id} className="mt-3 flex items-start gap-2 text-[13.5px] text-muted">
+              <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
+              <span>{detailText(f) || f.title}</span>
+            </p>
+          ))}
+        </Collapsible>
+      )}
     </motion.section>
   );
 }
@@ -434,9 +443,10 @@ const ADDABLE: {
 ];
 
 export function EvidencePanel({
-  c, disabled, onUpload, onPaste,
+  c, pasting: sending, onUpload, onPaste,
 }: {
-  c: Case; disabled: boolean;
+  /** `pasting`: a pasted text is being sent; only its Send button waits. Files are queued. */
+  c: Case; pasting: boolean;
   onUpload: (kind: EvidenceKind, file: File, note?: string) => void;
   onPaste: (kind: EvidenceKind, text: string) => void;
 }) {
@@ -470,7 +480,14 @@ export function EvidencePanel({
       </div>
 
       {sent.length > 0 && (
-        <ul className="mt-5 flex flex-wrap gap-2">
+        <Collapsible
+          className="mt-5"
+          count={`${sent.length} item${sent.length === 1 ? "" : "s"}`}
+          as="h3"
+          titleClassName="text-[13px] font-medium text-ink/70"
+          title="What you’ve sent"
+        >
+        <ul className="mt-3 flex flex-wrap gap-2">
           {sent.map((e) => {
             const Icon = KIND_ICON[e.kind] ?? FileText;
             return (
@@ -481,6 +498,7 @@ export function EvidencePanel({
             );
           })}
         </ul>
+        </Collapsible>
       )}
 
       <p className="mt-6 text-[13px] font-medium text-ink/70">Add more</p>
@@ -515,7 +533,6 @@ export function EvidencePanel({
             {a.paste && (
               <button
                 type="button"
-                disabled={disabled}
                 onClick={() => { setPasting(a); setText(""); }}
                 className="shrink-0 cursor-pointer rounded-full px-2 py-1 text-[12px] font-medium text-teal hover:bg-white disabled:opacity-50"
               >
@@ -524,7 +541,6 @@ export function EvidencePanel({
             )}
             <button
               type="button"
-              disabled={disabled}
               aria-label={`${count ? "Add more" : "Upload"} ${a.label.toLowerCase()}`}
               onClick={() => {
                 pending.current = a;
@@ -568,7 +584,7 @@ export function EvidencePanel({
               className="mt-2 w-full resize-y rounded-[16px] border border-line bg-white px-4 py-3 text-[14px] outline-none focus:border-aqua focus:ring-4 focus:ring-aqua/15"
             />
             <div className="mt-2 flex gap-2">
-              <button type="submit" disabled={!text.trim() || disabled} className="cursor-pointer rounded-full bg-teal px-4 py-2 text-[13.5px] font-medium text-white disabled:opacity-50">
+              <button type="submit" disabled={!text.trim() || sending} className="cursor-pointer rounded-full bg-teal px-4 py-2 text-[13.5px] font-medium text-white disabled:opacity-50">
                 Send to Warden
               </button>
               <button type="button" onClick={() => setPasting(null)} className="cursor-pointer rounded-full px-3 py-2 text-[13.5px] text-ink/60 hover:text-ink">
@@ -582,11 +598,12 @@ export function EvidencePanel({
       <input
         ref={input}
         type="file"
+        multiple
         hidden
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f && pending.current) onUpload(pending.current.kind, f, pending.current.note);
-          e.target.value = "";
+          const slot = pending.current;
+          if (slot) for (const f of Array.from(e.currentTarget.files ?? [])) onUpload(slot.kind, f, slot.note);
+          e.currentTarget.value = ""; // the same file can be picked again
         }}
       />
     </motion.section>

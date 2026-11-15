@@ -1,6 +1,7 @@
 "use client";
 
 import type { UploadRow } from "@/lib/uploadQueue";
+import { Collapsible } from "./primitives";
 
 const LABELS = {
   queued: "Waiting to upload", uploading: "Uploading and reading…", saved: "Added",
@@ -9,19 +10,27 @@ const LABELS = {
 };
 
 /** A persistent, filename-specific result instead of a failure lost during navigation. */
-export function UploadStatus({ rows, onRetry, onSkip }: {
+export function UploadStatus({ rows, onRetry, onSkip, defaultOpen = false }: {
   rows: UploadRow[]; onRetry: (id: string, file: File) => void; onSkip: (id: string) => void;
+  /** Collapsed by default: only the header, a file count and a chevron show. */
+  defaultOpen?: boolean;
 }) {
   if (!rows.length) return null;
   const failures = rows.some((r) => ["failed", "interrupted", "unreadable"].includes(r.state));
+  const attention = rows.filter((r) => ["failed", "interrupted", "unreadable"].includes(r.state)).length;
+  const count = `${rows.length} file${rows.length === 1 ? "" : "s"}${attention ? ` · ${attention} need${attention === 1 ? "s" : ""} attention` : ""}`;
   return (
     <section aria-label="Attachment uploads" className="rounded-[20px] border border-line bg-white/90 p-5">
-      <h2 className="text-[17px] font-medium">Your attachments</h2>
-      <p className="mt-1 text-[13px] text-muted">
-        {failures ? "Some files need attention. Your successful uploads are kept." : "Each file is listed here as it is added."}
-      </p>
-      {rows.some((r) => r.pending) && <p className="mt-2 text-[13px] text-ink/80">
-        Your case stays open until each initial file is added or you choose to continue without it.
+      <Collapsible
+        as="h2"
+        defaultOpen={defaultOpen}
+        count={count}
+        title="Your attachments"
+        titleClassName="text-[17px] font-medium"
+        description={failures ? "Some files need attention. Your successful uploads are kept." : "Each file is listed here as it is added."}
+      >
+      {rows.some((r) => r.pending) && <p className="mt-3 text-[13px] text-ink/80">
+        Retry each file that needs attention, or continue without it. Your other files are already being checked.
         {failures && " For a different file, add the replacement using Add more below first, then continue without the original."}
       </p>}
       <ul className="mt-3 space-y-3" aria-live="polite" aria-relevant="additions text">
@@ -37,9 +46,9 @@ export function UploadStatus({ rows, onRetry, onSkip }: {
                 Retry — select file
                 <input type="file" className="sr-only" aria-label={`Select ${row.name} to retry`}
                   onChange={(event) => {
-                    const file = event.target.files?.[0];
+                    const file = event.currentTarget.files?.[0];
                     if (file) onRetry(row.id, file);
-                    event.target.value = "";
+                    event.currentTarget.value = ""; // the same file can be picked again
                   }} />
               </label>
               {row.pending && <button type="button" onClick={() => onSkip(row.id)}
@@ -51,6 +60,7 @@ export function UploadStatus({ rows, onRetry, onSkip }: {
           </li>
         ))}
       </ul>
+      </Collapsible>
     </section>
   );
 }

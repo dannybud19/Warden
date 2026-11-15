@@ -157,7 +157,7 @@ export interface DebriefInput {
 
 /** A voice call ended: the orchestrator saves the transcript and applies what it answered
  * (POST /cases/{id}/debrief). Returns the case at once; the analysis follows over the stream.
- * 409 when the home was decided during the call. */
+ * A home never closes, so a call is accepted at any time. */
 export async function debrief(caseId: string, input: DebriefInput): Promise<Case> {
   if (caseId === demo.DEMO_CASE_ID) return demo.getCase();
   if (USE_MOCK) return mock.getCase();

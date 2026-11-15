@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, type HTMLMotionProps } from "motion/react";
+import { useId, useState } from "react";
+import { AnimatePresence, motion, type HTMLMotionProps } from "motion/react";
+import { ChevronDown } from "lucide-react";
 
 /** The Warden mascot render (Figma component "Warden mascot", 21:17). */
 export function Mascot({
@@ -166,5 +168,67 @@ export function SourceLinks({ urls, className = "" }: { urls: string[]; classNam
         </a>
       ))}
     </p>
+  );
+}
+
+/** A long list behind its header: a real button (aria-expanded, aria-controls) inside an optional
+ *  heading, with a count and a chevron; the list opens with a short height animation (reduced
+ *  motion is respected app-wide). Title and description must be inline content. */
+export function Collapsible({
+  title, description, count, as: Heading = "div", titleClassName = "", defaultOpen = false, className = "", children,
+}: {
+  title: React.ReactNode;
+  /** A muted line under the title, still part of the header. */
+  description?: React.ReactNode;
+  /** Shown as a small pill before the chevron, e.g. "3 files". */
+  count?: React.ReactNode;
+  /** Wrap the button in a heading so the section keeps its place in the outline. */
+  as?: "div" | "h2" | "h3";
+  titleClassName?: string;
+  defaultOpen?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const panel = useId();
+  return (
+    <div className={className}>
+      <Heading className="m-0">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panel}
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full cursor-pointer items-center gap-3 rounded-[12px] text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
+        >
+          <span className="min-w-0 flex-1">
+            <span className={`block ${titleClassName}`}>{title}</span>
+            {description && <span className="mt-1 block text-[13px] font-normal text-muted">{description}</span>}
+          </span>
+          {count !== undefined && (
+            <span className="shrink-0 rounded-full bg-field px-2.5 py-0.5 text-[12.5px] font-medium tabular-nums text-ink/70">{count}</span>
+          )}
+          <motion.span aria-hidden animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} className="shrink-0 text-muted">
+            <ChevronDown size={18} />
+          </motion.span>
+        </button>
+      </Heading>
+      <div id={panel}>
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              key="panel"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              {children}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

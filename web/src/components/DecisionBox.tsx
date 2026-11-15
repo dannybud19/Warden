@@ -18,7 +18,7 @@ export function DecisionBox({ decision }: { decision: Decision }) {
           ))}
         </ul>
       )}
-      {decidedAt && <p className="muted">Decided {decidedAt}</p>}
+      {decidedAt && <p className="muted">Live assessment, updated {decidedAt}</p>}
     </section>
   );
 }

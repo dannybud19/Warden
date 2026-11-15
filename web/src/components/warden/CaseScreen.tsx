@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { useCase } from "@/lib/useCase";
 import { debrief, getInitialUploads, type DebriefInput } from "@/lib/api";
 import { STUDENT_NAME_KEY } from "@/lib/config";
-import { isDecided, openActions } from "@/lib/selectors";
+import { openActions } from "@/lib/selectors";
 import { rememberCase, shortAddress } from "@/lib/homes";
 import { useThreads } from "@/lib/threads";
 import { DEMO_CASE_ID } from "@/lib/demo";
@@ -51,7 +51,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         const items = await getInitialUploads(caseId);
         if (!stopped) { queue.syncInitial(caseId, items); setUploadsError(null); }
       } catch {
-        if (!stopped) setUploadsError("Could not check initial attachment progress. Reconnecting; any pending files still keep the case open.");
+        if (!stopped) setUploadsError("Could not check initial attachment progress. Reconnecting; your other files are still being checked.");
       }
     };
     void sync();
@@ -139,7 +139,6 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     );
   }
 
-  const closed = isDecided(c);
   const action = view.open[0];
 
   const firstName = (() => {
@@ -184,7 +183,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               <ActionCards
                 c={c}
                 busy={busy}
-                disabled={closed}
+                disabled={false}
                 onAnswer={(id, text) => void sendReply({ text, actionId: id, status: "done" })}
                 onSkip={(id) => void sendReply({ text: "Skip for now", actionId: id, status: "skipped" })}
               />
@@ -200,14 +199,13 @@ export function CaseScreen({ caseId }: { caseId: string }) {
                 onPaste={() => document.getElementById("rail-input")?.focus()}
               />
             )}
-            <IssueList c={c} flags={view.flags} cleared={view.cleared} disabled={closed || busy} onUpload={onUpload} />
+            <IssueList c={c} flags={view.flags} cleared={view.cleared} onUpload={onUpload} />
             <StillKeen top={view.flags[0]} />
-            {(closed || busy) && <p role="status" className="text-[13px] text-ink/70">
-              {closed ? "This case has a final decision. New attachments cannot be added."
-                : uploading ? "Your files are being uploaded and read. Add/Paste will be available when this finishes."
-                : "Warden is saving your reply. Add/Paste will be available when this finishes."}
+            {/* Uploads are queued, so adding more never waits for a file or a reply to finish. */}
+            {uploading && <p role="status" className="text-[13px] text-ink/70">
+              Your files are being uploaded and read. You can keep adding more while you wait.
             </p>}
-            <EvidencePanel c={c} disabled={closed || busy} onUpload={onUpload} onPaste={onPaste} />
+            <EvidencePanel c={c} pasting={state.busy} onUpload={onUpload} onPaste={onPaste} />
           </motion.main>
 
           <div className="sticky top-[96px] h-[calc(100dvh-112px)] max-h-[900px]">
@@ -217,8 +215,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               chat={chat}
               busy={busy}
               thinking={thinking}
-              canReply={!closed && view.open.length > 0}
-              closed={closed}
+              canReply
               callCase={c}
               onCallDebrief={onCallDebrief}
               onAsk={ask}
