@@ -282,7 +282,7 @@ function startWardenOnboarding(root, opts) {
         const has = ['messages', 'contract', 'video'].some((k) => data.files[k]);
         setState(has ? 'green' : risky() ? 'amber' : 'default');
         await say(has ? `Good clues. Keep them coming.` : `Got any receipts?`, has ? "Add anything else here, or let's keep going." : 'Every message is a clue. All optional.');
-        showForm(tiles([['messages', 'chat', 'Messages', 'image/*,.txt,.zip'], ['contract', 'doc', 'Contract', '.pdf,image/*'], ['video', 'camera', 'Viewing video', 'video/*']]) +
+        showForm(tiles([['messages', 'chat', 'Messages', 'image/*,.txt,.zip'], ['contract', 'doc', 'Contract', '.pdf,.docx,.txt,image/*'], ['video', 'camera', 'Viewing video', 'video/*']]) +
           nextRow(has ? 'Continue' : 'Skip for now'), () => { wire([]); wireTiles(() => SCENES[step].run()); });
     } },
     { ok: () => true, run: async () => {
@@ -290,7 +290,7 @@ function startWardenOnboarding(root, opts) {
         await say(`Anything else that could help?`, 'All optional, but every extra document gives my agents more to go on.');
         showForm(tiles([
           ['emails', 'notes', 'Emails', '.eml,.pdf,.txt,image/*'],
-          ['payment', 'checklist', 'Payment or deposit details', '.pdf,image/*'],
+          ['payment', 'checklist', 'Payment or deposit details', '.pdf,.docx,.txt,image/*'],
         ], 'grid2') + `<div class="row"><button class="btn" id="next">Done</button><button class="link" id="skip">Skip</button><button class="link back-end" id="back">Back</button></div>`, () => {
           wire([]);
           $('skip').addEventListener('click', () => go(step + 1));

@@ -31,7 +31,7 @@ export const AGENT_META: Record<string, AgentMeta> = {
   contract_checker: {
     title: "Reading the contract", icon: "/warden/icon-contract.svg",
     missing: "Upload the contract to run this",
-    upload: { kind: "contract", label: "Upload contract", accept: ".pdf,image/*" },
+    upload: { kind: "contract", label: "Upload contract", accept: ".pdf,.docx,.txt,image/*" },
   },
   video_analysis: {
     title: "Checking the viewing video", icon: "/warden/icon-video.svg",

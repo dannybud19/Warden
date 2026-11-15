@@ -23,7 +23,7 @@ export const SETTLE: Record<CheckId, { text: string; upload?: { kind: EvidenceKi
   payment_safety: { text: "Ask how they want to be paid. Never by gift card, crypto or before a viewing." },
   right_to_let: {
     text: "Ask for proof they own or manage the place, like a management agreement.",
-    upload: { kind: "document", label: "Add proof", accept: ".pdf,image/*" },
+    upload: { kind: "document", label: "Add proof", accept: ".pdf,.docx,.txt,image/*" },
   },
   in_person_viewing: {
     text: "Book a viewing, or upload a video of you walking round it.",
@@ -31,11 +31,11 @@ export const SETTLE: Record<CheckId, { text: string; upload?: { kind: EvidenceKi
   },
   contract_consistency: {
     text: "Upload the tenancy agreement so Warden can compare it with the listing.",
-    upload: { kind: "contract", label: "Add contract", accept: ".pdf,image/*" },
+    upload: { kind: "contract", label: "Add contract", accept: ".pdf,.docx,.txt,image/*" },
   },
   deposit_protection: {
     text: "Upload the deposit protection certificate (DPS, mydeposits or TDS).",
-    upload: { kind: "document", label: "Add certificate", accept: ".pdf,image/*" },
+    upload: { kind: "document", label: "Add certificate", accept: ".pdf,.docx,.txt,image/*" },
   },
   no_pressure: {
     text: "Forward your chats so Warden can spot pressure tactics.",
