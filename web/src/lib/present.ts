@@ -255,13 +255,47 @@ const RISK_CATEGORIES: Record<RiskCategory, Pick<RiskDisplay, "label" | "color" 
   no_red_flags: { label: "No red flags remaining", color: "#2e9a7c", needlePosition: 14 },
 };
 
-/** Evidence and verdict determine risk; the weighted verification score never moves this needle. */
+const CORE_CHECKS: CheckId[] = ["landlord_identity", "payment_safety", "right_to_let"];
+
+/** Mirrors backend `decision.decide`: would the case already be a likely scam on today's evidence? */
+function previewHighRisk(c: Case): boolean {
+  if (c.decision?.verdict === "likely_scam") return true;
+  const checks = c.checks ?? [];
+  const suspicious = new Set(checks.filter((k) => k.state === "suspicious").map((k) => k.id));
+  const paymentPending = openActions(c).some((a) => a.id.startsWith("act_confirm_payment_"));
+  const paymentConfirmed = (c.actions ?? []).some((a) =>
+    a.id.startsWith("act_confirm_payment_") && a.status === "done" && a.outcome === "flags");
+  const hardFlag = allFindings(c).some((f) => f.hard_flag && f.supports === "suspicious"
+    && suspicious.has(f.check_id) && (f.check_id !== "payment_safety" || paymentConfirmed));
+  const coreSuspicious = CORE_CHECKS.filter((id) => suspicious.has(id)).length;
+  return hardFlag || (coreSuspicious >= 2 && !paymentPending);
+}
+
+/** How the evidence leans, 0 (all clear) to 1 (all suspicious). Core checks count double; the score never enters. */
+function evidenceLean(c: Case): number {
+  let bad = 0, good = 0;
+  for (const k of c.checks ?? []) {
+    const w = CORE_CHECKS.includes(k.id) ? 2 : 1;
+    if (k.state === "suspicious") bad += w;
+    else if (k.state === "cleared") good += w;
+  }
+  return bad + good === 0 ? 0.5 : bad / (bad + good);
+}
+
+/** Evidence and verdict set the risk zone; inside a zone the needle follows how many checks look wrong vs clear.
+ *  The weighted verification score never moves this needle. */
 export function riskDisplay(c: Case, status: Mood) {
   const evidenceState = mood(c, false).state;
-  const category: RiskCategory = evidenceState === "red" ? "high"
+  const category: RiskCategory = previewHighRisk(c) ? "high"
     : evidenceState === "stop" || evidenceState === "amber" ? "concerns"
     : evidenceState === "green" ? "no_red_flags" : "unknown";
-  return { category, ...RISK_CATEGORIES[category], headline: status.title, sub: status.sub } satisfies RiskDisplay;
+  const base = RISK_CATEGORIES[category];
+  const lean = evidenceLean(c);
+  const suspiciousShare = (c.checks ?? []).filter((k) => k.state === "suspicious").length / CHECK_ORDER.length;
+  const needlePosition = category === "high" ? Math.round(76 + 20 * Math.min(1, suspiciousShare * 2))
+    : category === "concerns" ? Math.round(38 + 24 * lean)
+    : base.needlePosition;
+  return { category, ...base, needlePosition, headline: status.title, sub: status.sub } satisfies RiskDisplay;
 }
 
 /** The user's exact weighted progress formula, as a percentage, independent of a final verdict. */

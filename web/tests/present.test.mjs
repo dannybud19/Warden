@@ -208,3 +208,36 @@ test("a red flag still leads its agent tile over cleared findings and notes", ()
   const calm = makeCase({ reports: { contract_checker: { status: "ok", findings: [lowNote, cleared] } } });
   assert.equal(agentRows(calm, {}).find((r) => r.name === "contract_checker").line, "Landlord named");
 });
+
+test("the needle moves inside the concerns zone as checks clear or turn suspicious", () => {
+  const few = makeCase({ reports: reports({ ...concern, hard_flag: false }) });
+  few.checks[1].state = "suspicious";
+  for (const i of [0, 2, 3, 4, 5]) few.checks[i].state = "cleared";
+  const many = makeCase({ reports: reports({ ...concern, hard_flag: false }) });
+  for (const i of [1, 3, 4]) many.checks[i].state = "suspicious";
+  const a = riskDisplay(few, mood(few, false));
+  const b = riskDisplay(many, mood(many, false));
+  assert.equal(a.category, "concerns");
+  assert.equal(b.category, "concerns");
+  assert.ok(a.needlePosition >= 36 && a.needlePosition <= 64);
+  assert.ok(b.needlePosition >= 36 && b.needlePosition <= 64);
+  assert.ok(b.needlePosition > a.needlePosition, `${b.needlePosition} > ${a.needlePosition}`);
+});
+
+test("two suspicious core checks show high risk before the final decision, unless a payment confirmation is pending", () => {
+  const c = makeCase({ reports: reports({ ...concern, hard_flag: false }) });
+  c.checks[0].state = "suspicious"; // landlord_identity
+  c.checks[1].state = "suspicious"; // payment_safety
+  assert.equal(riskDisplay(c, mood(c, false)).category, "high");
+  assert.ok(riskDisplay(c, mood(c, false)).needlePosition >= 72);
+  const pending = makeCase({ ...c, actions: [payment] });
+  assert.equal(riskDisplay(pending, mood(pending, false)).category, "concerns");
+});
+
+test("a payment hard flag only reaches high risk once the student confirms it", () => {
+  const c = makeCase({ reports: reports(concern) });
+  c.checks[1] = { id: "payment_safety", state: "suspicious", finding_ids: ["payment"] };
+  assert.equal(riskDisplay(c, mood(c, false)).category, "concerns");
+  c.actions = [{ ...payment, status: "done", outcome: "flags" }];
+  assert.equal(riskDisplay(c, mood(c, false)).category, "high");
+});
