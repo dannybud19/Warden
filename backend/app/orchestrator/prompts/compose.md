@@ -31,4 +31,9 @@ something that already happened, such as a viewing they attended.
 "checked" lists what was read this round and what it found: say it in one short sentence in
 everyday words (for example "I read the contract and nothing was flagged in it"). Never claim
 anything beyond those lines. If "not_run" is empty, never say that something could not be checked.
+Other note kinds: "unmatched" means you could not tell which step their message was about, so
+nothing was recorded: say that plainly and ask them to answer on the step itself or to rephrase,
+and do not say their message was noted. "dropped" means the step they answered was already
+closed. "upload_hint" means ask them to upload the message they describe so it can be checked.
+"field_changed" and "field_invalid" name a case detail you updated or could not use.
 Return only the message text.

@@ -353,11 +353,29 @@ async def read_reply(
     )
 
 
+MIN_QUOTE_WORDS = 3
+
+
+def _answer_for(update: ActionUpdate, text: str) -> str:
+    """The part of the reply recorded as this action's answer.
+
+    One reply can answer several steps ("yes they sent proof, and no they wouldn't give the
+    company number"); recording the whole sentence on each made a check's reason quote the half
+    about another step. The reader's quote is used when it is a real phrase; a payment
+    confirmation always keeps the whole reply, because only a reply that is exactly "yes"
+    confirms it.
+    """
+    quote = update.quote.strip()
+    if is_payment_confirmation(update.action_id) or len(quote.split()) < MIN_QUOTE_WORDS:
+        return text
+    return quote
+
+
 def apply(actions: list[Action], result: ParseResult, text: str) -> tuple[list[Action], list[str]]:
     """Return (new action list, ids dropped because no longer open). Does not mutate `actions`.
 
-    Each update whose action is still OPEN gets its status, outcome, `answer=text` and
-    `answer_evidence_ids`.
+    Each update whose action is still OPEN gets its status, outcome, its answer (the part of
+    the reply that is about this action, see `_answer_for`) and `answer_evidence_ids`.
     """
     new_actions = [a.model_copy(deep=True) for a in actions]
     by_id = {a.id: a for a in new_actions}
@@ -369,6 +387,6 @@ def apply(actions: list[Action], result: ParseResult, text: str) -> tuple[list[A
             continue
         target.status = ActionStatus(update.status)
         target.outcome = update.outcome
-        target.answer = text
+        target.answer = _answer_for(update, text)
         target.answer_evidence_ids = list(update.evidence_ids)
     return new_actions, dropped

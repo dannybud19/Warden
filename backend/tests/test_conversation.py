@@ -729,3 +729,31 @@ async def test_the_keyword_fallback_keeps_a_question_and_answers_nothing(
     assert [a.model_dump() for a in parse(with_confirmation(), text, [])] == [
         a.model_dump() for a in with_confirmation().actions
     ]
+
+
+def test_a_reply_to_several_steps_records_each_part_on_its_own_step() -> None:
+    """The check's reason must not quote the half of the sentence about another step."""
+    from app.contracts import Action, ActionKind, CheckId
+    from app.orchestrator.conversation import ActionUpdate, ParseResult, apply
+
+    def action(id_: str) -> Action:
+        return Action(id=id_, check_id=CheckId.PAYMENT_SAFETY, kind=ActionKind.QUESTION, text="?")
+
+    text = "yes they sent proof of ownership, and no they wouldn't tell me the company number"
+    result = ParseResult(
+        updates=(
+            ActionUpdate("a1", "done", "clears", "yes they sent proof of ownership"),
+            ActionUpdate("a2", "done", "flags", "no they wouldn't tell me the company number"),
+            ActionUpdate("a3", "done", "flags", "no"),  # too short to stand alone
+            ActionUpdate("act_confirm_payment_x_1", "done", "flags", "yes they sent proof"),
+        )
+    )
+    actions = [action("a1"), action("a2"), action("a3"), action("act_confirm_payment_x_1")]
+    updated, dropped = apply(actions, result, text)
+    assert dropped == []
+    assert [a.answer for a in updated] == [
+        "yes they sent proof of ownership",
+        "no they wouldn't tell me the company number",
+        text,
+        text,  # a payment confirmation keeps the whole reply: only an exact "yes" confirms
+    ]
