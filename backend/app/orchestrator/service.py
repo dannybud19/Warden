@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from app.aggregators.consultant.consultant import propose_actions
+from app.aggregators.consultant.consultant import already_answered, propose_actions
 from app.aggregators.crosschecker import crosschecker
 from app.aggregators.listing_reader.reader import apply_details, read_listing, summary_message
 from app.aggregators.scoring.scoring import Weights, score
@@ -19,6 +19,7 @@ from app.contracts import (
     AgentStatus,
     Case,
     ChatTurn,
+    CheckState,
     DecisionMade,
     EvidenceKind,
     Finding,
@@ -64,6 +65,10 @@ FAILED_ANALYSIS_TEXT = (
 )
 
 
+RETIRED_ANSWER = "No longer needed: your evidence already covers this."
+PROVIDED_ANSWER = "Done: you have already provided this."
+
+
 class CaseNotFoundError(Exception):
     """No case with this id (HTTP 404)."""
 
@@ -85,6 +90,29 @@ class Upload:
 
 def _all_findings(case: Case) -> list[Finding]:
     return [f for r in case.reports.values() for f in r.findings]
+
+
+def _retire_settled(case: Case) -> list[Action]:
+    """Close open steps the case has overtaken, so the student is never asked for something
+    they already gave: a step whose check the evidence has cleared ("ask to view in person"
+    after the chat shows the viewing happened) is skipped, and a step the case itself answers
+    ("upload the contract" once one is uploaded) is done. Both are neutral, so neither changes
+    a check, and a payment confirmation is never retired."""
+    cleared = {c.id for c in case.checks if c.state == CheckState.CLEARED}
+    answered = already_answered(case)
+
+    def retire(action: Action) -> Action:
+        if action.status != ActionStatus.OPEN or conversation.is_payment_confirmation(action.id):
+            return action
+        if action.id in answered:
+            update = {"status": ActionStatus.DONE, "answer": PROVIDED_ANSWER}
+        elif action.check_id in cleared:
+            update = {"status": ActionStatus.SKIPPED, "answer": RETIRED_ANSWER}
+        else:
+            return action
+        return action.model_copy(update={**update, "outcome": "neutral"})
+
+    return [retire(a) for a in case.actions]
 
 
 def _say(case: Case, text: str) -> OrchestratorMessage:
@@ -237,8 +265,9 @@ class CaseService:
                 ChatTurn(role="student", text=text, at=datetime.now(UTC), action_ids=answered)
             )
             await self.repo.save(case)
+            checks = {a.id: a.check_id for a in case.actions}
             self._notes[case_id].extend(
-                [*changed_fields, *rounds.reply_notes(result, dropped, text)]
+                [*changed_fields, *rounds.reply_notes(result, dropped, text, checks)]
             )
         self._schedule(case_id)
         return case
@@ -423,6 +452,7 @@ class CaseService:
             case.reports.update(new_reports)
             case.reports[crosschecker.NAME] = cross
             case.checks = checks_mod.update(case, _all_findings(case))
+            case.actions = _retire_settled(case)
             result = score(case.checks, self.weights)
             case.score_history.append(result)
             events: list[StreamEvent] = [ScoreUpdated(score=result)]
@@ -454,6 +484,7 @@ class CaseService:
                 notes=questions,
                 case_grounding=rounds.grounding(case),
                 case_history=rounds.history(case),
+                previous_reports=snapshot.reports,
             )
             text = await composer.compose_round(inp, self.ctx)
             async with self._locks[case_id]:
@@ -485,6 +516,7 @@ class CaseService:
             notes=notes,
             case_grounding=rounds.grounding(case),
             case_history=rounds.history(case),
+            previous_reports=snapshot.reports,
         )
         text = await composer.compose_round(inp, self.ctx)
 

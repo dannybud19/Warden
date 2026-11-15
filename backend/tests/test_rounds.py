@@ -197,3 +197,64 @@ def test_round_input_always_sends_history_and_grounding_only_with_a_question() -
     assert (asked.history, asked.grounding) == (("student: hi",), ("g",))
     told = rounds.round_input(**common, notes=[])
     assert (told.history, told.grounding) == (("student: hi",), ())
+
+
+def _finding(agent: str, slug: str, title: str, severity: Severity, supports: str) -> Finding:
+    return Finding(
+        id=f"{agent}:{slug}",
+        agent=agent,
+        check_id=CheckId.PAYMENT_SAFETY,
+        title=title,
+        detail="d",
+        category=Category.PAYMENT,
+        severity=severity,
+        confidence=0.9,
+        supports=supports,  # type: ignore[arg-type]
+    )
+
+
+def _report(agent: str, *findings: Finding, status: AgentStatus = AgentStatus.OK) -> AgentReport:
+    return AgentReport(
+        agent=agent, version="1", status=status, input_hash="h", findings=list(findings)
+    )
+
+
+def test_checked_lines_say_what_was_read_and_found() -> None:
+    """A contract upload that moves no check must still tell the student it was read."""
+    pay = _finding("message_checker", "pay", "Money requested early", Severity.HIGH, "suspicious")
+    info = _finding("contract_checker", "cap", "Deposit within cap", Severity.LOW, "suspicious")
+    new = {
+        "contract_checker": _report("contract_checker", info),
+        "message_checker": _report("message_checker", pay),
+        "video_analysis": _report("video_analysis", status=AgentStatus.SKIPPED),
+    }
+    assert rounds.checked_lines(new, {}) == [
+        "your messages: flagged: Money requested early",
+        "the contract: nothing flagged",
+    ]
+
+
+def test_checked_lines_skip_a_rerun_that_found_the_same_and_unsayable_titles() -> None:
+    pay = _finding("message_checker", "pay", "Money requested early", Severity.HIGH, "suspicious")
+    scam = _finding("message_checker", "s", "Known scam wording", Severity.HIGH, "suspicious")
+    same = {"message_checker": _report("message_checker", pay)}
+    assert rounds.checked_lines(same, same) == []
+    # A title the round message may not repeat ("scam") is never quoted.
+    lines = rounds.checked_lines({"message_checker": _report("message_checker", scam, pay)}, {})
+    assert lines == ["your messages: flagged: Money requested early"]
+
+
+def test_reply_notes_say_how_each_answer_was_recorded() -> None:
+    result = ParseResult(
+        updates=(
+            _update("clears", action_id="a1"),
+            ActionUpdate("a2", "skipped", "neutral"),
+            _update("flags", action_id="a3"),
+        )
+    )
+    checks = {"a1": CheckId.IN_PERSON_VIEWING, "a2": CheckId.PAYMENT_SAFETY}
+    notes = rounds.reply_notes(result, [], "I viewed it", checks)
+    assert [(n.kind, n.text) for n in notes] == [
+        ("answered", "in person viewing: you confirmed it, counted in your favour"),
+        ("answered", "payment safety: skipped"),
+    ]

@@ -24,6 +24,9 @@ class ReplyRequest(BaseModel):
         """A status applies to one action, so it needs `action_id` (422 otherwise)."""
         if self.status is not None and self.action_id is None:
             raise ValueError("status needs action_id")
+        if not self.text.strip() and self.status is None:
+            # A blank chat message says nothing; only a skip from a step's card may have no text.
+            raise ValueError("text is empty")
         return self
 
 

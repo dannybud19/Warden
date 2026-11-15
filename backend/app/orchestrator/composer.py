@@ -20,6 +20,7 @@ EM_DASH = "\u2014"  # the em dash character, written as an escape so no literal 
 SCORE_SCALE = 100  # the "/100" in the score sentence
 MAX_MOVED = 2
 MAX_NOTES = 2
+MAX_CHECKED = 2
 MAX_FACT_WORDS = 8  # a note's text longer than this is replaced by a generic sentence
 
 _BANNED = re.compile(
@@ -39,6 +40,7 @@ NoteKind = Literal[
     "field_invalid",
     "question",
     "upload_hint",
+    "answered",
 ]
 
 
@@ -61,6 +63,7 @@ class RoundInput:
     score_after: int
     moved: tuple[CheckMove, ...] = ()
     not_run: tuple[str, ...] = ()  # checks or agents that did not run this round
+    checked: tuple[str, ...] = ()  # what was read this round and what it found, one line each
     new_actions: int = 0
     open_actions: int = 0
     recap_sent: bool = False  # a Cross-checker recap message went out just before this one
@@ -83,11 +86,37 @@ async def compose_round(inp: RoundInput, ctx: AgentContext) -> str:
         )
     except Exception as exc:  # noqa: BLE001 - the round message must never fail
         return _fallback(inp, ctx, type(exc).__name__)
-    text = reply.strip()
+    text = drop_repeats(reply.strip(), inp.history)
     violations = validate(text, inp)
     if violations:
         return _fallback(inp, ctx, ", ".join(violations))
     return text
+
+
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+_HISTORY_SELF = "you: "  # how `rounds.history` marks our own earlier turns
+
+
+def _sentence_key(sentence: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", sentence.lower()).strip()
+
+
+def drop_repeats(text: str, history: tuple[str, ...]) -> str:
+    """`text` without the sentences we already said in an earlier turn of `history`.
+
+    The model sometimes answers an old question again or restates the last message word for
+    word; repeating it reads as a stuck chat. An empty result fails `validate`, so the template
+    takes over.
+    """
+    said = {
+        _sentence_key(sentence)
+        for turn in history
+        if turn.startswith(_HISTORY_SELF)
+        for sentence in _SENTENCE_END.split(turn[len(_HISTORY_SELF) :])
+    }
+    said.discard("")
+    kept = [s for s in _SENTENCE_END.split(text) if _sentence_key(s) not in said]
+    return " ".join(kept).strip()
 
 
 def _payload(inp: RoundInput) -> str:
@@ -174,7 +203,8 @@ def _allowed_numbers(inp: RoundInput) -> set[int]:
     allowed = {inp.score_after, inp.new_actions, inp.open_actions, SCORE_SCALE}
     if inp.score_before is not None:
         allowed |= {inp.score_before, abs(inp.score_after - inp.score_before)}
-    for source in (*(note.text for note in inp.notes), *inp.grounding, *inp.history):
+    sources = (*(note.text for note in inp.notes), *inp.grounding, *inp.history, *inp.checked)
+    for source in sources:
         allowed |= _numbers(source)
     return allowed
 
@@ -201,6 +231,7 @@ def template(inp: RoundInput) -> str:
         _score_sentence(inp.score_before, inp.score_after),
         *_moved_sentences(inp.moved),
         _not_run_sentence(inp.not_run),
+        *_checked_sentences(inp.checked),
         *_note_sentences(inp.notes),
         _actions_sentence(inp.new_actions, inp.open_actions),
     ]
@@ -224,6 +255,11 @@ def _capitalise(label: str) -> str:
 
 def _not_run_sentence(not_run: tuple[str, ...]) -> str:
     return "I couldn't run every check this time." if not_run else ""
+
+
+def _checked_sentences(checked: tuple[str, ...]) -> list[str]:
+    """ "I checked the contract: nothing flagged." for each thing read this round."""
+    return [f"I checked {line.rstrip('.')}." for line in checked[:MAX_CHECKED]]
 
 
 def _note_sentences(notes: tuple[RoundNote, ...]) -> list[str]:

@@ -286,3 +286,15 @@ def test_listing_preview_in_stub_mode_makes_no_request(client: TestClient) -> No
     ).json()
     assert body["status"] == "skipped" and body["platform"] == "Rightmove"
     assert body["message"] is None and body["rent_pcm"] is None
+
+
+def test_a_blank_reply_is_rejected_but_a_skip_needs_no_text() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from app.api.schemas import ReplyRequest
+
+    for blank in ("", "   \n"):
+        with pytest.raises(ValidationError):
+            ReplyRequest(text=blank)
+    assert ReplyRequest(text="", action_id="a1", status="skipped").status == "skipped"
