@@ -202,8 +202,9 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
 
   return (
     <div className="relative mt-3 flex items-center gap-3 rounded-[20px] bg-white p-3 pr-4 shadow-card">
-      <div className="-my-4 -ml-3 shrink-0">
-        <WardenOrb size={104} mode={mode} levelRef={levelRef} micRef={micRef} />
+      {/* the orb's box has a soft margin around the ball, so it sits a touch out to stay inside the pill */}
+      <div className="-m-1 shrink-0">
+        <WardenOrb size={60} mode={mode} levelRef={levelRef} micRef={micRef} />
       </div>
       <div className="min-w-0 flex-1" role="status" aria-live="polite">
         <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "notice" || phase === "retry" ? "text-[#a8402b]" : ""}`}>{label}</p>

@@ -1,10 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { motion } from "motion/react";
 import { STUDENT_NAME_KEY } from "@/lib/config";
-import { Mascot } from "./primitives";
 
 const ITEMS = [
   { label: "Cases", href: "/" },
@@ -48,9 +48,8 @@ export function SiteNav({ active = "Cases" }: { active?: (typeof ITEMS)[number][
       <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-white/[0.42] backdrop-blur-[14px]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.9)]" />
 
-      <Link href="/" className="relative flex items-center gap-2 pl-1.5" aria-label="Warden home">
-        <Mascot width={26} height={31} />
-        <span className="text-[17px] font-semibold tracking-[0.68px] text-teal">WARDEN</span>
+      <Link href="/" className="relative flex items-center pl-1" aria-label="Warden home">
+        <Image src="/warden/logo.png" alt="Warden" width={494} height={120} priority className="h-[30px] w-auto" />
       </Link>
 
       <ul className="relative hidden items-center gap-1 md:flex" onMouseLeave={() => setHovered(null)}>
