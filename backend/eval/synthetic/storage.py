@@ -46,12 +46,14 @@ def validate_dataset(root: Path, *, require_current_sources: bool = True) -> Man
                 raise ValueError(f"Content fingerprint mismatch: {relative}")
         raw = json.loads(content["case.json"])
         case = Case.model_validate(raw)
-        if case.model_dump(mode="json") != raw:
+        # Additive shared-schema defaults (such as Case.chat) must not invalidate an old corpus.
+        # Supplied fields still round-trip exactly, so ignored extra fields remain forbidden.
+        if case.model_dump(mode="json", exclude_unset=True) != raw:
             raise ValueError(f"Unexpected fields or noncanonical Case data: {entry.case_id}")
         if (
             case.case_id != entry.case_id
             or case.status != "open"
-            or any((case.actions, case.reports, case.score_history, case.decision))
+            or any((case.actions, case.reports, case.score_history, case.decision, case.chat))
         ):
             raise ValueError(f"Case must contain fresh inputs only: {entry.case_id}")
         if Counter(check.id for check in case.checks) != Counter(CheckId):

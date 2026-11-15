@@ -197,6 +197,8 @@ responses, preserves the fixture's assessment date, and stops after the first de
 It now exercises the integrated LLM cross-checker and round composer through the real `CaseService`.
 Agent requests use the production Anthropic output limit (`AnthropicLLM.MAX_TOKENS`, currently 4096);
 optional grading retains its separate 8192-token limit. Metadata records the actual pipeline and limits.
+Historical cases may omit newly added optional schema defaults such as empty chat history; supplied
+fields, source hashes and fresh-state constraints are still checked, without rewriting the dataset.
 This remains an initial-round evaluation of extracted text: uploads/OCR, voice, replies, later rounds,
 the browser and persistent storage need separate integration checks.
 It never supplies labels or follow-up answers to the agents. Video is skipped when absent. It records

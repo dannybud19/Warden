@@ -227,6 +227,38 @@ def test_validator_rejects_non_unverified_initial_check(tmp_path: Path) -> None:
         validate_dataset(root)
 
 
+def test_committed_corpus_accepts_new_optional_schema_defaults() -> None:
+    root = Path(__file__).resolve().parents[3] / "fixtures" / "cases" / "synthetic"
+    assert len(validate_dataset(root).cases) == 40
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [
+        ("expected_truth", "genuine", "Unexpected fields"),
+        (
+            "chat",
+            [{"role": "orchestrator", "text": "Already reviewed", "at": "2026-11-14T12:00:00Z"}],
+            "fresh inputs only",
+        ),
+    ],
+)
+def test_optional_schema_defaults_do_not_allow_labels_or_previous_chat(
+    tmp_path: Path, field: str, value: object, error: str
+) -> None:
+    root = tmp_path / "corpus"
+    entry = _generated(root).cases[0]
+    path = root / entry.files["case.json"]
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw[field] = value
+    path.write_text(json.dumps(raw, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest, _ = _manifest_path(root)
+    manifest["cases"][0]["sha256"]["case.json"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    _replace_manifest(root, manifest)
+    with pytest.raises(ValueError, match=error):
+        validate_dataset(root)
+
+
 def test_contained_path_rejects_traversal(tmp_path: Path) -> None:
     root = tmp_path / "corpus"
     root.mkdir()
