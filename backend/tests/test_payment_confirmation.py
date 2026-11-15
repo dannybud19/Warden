@@ -23,7 +23,7 @@ from app.contracts import (
     Severity,
     Verdict,
 )
-from app.core.agent import AgentContext, BaseAgent
+from app.core.agent import AgentContext, BaseAgent, Need
 from app.orchestrator import payment_confirmation
 from app.orchestrator.checks import initial_checks
 from app.orchestrator.conversation import _target, parse  # pyright: ignore[reportPrivateUsage]
@@ -181,15 +181,141 @@ async def test_free_chat_prioritises_payment_confirmation_over_old_questions(
     assert actions[1].outcome == "flags"
 
 
-async def test_confirmation_is_bound_to_the_quoted_evidence(make_service: MakeService) -> None:
+async def test_confirmation_carries_over_when_the_evidence_grows(
+    make_service: MakeService,
+) -> None:
     _, case = await payment_case(make_service)
     original = payment_confirmation.payment_flags(case)[0]
     case.actions = parse(case, "yes", [], action_id=case.actions[0].id)
     assert payment_confirmation.confirmed(case, original)
-    changed = original.model_copy(
+    grown = original.model_copy(
         update={"evidence": [EvidenceRef(evidence_id="ev_other", quote="New demand")]}
     )
-    assert not payment_confirmation.confirmed(case, changed)
+    assert payment_confirmation.confirmed(case, grown)  # same finding, more evidence
+    other = grown.model_copy(update={"id": "message_checker:untraceable_payment"})
+    assert not payment_confirmation.confirmed(case, other)  # a different finding is not
+
+
+class GrowingPayment(BaseAgent):
+    """A payment hard flag whose id is fixed but whose quotes grow with every message."""
+
+    name = "growing_payment"
+    requires = frozenset({Need.MESSAGES})
+    finding_id = "growing_payment:payment_before_viewing"
+
+    async def run(self, case: Case, ctx: AgentContext) -> AgentReport:
+        if not case.messages:
+            return self.report(case)
+        return self.report(
+            case,
+            findings=[
+                Finding(
+                    id=self.finding_id,
+                    agent=self.name,
+                    check_id=CheckId.PAYMENT_SAFETY,
+                    title="Payment before viewing",
+                    detail="They want money first",
+                    category=Category.PAYMENT,
+                    severity=Severity.CRITICAL,
+                    confidence=0.95,
+                    hard_flag=True,
+                    evidence=[
+                        EvidenceRef(evidence_id=m.evidence_id, quote=m.text) for m in case.messages
+                    ],
+                )
+            ],
+        )
+
+
+async def add_message(service: CaseService, case_id: str, text: str) -> Case:
+    """A further part of the chat arrives: same evidence upload, one more message."""
+    case = await service.repo.get(case_id)
+    assert case
+    n = len(case.messages) + 1
+    case.messages.append(
+        Message(id=f"msg_{n}", evidence_id=f"ev_{n}", sender="agent", channel="whatsapp", text=text)
+    )
+    await service.repo.save(case)
+    return await service.analyse(case_id)
+
+
+def confirmations(case: Case) -> list[Action]:
+    return [a for a in case.actions if a.id.startswith(payment_confirmation.PREFIX)]
+
+
+def orchestrator_says(case: Case, text: str) -> int:
+    return sum(t.role == "orchestrator" and t.text == text for t in case.chat)
+
+
+async def growing_case(make_service: MakeService) -> tuple[CaseService, Case]:
+    service = make_service([GrowingPayment()])
+    now = datetime(2026, 11, 14, tzinfo=UTC)
+    case = Case(case_id="grow", created_at=now, checks=initial_checks())
+    await service.repo.create(case)
+    return service, await add_message(service, "grow", "Pay the deposit before any viewing.")
+
+
+async def test_evidence_growing_keeps_one_open_confirmation(make_service: MakeService) -> None:
+    service, case = await growing_case(make_service)
+    first = confirmations(case)
+    assert len(first) == 1 and orchestrator_says(case, CONFIRM_PAYMENT_TEXT) == 1
+    for extra in ("Send it today or I give the flat away.", "Transfer to my personal account."):
+        case = await add_message(service, case.case_id, extra)
+    [only] = confirmations(case)
+    assert only.id == first[0].id and only.status == ActionStatus.OPEN
+    assert "Transfer to my personal account." in only.text  # the card shows the current quotes
+    assert "Pay the deposit before any viewing." in only.text
+    assert orchestrator_says(case, CONFIRM_PAYMENT_TEXT) == 1  # not posted a second time
+    assert case.decision is None and len(payment_confirmation.awaiting(case)) == 1
+
+
+async def test_yes_still_confirms_after_the_evidence_grows(make_service: MakeService) -> None:
+    service, case = await growing_case(make_service)
+    case = await add_message(service, case.case_id, "Send it today or I give the flat away.")
+    [card] = confirmations(case)
+    case = await reply_and_settle(service, case.case_id, "yes", action_id=card.id)
+    assert case.decision and case.decision.verdict == Verdict.LIKELY_SCAM
+    flag = payment_confirmation.payment_flags(case)[0]
+    assert payment_confirmation.confirmed(case, flag)
+    # More quotes for the same finding after the answer: still confirmed, nothing asked again.
+    grown = flag.model_copy(
+        update={"evidence": [*flag.evidence, EvidenceRef(evidence_id="ev_9", quote="Last chance")]}
+    )
+    assert payment_confirmation.confirmed(case, grown)
+    assert not payment_confirmation.awaiting(case)
+
+
+async def test_no_is_not_asked_again_when_the_evidence_grows(make_service: MakeService) -> None:
+    service, case = await growing_case(make_service)
+    [card] = confirmations(case)
+    case = await reply_and_settle(service, case.case_id, "no", action_id=card.id)
+    assert case.decision is None and not payment_confirmation.awaiting(case)
+    said = orchestrator_says(case, CONFIRM_PAYMENT_TEXT)
+    case = await add_message(service, case.case_id, "Send it today or I give the flat away.")
+    assert [a.id for a in confirmations(case)] == [card.id]
+    assert confirmations(case)[0].status == ActionStatus.DONE
+    assert orchestrator_says(case, CONFIRM_PAYMENT_TEXT) == said
+    assert payment_confirmation.pending(case) and not payment_confirmation.awaiting(case)
+    assert case.decision is None  # kept pending, never cleared, cannot close the case
+
+
+async def test_a_different_finding_is_still_asked(make_service: MakeService) -> None:
+    service, case = await growing_case(make_service)
+    [card] = confirmations(case)
+    case = await reply_and_settle(service, case.case_id, "no", action_id=card.id)
+    service.agents.append(CompanyPaymentFlag())
+    case = await add_message(service, case.case_id, "Pay in gift cards.")
+    ids = [a.id for a in confirmations(case)]
+    assert len(ids) == 2 and card.id in ids
+    new = next(a for a in confirmations(case) if a.id != card.id)
+    assert new.status == ActionStatus.OPEN and "gift cards" in new.text
+
+
+class CompanyPaymentFlag(GrowingPayment):
+    """Another payment concern: a different finding id, so a separate confirmation."""
+
+    name = "other_payment"
+    finding_id = "other_payment:untraceable_payment"
 
 
 class CompanyHardFlag(BaseAgent):

@@ -25,14 +25,20 @@ def payment_flags(case: Case) -> list[Finding]:
 
 
 def action_prefix(finding: Finding) -> str:
-    """Bind answers to the finding and its quoted evidence, not just its reusable rule id."""
-    payload = [finding.id, sorted((ref.evidence_id, ref.quote) for ref in finding.evidence)]
-    digest = hashlib.sha256(json.dumps(payload, ensure_ascii=False).encode()).hexdigest()[:16]
+    """Bind answers to the finding id only, so one concern has one confirmation for good.
+
+    A chat that arrives in parts keeps the same finding id while its quotes grow. Hashing the
+    quotes too gave every new part a new digest: a second question, a second message, and the
+    first one left open for ever. The quotes shown to the student are refreshed in place
+    (`refresh`) and an answer to the concern carries over as its evidence grows.
+    """
+    digest = hashlib.sha256(json.dumps([finding.id]).encode()).hexdigest()[:16]
     return f"{PREFIX}{digest}_"
 
 
 def confirmed(case: Case, finding: Finding) -> bool:
-    """Only an explicit yes to a question about this exact evidence confirms the concern."""
+    """Only an explicit yes to the question about this concern confirms it (a later "yes" on the
+    same finding still counts after its evidence grows)."""
     prefix = action_prefix(finding)
     return any(
         action.id.startswith(prefix)
@@ -52,7 +58,7 @@ def pending(case: Case) -> list[Finding]:
 
 
 def answered(case: Case, finding: Finding) -> bool:
-    """The student has replied to (or skipped) a confirmation about this exact evidence."""
+    """The student has replied to (or skipped) the confirmation about this concern."""
     prefix = action_prefix(finding)
     return any(
         action.id.startswith(prefix) and action.status != ActionStatus.OPEN
@@ -65,9 +71,41 @@ def awaiting(case: Case) -> list[Finding]:
 
     A no, unsure, longer answer or skip keeps the concern (payment safety stays suspicious and
     the case cannot close on it) but is not asked again, so the conversation moves on instead
-    of repeating the same question. New evidence for the concern is a new finding and is asked.
+    of repeating the same question. More evidence for the same finding is not asked again; a
+    different finding is.
     """
     return [finding for finding in pending(case) if not answered(case, finding)]
+
+
+def _question_text(finding: Finding) -> str:
+    """The confirmation question for a finding, quoting its current evidence."""
+    if finding.id == "message_checker:payment_before_viewing":
+        ask = "Are they requiring payment before you or someone you trust can view in person?"
+    elif finding.id == "message_checker:untraceable_payment":
+        ask = "Are they asking you to pay using the method described in these messages?"
+    else:
+        ask = "Are they requiring payment under the conditions described in this warning?"
+    quotes = " / ".join(f"“{ref.quote}”" for ref in finding.evidence)
+    return (
+        "Please confirm this payment concern before we reach a decision. "
+        f"{finding.title}: {quotes} {ask} Reply yes, no, or unsure."
+    )
+
+
+def refresh(case: Case) -> list[Action]:
+    """The case's actions with every still-open confirmation showing its finding's current quotes.
+
+    Evidence that arrives in parts changes a finding's quotes but not its id, so the one open
+    card is updated in place instead of a second one being asked.
+    """
+    text = {action_prefix(f): _question_text(f) for f in payment_flags(case)}
+    refreshed = []
+    for action in case.actions:
+        new = next((t for p, t in text.items() if action.id.startswith(p)), None)
+        if action.status == ActionStatus.OPEN and new is not None and new != action.text:
+            action = action.model_copy(update={"text": new})
+        refreshed.append(action)
+    return refreshed
 
 
 def questions(case: Case, limit: int = 3) -> list[Action]:
@@ -84,22 +122,12 @@ def questions(case: Case, limit: int = 3) -> list[Action]:
         prefix = action_prefix(finding)
         if any(a.id.startswith(prefix) for a in case.actions):
             continue  # already asked and still open
-        if finding.id == "message_checker:payment_before_viewing":
-            ask = "Are they requiring payment before you or someone you trust can view in person?"
-        elif finding.id == "message_checker:untraceable_payment":
-            ask = "Are they asking you to pay using the method described in these messages?"
-        else:
-            ask = "Are they requiring payment under the conditions described in this warning?"
-        quotes = " / ".join(f"“{ref.quote}”" for ref in finding.evidence)
         proposed.append(
             Action(
                 id=f"{prefix}1",
                 check_id=CheckId.PAYMENT_SAFETY,
                 kind=ActionKind.QUESTION,
-                text=(
-                    "Please confirm this payment concern before we reach a decision. "
-                    f"{finding.title}: {quotes} {ask} Reply yes, no, or unsure."
-                ),
+                text=_question_text(finding),
             )
         )
         if len(proposed) == limit:
