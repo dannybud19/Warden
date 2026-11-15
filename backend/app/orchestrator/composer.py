@@ -65,7 +65,8 @@ class RoundInput:
     open_actions: int = 0
     recap_sent: bool = False  # a Cross-checker recap message went out just before this one
     notes: tuple[RoundNote, ...] = ()
-    grounding: tuple[str, ...] = ()  # P2: check states and finding titles, to answer a question
+    grounding: tuple[str, ...] = ()  # P2: findings (title: detail) and check states, to answer
+    history: tuple[str, ...] = ()  # the last chat turns, so a follow-up question has its context
 
 
 @cache
@@ -173,7 +174,7 @@ def _allowed_numbers(inp: RoundInput) -> set[int]:
     allowed = {inp.score_after, inp.new_actions, inp.open_actions, SCORE_SCALE}
     if inp.score_before is not None:
         allowed |= {inp.score_before, abs(inp.score_after - inp.score_before)}
-    for source in (*(note.text for note in inp.notes), *inp.grounding):
+    for source in (*(note.text for note in inp.notes), *inp.grounding, *inp.history):
         allowed |= _numbers(source)
     return allowed
 
