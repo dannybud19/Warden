@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { useLocalJSON, useLocalString, writeLocal } from "@/lib/localStore";
 import { AnimatedWarden } from "./AnimatedWarden";
-import { Dot, PillButton, rise, stagger } from "./primitives";
+import { PillButton, rise, stagger } from "./primitives";
 
 const card = "rounded-[24px] border border-white bg-white/85 p-6 shadow-card backdrop-blur-[15px]";
 
@@ -60,7 +60,7 @@ function Field({ id, label, value, placeholder, onSave }: { id: string; label: s
 }
 
 const ALERTS = [
-  { key: "needsYou", title: "When Warden needs you", body: "A WhatsApp message the moment an agent has a question." },
+  { key: "needsYou", title: "When Warden needs you", body: "An alert the moment an agent has a question." },
   { key: "redFlags", title: "New red flags", body: "Hear about a red flag as soon as it's found." },
   { key: "weekly", title: "Weekly summary", body: "One email every Sunday with where each home stands." },
 ] as const;
@@ -69,7 +69,7 @@ type Alerts = Record<(typeof ALERTS)[number]["key"], boolean>;
 
 export function SettingsView() {
   const [name, setName] = useLocalString(STUDENT_NAME_KEY);
-  const [uni, setUni] = useLocalString("warden.university");
+  const [occupation, setOccupation] = useLocalString("warden.occupation");
   const [alerts, setAlerts] = useLocalJSON<Alerts>("warden.alerts", { needsYou: true, redFlags: true, weekly: false });
   const [confirm, setConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
@@ -97,7 +97,7 @@ export function SettingsView() {
           <h2 className="text-[16px] font-medium">You</h2>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <Field id="set-name" label="First name" value={name} placeholder="So Warden can cheer you on" onSave={setName} />
-            <Field id="set-uni" label="University" value={uni} placeholder="e.g. Imperial College London" onSave={setUni} />
+            <Field id="set-occupation" label="Occupation" value={occupation} placeholder="e.g. Student, nurse, software engineer" onSave={setOccupation} />
           </div>
         </motion.section>
 
@@ -124,9 +124,7 @@ export function SettingsView() {
                 <p className="text-[14.5px]">WhatsApp</p>
                 <p className="text-[12.5px] text-muted">Forward chats to Warden and get alerts.</p>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e0f4ec] px-3 py-1 text-[12px] font-medium text-[#1f6e58]">
-                <Dot src="/warden/dot-green.svg" pulse /> Connected
-              </span>
+              <span className="rounded-full bg-field px-3 py-1 text-[12px] text-muted">Coming soon</span>
             </li>
             <li className="flex items-center gap-4 border-t border-line py-3.5">
               <div className="min-w-0 flex-1">

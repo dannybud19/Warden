@@ -1,7 +1,9 @@
 """Analysis runs in the background: open_case starts the agency check, requests return at once."""
 
 import asyncio
+import signal
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -130,3 +132,46 @@ async def test_shutdown_cancels_running_analyses(make_service: MakeService) -> N
     await _until(lambda: gate.started)
     await service.shutdown()
     await service.wait_idle()
+
+
+async def test_wait_idle_does_not_spin_on_a_finished_task_not_yet_removed(
+    make_service: MakeService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: on Python 3.12 `asyncio.gather` on tasks that are already done returns without
+    yielding. Here the analysis scheduled by an upload (awaited as its own task) finishes before
+    the done callback that removes it from `_tasks` has run, and `wait_idle` used to loop forever.
+
+    A spinning loop never reaches an `await` timeout, so the guard is a SIGALRM timer: its handler
+    runs between bytecodes and fails the test instead of hanging the run.
+    """
+    service = make_service([EmptyAgent()])
+    case = await service.open_case(StudentContext())
+    reading, release = asyncio.Event(), asyncio.Event()
+    original = service_module.extract
+
+    async def slow_extract(*args: Any) -> Any:
+        reading.set()
+        await release.wait()
+        return await original(*args)
+
+    monkeypatch.setattr(service_module, "extract", slow_extract)
+
+    def timed_out(signum: int, frame: object) -> None:
+        raise TimeoutError("wait_idle is spinning")
+
+    previous = signal.signal(signal.SIGALRM, timed_out)
+    signal.setitimer(signal.ITIMER_REAL, 5)
+    try:
+        pending = asyncio.create_task(
+            service.add_evidence(case.case_id, Upload(EvidenceKind.EMAIL, b"Hello"))
+        )
+        await reading.wait()
+        await service.reply(case.case_id, "Still looking")
+        await service.wait_idle()
+        release.set()
+        await pending
+        await service.wait_idle()
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+    assert not service._tasks

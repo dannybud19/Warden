@@ -104,8 +104,17 @@ export function agentRows(c: Case, live: Record<string, AgentUiStatus>): AgentRo
     if (status === "error") {
       return { name, meta, chip: "error", line: "Couldn't run this time", tone: "grey", muted: true, showUpload: false };
     }
+    // The case has what this agent needs but no report yet: it is about to start, not waiting on the student.
+    if (!report && hasInputs(c, name)) {
+      return { name, meta, chip: "checking", line: "Starting the check…", tone: "grey", muted: true, showUpload: false };
+    }
     return { name, meta, chip: "waiting", line: meta.missing, tone: "grey", muted: true, showUpload: !!meta.upload };
   });
+}
+
+function hasInputs(c: Case, name: string): boolean {
+  if (name === "companies_house") return !!(c.landlord?.company_name || c.landlord?.company_number);
+  return false;
 }
 
 /** "4 done · 1 waiting · 1 needs you" */
@@ -232,7 +241,9 @@ export function mood(c: Case, working: boolean): Mood {
   return pick("default", "Forward what they sent you", "Chats, emails, the listing link or the contract.");
 }
 
-/** Cleared findings, for the "looks fine" part of the list. */
+/** Cleared findings (e.g. "Active on Companies House"), most confident first, for "What checks out". */
 export function clears(c: Case): Finding[] {
-  return allFindings(c).filter((f) => f.supports === "cleared");
+  return allFindings(c)
+    .filter((f) => f.supports === "cleared")
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
 }

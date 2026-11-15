@@ -5,7 +5,7 @@
 //   2. cd web && node scripts/create-voice-agent.mjs
 //
 // Re-run any time you change the prompt below: it updates the existing agent instead of making a new one.
-// Optional: ELEVENLABS_VOICE_ID to pick a specific voice (otherwise a British conversational voice is chosen).
+// Warden speaks with the "Sheldon" voice. Set ELEVENLABS_VOICE_ID to use a different one.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const ENV_FILE = new URL("../.env.local", import.meta.url);
@@ -48,20 +48,12 @@ async function api(path, init = {}) {
   return body ? JSON.parse(body) : {};
 }
 
-async function pickVoice() {
+// Warden's voice: "Sheldon".
+const SHELDON = "uWNz6TbvrJHW6G4bBMPw";
+
+function pickVoice() {
   if (env.ELEVENLABS_VOICE_ID) return { voice_id: env.ELEVENLABS_VOICE_ID, name: "(from ELEVENLABS_VOICE_ID)" };
-  let voices = [];
-  try {
-    ({ voices = [] } = await api("/v1/voices"));
-  } catch {
-    return { voice_id: "JBFqnCBsd6RMkjVDRZzb", name: "George (default)" };
-  }
-  const label = (v, k) => String(v.labels?.[k] ?? "").toLowerCase();
-  const british = voices.filter((v) => label(v, "accent").includes("british"));
-  const warm = british.filter((v) => /conversational|social|narrative/.test(label(v, "use_case") + label(v, "use case")));
-  const pick = warm[0] ?? british[0] ?? voices[0];
-  if (!pick) throw new Error("No voices on this account.");
-  return pick;
+  return { voice_id: SHELDON, name: "Sheldon" };
 }
 
 // ---- Warden's personality and job on a call about one home ----
