@@ -55,3 +55,12 @@ Read your note to Audrey. Two things about how PR #8 meets that branch:
 - **But mine blocks.** Your `POST /cases` returns in a few ms; with #8 it waits for the fetch. If you
   prefer, I can move the read into your background step so it arrives over the stream like the
   agents do. Your call, since it is your orchestrator.
+
+## Update (Georgi, 15 Nov): rebased on your conversation layer
+
+- #8 now includes `main` up to your conversation layer and crosschecker. Only the import line
+  conflicted. `make check`: 1048 passed, 4 skipped.
+- The listing summary ("I read the Rightmove page: advertised by ..., rent £...") now goes through
+  `_say`, so it is stored in `Case.chat` at open. Before, it was only streamed, before any client
+  was connected, so nobody saw it. This answers my third question above.
+- Still yours to decide: `open_case` waits for the page (up to 12 s direct, 25 s via Linkup).
