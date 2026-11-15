@@ -231,7 +231,7 @@ export function AgentsRail(props: Props) {
       {/* compact header: Warden + what's going on */}
       <div className="flex items-center gap-2 pt-3">
         <div className="-my-3 -ml-1 shrink-0">
-          <AnimatedWarden state={mood.state} width={74} />
+          <AnimatedWarden state={mood.state} width={74} quiet />
         </div>
         <div className="min-w-0">
           <p className="text-[10px] font-semibold tracking-[1.2px] text-teal">AGENTS</p>

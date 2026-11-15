@@ -250,7 +250,7 @@
       this.initGL();
       this._ready = true;
       const first = this.state;
-      if (first !== 'default') { this.shown = first === 'thinking' ? 'default' : first; if (first === 'thinking') this.go('thinking'); }
+      if (first !== 'default' && !(this.quiet && first === 'thinking')) { this.shown = first === 'thinking' ? 'default' : first; if (first === 'thinking') this.go('thinking'); }
       this.last = performance.now(); this.acc = 0;
       const loop = now => { if (!this.isConnected) { this._started = false; return; } this.frame(now); requestAnimationFrame(loop); };
       requestAnimationFrame(loop);
@@ -314,8 +314,12 @@
     // ---------- state changes ----------
     busy() { const s = this.sim; return s.air || s.crouch || s.melting || (s.pTarget === 1 && s.P < .9); }
 
+    // quiet: no melting, hops or stomps; mood changes crossfade in place
+    get quiet() { return this.hasAttribute('quiet'); }
+
     go(target) {
       if (!['thinking', ...STATES].includes(target)) target = 'default';
+      if (this.quiet) { if (target !== 'thinking' && target !== this.shown) this.swapTo(target); return; }
       if (this.busy()) { this.queued = target; return; }
       const cur = this.sim.dotsOn ? 'thinking' : this.shown;
       if (target === cur) { this.poke(); return; }
@@ -341,7 +345,7 @@
       const now = performance.now();
       if (target === 'green') this.kick = { t0: now, amp: -.5 };
       if (target === 'red') { this.popKick = { t0: now + 120, amp: .3 }; }
-      this.stomp = target === 'stop' ? { t0: now + 430, hit: false } : null;
+      this.stomp = target === 'stop' && !this.quiet ? { t0: now + 430, hit: false } : null;
       this.nextHmm = now + 1600;
       this.nextHop = now + 1800; this.nextShake = now + (target === 'stop' ? 3400 : 1500);
       this.dispatchEvent(new CustomEvent('wardenstatechange', { detail: { state: target }, bubbles: true, composed: true }));
@@ -428,13 +432,14 @@
       s.jv -= (sideV - s.prevSideV) * .12; s.prevSideV = sideV;
       s.jv += (-200 * s.jx - 8 * s.jv) * dt; s.jx += s.jv * dt;
 
-      if (!this.busy() && !this.reduce && !s.dotsOn && now > this.nextHop && st === 'green') {
+      const q = this.quiet;
+      if (!q && !this.busy() && !this.reduce && !s.dotsOn && now > this.nextHop && st === 'green') {
         s.crouch = { until: now + (red ? 70 : 95), v0: Math.sqrt(2 * G * (red ? 12 : 15)), depth: red ? -.05 : -.06 };
         s.big = false; s.tilt = 0;
         this.nextHop = now + (red ? 1500 + Math.random() * 900 : 2300 + Math.random() * 1700);
         if (red) this.popKick = { t0: now + 250, amp: .16 };
       }
-      if (!this.busy() && !this.reduce && st === 'stop' && now > this.nextShake && (!this.stomp || now - this.stomp.t0 > 1200)) {
+      if (!q && !this.busy() && !this.reduce && st === 'stop' && now > this.nextShake && (!this.stomp || now - this.stomp.t0 > 1200)) {
         this.stomp = { t0: now, hit: false }; this.nextShake = now + 3000 + Math.random() * 1600;
       }
       if (st === 'stop' && this.stomp && !this.stomp.hit && now - this.stomp.t0 >= 360) {
@@ -442,7 +447,7 @@
         if (this.rigs) { const b = this.rigs.stop.layers[0].pivot; this.burst('rgba(150,160,170,.55)', b[0] / W, 7, .45); }
       }
       if (st === 'stop' && this.stomp && now - this.stomp.t0 < 280 && now - this.stomp.t0 > 0) s.vR += -9 * dt * 60 * .02;
-      if (!this.busy() && !this.reduce && st === 'amber' && now > (this.nextHmm || 0)) {
+      if (!q && !this.busy() && !this.reduce && st === 'amber' && now > (this.nextHmm || 0)) {
         s.vS -= .55; s.vR += (Math.random() < .5 ? -1 : 1) * 45; this.bKick = { t0: now, amp: .07 };
         this.hmm2 = now + 170; this.nextHmm = now + 3000 + Math.random() * 1500;
       }
@@ -544,7 +549,7 @@
       this.clothAmp += (tA - this.clothAmp) * Math.min(1, el * 5);
       this.clothPhase += el * (o.speed + Math.min(8, Math.abs(armV) * 6));
       const drag = clamp(-armV * .09, -.22, .22);
-      this.mix = Math.min(1, this.mix + el * 22);
+      this.mix = Math.min(1, this.mix + el * (this.quiet ? 5 : 22));
 
       const gl = this.gl;
       if (!gl) return;

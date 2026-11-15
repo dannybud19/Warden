@@ -7,6 +7,7 @@ declare module "react" {
       "warden-mascot": DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement> & {
         state?: string;
         assets?: string;
+        quiet?: string;
       };
     }
   }
