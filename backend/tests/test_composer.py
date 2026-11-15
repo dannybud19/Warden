@@ -302,6 +302,7 @@ async def test_compose_sends_prompt_and_payload(ctx: AgentContext) -> None:
         "notes": [{"kind": "unmatched", "text": ""}],
         "grounding": [],
         "history": [],
+        "deciding": False,
     }
 
 

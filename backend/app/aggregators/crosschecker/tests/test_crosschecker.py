@@ -35,7 +35,7 @@ def _finding(
 
 def test_public_names_the_orchestrator_uses() -> None:
     assert NAME == "crosscheck"
-    assert VERSION == "1.0.0"
+    assert VERSION == "1.1.0"
     assert crosschecker.recap is recap
     assert crosschecker.LLM_TIMEOUT_S < 30.0  # below the orchestrator's own deadline
 

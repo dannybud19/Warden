@@ -27,7 +27,13 @@ MIN_TRIMMED = 500  # budget trimming never cuts an evidence or message source be
 UPLOAD = "upload"  # `agent` of evidence and message sources
 STUDENT = "student"  # `agent` of listing and landlord sources
 EVIDENCE_KINDS = frozenset(
-    {EvidenceKind.CONTRACT, EvidenceKind.DOCUMENT, EvidenceKind.EMAIL, EvidenceKind.CHAT_EXPORT}
+    {
+        EvidenceKind.CONTRACT,
+        EvidenceKind.DOCUMENT,
+        EvidenceKind.EMAIL,
+        EvidenceKind.CHAT_EXPORT,
+        EvidenceKind.LISTING,  # the contract's address is checked against an uploaded listing
+    }
 )
 TRIMMABLE_KINDS: frozenset[SourceKind] = frozenset({"evidence", "message"})
 NOT_RUN_MARK = ":not-run"  # in the id of an info finding that says part of an agent failed

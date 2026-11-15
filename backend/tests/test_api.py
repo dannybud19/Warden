@@ -96,7 +96,7 @@ def test_pasted_text_reply_and_decision_flow(client: TestClient) -> None:
     assert decision.status_code == 200 and decision.json()["verdict"] == "not_verified"
 
 
-def test_decided_case_returns_409(client: TestClient) -> None:
+def test_decided_case_still_takes_evidence_and_replies(client: TestClient) -> None:
     case_id = _open(client)  # default stubs: the hard flags close the case on first upload
     client.post(
         f"/cases/{case_id}/evidence",
@@ -104,9 +104,17 @@ def test_decided_case_returns_409(client: TestClient) -> None:
     )
     _settle(client)
     assert client.get(f"/cases/{case_id}").json()["decision"]["verdict"] == "likely_scam"
+    # A verdict never locks the student out: more evidence and replies are accepted, the case
+    # is analysed again and (the hard flags are still there) decided again.
     again = client.post(f"/cases/{case_id}/evidence", data={"kind": "email", "text": "hello"})
-    assert again.status_code == 409
-    assert client.post(f"/cases/{case_id}/messages", json={"text": "yes"}).status_code == 409
+    assert again.status_code == 200
+    _settle(client)
+    assert client.post(f"/cases/{case_id}/messages", json={"text": "why?"}).status_code == 200
+    _settle(client)
+    stored = client.get(f"/cases/{case_id}").json()
+    assert stored["decision"]["verdict"] == "likely_scam"
+    assert len(stored["evidence"]) == 2
+    assert stored["chat"][-1]["role"] == "orchestrator"  # the verdict is said in the chat too
 
 
 def test_file_upload_and_validation(client: TestClient) -> None:

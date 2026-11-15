@@ -347,3 +347,33 @@ def test_partial_address_goes_to_the_description_not_the_address() -> None:
 def test_failed_read_changes_nothing_but_the_platform() -> None:
     listing, landlord = apply_details(Listing(url=URL), None, _details(status="blocked"))
     assert listing == Listing(url=URL, platform="Rightmove") and landlord is None
+
+
+@pytest.mark.parametrize(
+    ("typed", "expected"),
+    [
+        (
+            "spareroom.co.uk/flatshare/flatshare_detail.pl?flatshare_id=1&city_id=&",
+            "https://spareroom.co.uk/flatshare/flatshare_detail.pl?flatshare_id=1&city_id=&",
+        ),
+        ("  www.rightmove.co.uk/properties/1 ", "https://www.rightmove.co.uk/properties/1"),
+        ("http://www.zoopla.co.uk/to-rent/1", "http://www.zoopla.co.uk/to-rent/1"),
+        ("", ""),
+    ],
+)
+def test_a_link_without_a_scheme_gets_https(typed: str, expected: str) -> None:
+    assert rules.with_scheme(typed) == expected
+
+
+def test_a_link_without_a_scheme_passes_the_safety_check() -> None:
+    url = rules.with_scheme("spareroom.co.uk/flatshare/1")
+    assert rules.safe_url(url) == "https://spareroom.co.uk/flatshare/1"
+
+
+@pytest.mark.parametrize("typed", ["localhost:8000/cases", "127.0.0.1/admin", "intranet/x"])
+async def test_a_private_link_without_a_scheme_is_still_not_opened(typed: str) -> None:
+    def fail(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("must not fetch")
+
+    details = await read_listing(typed, make_ctx(fail), resolve=public)
+    assert details.status == "unsafe_url"

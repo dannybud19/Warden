@@ -185,7 +185,7 @@ function startWardenOnboarding(root, opts) {
   }
   function caseAnswers() {
     return {
-      listingUrl: data.url.trim(), listingSite: data.host, address: data.address.trim(), rent: data.rent.trim(),
+      listingUrl: linkOf(data.url), listingSite: data.host, address: data.address.trim(), rent: data.rent.trim(),
       agency: data.agency.trim(), companyNumber: data.companyNumber.trim().toUpperCase(), agentName: data.agentName.trim(),
       seenInPerson: data.viewed, askedToPay: data.asked, paidAlready: data.paid === 'Yes',
       files: Object.keys(data.files), risky: !!risky(),
@@ -351,15 +351,22 @@ function startWardenOnboarding(root, opts) {
     return "I couldn't read that page. Fill in the details below.";
   }
 
+  /** The link as typed, with https:// added when it has no scheme ("spareroom.co.uk/..." is how
+   *  links copied from an address bar often look). Empty stays empty. */
+  function linkOf(text) {
+    const t = text.trim();
+    return !t || /^[a-z][a-z\d+.-]*:\/\//i.test(t) ? t : `https://${t}`;
+  }
+
   function readListing() {
     clearTimeout(readTimer); readTimer = null; data.host = '';
     const seq = ++readSeq;
     const st = $('status');
     let host = '';
-    try { const u = new URL(data.url.trim()); if (/^https?:$/.test(u.protocol) && u.hostname.includes('.')) host = u.hostname.replace(/^www\./, ''); } catch { /* not a URL yet */ }
+    const url = linkOf(data.url);
+    try { const u = new URL(url); if (/^https?:$/.test(u.protocol) && u.hostname.includes('.')) host = u.hostname.replace(/^www\./, ''); } catch { /* not a URL yet */ }
     if (!host) { st.textContent = data.url.trim() ? "That doesn't look like a link yet." : ''; if (w.state === 'thinking') setState('default'); check(); return; }
     st.textContent = '';
-    const url = data.url.trim();
     flyCard($('url'), host, 'search').then(() => {
       if (seq === readSeq && !data.host) { setState('thinking'); st.innerHTML = 'Reading the listing…'; }
     });

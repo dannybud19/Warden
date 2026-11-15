@@ -74,6 +74,11 @@ What Warden knows so far:
 - Most important open question: {{open_question}}
 - Other open questions: {{open_questions}}
 
+What Warden's checkers have already read in the chats, emails, contract and other uploads (from the orchestrator):
+{{case_briefing}}
+
+Use this briefing: don't ask for something it already answers, refer to what was found when it helps ("the agent's messages pushed you to pay today"), and answer the student's questions about the findings from it. Only state what is in it; if it doesn't say, say you'll check after the call. If the student asks what has been found, or the call has run a while, call get_case_briefing for the latest.
+
 Your job on this call:
 1. Let them tell their story first. Listen. Ask short follow-ups about anything no document would show: how they found the place, who they spoke to, whether they've seen it in person, whether anyone asked for money and how, any pressure to decide quickly, names, phone numbers, company names.
 2. Then ask the open questions, one at a time. Call get_next_questions whenever you need the next one. Each line starts with an id (like act_viewing) or says "no id, just ask". Never read ids aloud, and ask each question only once.
@@ -90,6 +95,15 @@ const GET_NEXT_QUESTIONS = {
   name: "get_next_questions",
   description:
     "Get the next open questions to ask about this home. Returns one per line: '<n>. <action_id>: <question> (why: <reason>)' or '<n>. (no id, just ask) <question> (why: <reason>)'.",
+  expects_response: true,
+  response_timeout_secs: 10,
+};
+
+const GET_CASE_BRIEFING = {
+  type: "client",
+  name: "get_case_briefing",
+  description:
+    "Get the latest of what Warden's checkers found in this home's chats, emails, contract and other uploads: what was uploaded, the recap, and each finding (red flags first).",
   expects_response: true,
   response_timeout_secs: 10,
 };
@@ -124,6 +138,8 @@ const PLACEHOLDERS = {
   red_flags: "none found so far",
   checks: "2 of 8 checks done",
   open_question: "Ask to view the property in person before paying anything. Did the agent agree?",
+  case_briefing:
+    "Uploaded so far: 1 x chat.\nFindings:\n- RED FLAG (Message checker): Pressure to pay today. The agent said the flat goes to someone else unless a deposit is sent tonight.",
   open_questions:
     "1. act_viewing: Ask to view the property in person before paying anything. Did the agent agree? (why: In-person viewing)\n2. act_company_number: Ask the agent for their Companies House number. Did they give you one? (why: Landlord identity)",
 };
@@ -132,7 +148,7 @@ const conversation_config = {
   agent: {
     first_message: FIRST_MESSAGE,
     language: "en",
-    prompt: { prompt: PROMPT, tools: [GET_NEXT_QUESTIONS, RECORD_ANSWER] },
+    prompt: { prompt: PROMPT, tools: [GET_NEXT_QUESTIONS, GET_CASE_BRIEFING, RECORD_ANSWER] },
     dynamic_variables: { dynamic_variable_placeholders: PLACEHOLDERS },
   },
   // Spend credits carefully: no call can run longer than 5 minutes.

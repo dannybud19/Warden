@@ -41,7 +41,13 @@ Every LLM finding:
 - uses two different sources (not the same agent and the same evidence);
 - is not a repeat of a rule finding (same topic and same values);
 - has id `crosscheck:<topic-slug>`, so a rerun replaces it instead of adding a copy;
-- is category `consistency`, `supports="suspicious"`, severity at most `high`, **never** a hard flag;
+- is category `consistency`, `supports="suspicious"`, severity at most `high`, and not a hard flag,
+  with one exception: a disagreement on the **property address** between the listing (what the
+  student entered, or an uploaded listing) and a contract that the LLM marks `certainty="certain"`
+  is a hard flag (`contract_consistency`, critical, confidence 0.9). This is the same hard flag as
+  the rule crosscheck's, but the LLM judges whether the two addresses are different homes, so a
+  listing with only a postcode district ("W12") or no postcode is still compared. Identical full
+  postcodes on both sides overrule the LLM;
 - uses no verdict or legal word in its title or claims (else it is dropped; an explanation that
   uses one is left out);
 - has confidence 0.7, enough to make a check suspicious at medium severity or above. If one side is
@@ -54,7 +60,7 @@ At most 5 findings per run. Web-sourced findings keep their `Source: <url>` line
 
 - Other agents' reports with status `ok` (never its own previous `crosscheck` report): their
   findings, the quotes they cite and their facts.
-- Excerpts of the uploads: the first 4,000 characters of contract, document, email and chat-export
+- Excerpts of the uploads: the first 4,000 characters of contract, document, email, chat-export and listing
   text, and the parsed messages, one source per upload (an upload whose messages were parsed is
   sent as its messages only, not twice).
 - What the student entered: listing and landlord fields.
@@ -68,7 +74,7 @@ characters; findings, quotes, facts and student fields are never trimmed.
 | Situation | LLM call | Findings | `summary` |
 | --- | --- | --- | --- |
 | Stub mode (default) | no | rule findings | template recap of the rule findings, or `None` |
-| Fewer than 2 OK reports | no | rule + previous LLM findings | previous summary if there were any, else the template recap of the rule findings, or `None` |
+| Fewer than 2 sides (OK reports, plus what the student entered about the listing or landlord, plus each uploaded listing) | no | rule + previous LLM findings | previous summary if there were any, else the template recap of the rule findings, or `None` |
 | Compared material unchanged since the last run (same digest and version) | no | rule + previous LLM findings | previous summary |
 | LLM error, bad JSON or over 25 s | yes, failed | rule + previous LLM findings + `crosscheck:not-run` (info, confidence 0) | previous summary, else the template; `input_hash=""` so the next analysis retries |
 | LLM finds nothing that survives validation | yes | rule findings + carried findings (below) | the previous summary if something is carried, else the template recap of the rule findings, or `None` |

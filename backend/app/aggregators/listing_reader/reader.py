@@ -175,6 +175,7 @@ async def read_listing(
     page is fetched directly. Sources, strongest first: the site's own structured data, the LLM
     (each value checked against the page), then patterns over the page text.
     """
+    url = rules.with_scheme(url)
     platform = rules.platform_of(url)
     if ctx.settings.agent_mode(NAME) != "real":
         return ListingDetails(url=url, status="skipped", platform=platform)

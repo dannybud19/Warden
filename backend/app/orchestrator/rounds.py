@@ -208,13 +208,15 @@ def round_input(
     case_grounding: list[str] | None = None,
     case_history: list[str] | None = None,
     previous_reports: Mapping[str, AgentReport] | None = None,
+    deciding: bool = False,
 ) -> RoundInput:
     """Everything the composer needs about one analysis. `actions` already includes `fresh`.
 
-    `case_grounding` is sent only when a note carries a student question; `case_history` is
-    always sent, so the message can acknowledge what the student just told us.
+    `case_grounding` is sent only when a note carries a student question or a verdict follows
+    (`deciding`: the message says why it stands); `case_history` is always sent, so the message
+    can acknowledge what the student just told us.
     """
-    asked = any(n.kind == "question" for n in notes)
+    asked = deciding or any(n.kind == "question" for n in notes)
     return RoundInput(
         score_before=round(score_before.score) if score_before else None,
         score_after=round(score_after.score),
@@ -227,4 +229,5 @@ def round_input(
         notes=tuple(notes),
         grounding=tuple(case_grounding or []) if asked else (),
         history=tuple(case_history or []),
+        deciding=deciding,
     )

@@ -70,6 +70,7 @@ class RoundInput:
     notes: tuple[RoundNote, ...] = ()
     grounding: tuple[str, ...] = ()  # P2: findings (title: detail) and check states, to answer
     history: tuple[str, ...] = ()  # the last chat turns, so a follow-up question has its context
+    deciding: bool = False  # a verdict message follows this one: only answer the student
 
 
 @cache
@@ -227,6 +228,8 @@ _FACT_NOTES: dict[NoteKind, tuple[str, str]] = {
 
 def template(inp: RoundInput) -> str:
     """Deterministic message for this round. Always passes `validate`."""
+    if inp.deciding:  # the verdict message carries the status: only the reply to the student
+        return " ".join(_note_sentences(inp.notes))
     parts = [
         _score_sentence(inp.score_before, inp.score_after),
         *_moved_sentences(inp.moved),

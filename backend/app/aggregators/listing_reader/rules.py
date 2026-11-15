@@ -102,6 +102,17 @@ def is_public_ip(address: str) -> bool:
         return False
 
 
+def with_scheme(url: str) -> str:
+    """`url` with `https://` added when it has none: links copied from an address bar often read
+    "spareroom.co.uk/flatshare/..." and were refused as not a public web page."""
+    text = url.strip()
+    return (
+        text
+        if not text or re.match(r"[a-z][a-z\d+.-]*://", text, re.IGNORECASE)
+        else (f"https://{text}")
+    )
+
+
 def safe_url(url: str) -> str | None:
     """`url` if it is a plain public http(s) link, else None.
 
