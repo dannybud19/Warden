@@ -34,7 +34,11 @@ def _sniff_media_type(image: bytes) -> str:
         return "image/png"
     if image.startswith(b"\xff\xd8"):
         return "image/jpeg"
-    raise ValueError("unsupported image type: expected PNG or JPEG")
+    if image[:4] == b"RIFF" and image[8:12] == b"WEBP":
+        return "image/webp"
+    if image.startswith(b"GIF8"):
+        return "image/gif"
+    raise ValueError("unsupported image type: expected PNG, JPEG, WebP or GIF")
 
 
 class AnthropicLLM:
