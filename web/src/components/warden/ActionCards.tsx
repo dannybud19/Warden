@@ -5,10 +5,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Circle, Flag, MinusCircle } from "lucide-react";
 import type { Action, Case } from "@/lib/types";
 import { CHECK_LABELS } from "@/lib/labels";
-import { whyAsk } from "@/lib/present";
+import { actionCardStatus, whyAsk, type CardStatus } from "@/lib/present";
 import { PillButton, rise } from "./primitives";
-
-type CardStatus = "todo" | "done" | "flagged" | "skipped";
 
 const RETIRED_ANSWER = "No longer needed: your evidence already covers this.";
 const MAX_ANSWERED = 4;
@@ -16,16 +14,10 @@ const MAX_ANSWERED = 4;
 const STATUS_LOOK: Record<CardStatus, { label: string; cls: string }> = {
   todo: { label: "To do", cls: "bg-white text-ink/70 border-line" },
   done: { label: "Done", cls: "bg-mint text-[#0f6d74] border-mint" },
+  answered: { label: "Answered", cls: "bg-[#eeeeee] text-ink/60 border-[#eeeeee]" },
   flagged: { label: "Flagged", cls: "bg-[#fdf0d5] text-[#8a5a00] border-[#fdf0d5]" },
   skipped: { label: "Skipped", cls: "bg-[#eeeeee] text-ink/60 border-[#eeeeee]" },
 };
-
-function cardStatus(a: Action): CardStatus {
-  const s = a.status ?? "open";
-  if (s === "open") return "todo";
-  if (s === "skipped" || s === "impossible") return "skipped";
-  return a.outcome === "flags" ? "flagged" : "done";
-}
 
 /** Open actions first, then the last few answered ones (derived from the case, so it survives a reload). */
 export function cardActions(c: Case): Action[] {
@@ -66,7 +58,7 @@ function Card({
   action: Action; index: number; busy: boolean; disabled: boolean;
   onAnswer: (id: string, text: string) => void; onSkip: (id: string) => void;
 }) {
-  const status = cardStatus(action);
+  const status = actionCardStatus(action);
   const [typing, setTyping] = useState(false);
   const [text, setText] = useState("");
   const off = busy || disabled;

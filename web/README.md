@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Risk display
+
+The gauge displays the exact latest backend score, without rounding it or changing it to fit a colour.
+Unverified checks keep the score high; it is not a probability of a scam. The shared presentation in
+`src/lib/present.ts` drives the headline, gauge colour and status pill: neutral for unverified checks,
+amber for concerns or a targeted payment-confirmation question, red only for a `likely_scam` verdict,
+and green only when all eight checks are cleared. Neutral answers are labelled "Answered", not "Done".
+
+Run `corepack pnpm test`, `corepack pnpm typecheck`, `corepack pnpm lint` and `corepack pnpm build`
+from this folder. The presentation regression tests are offline and use the existing TypeScript compiler.
+
 ## Getting Started
 
 First, run the development server:

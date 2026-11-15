@@ -1,6 +1,6 @@
 import type { Case, CheckId, EvidenceKind, Finding, AgentUiStatus, Action } from "./types";
-import { CHECK_LABELS } from "./labels";
-import { SEVERITY_ORDER, allFindings, detailText, isRedFlag, openActions } from "./selectors";
+import { CHECK_LABELS, CHECK_ORDER } from "./labels";
+import { SEVERITY_ORDER, allFindings, currentScore, detailText, isRedFlag, openActions } from "./selectors";
 
 // Plain-language presentation of a case for the hi-fi screens. Pure functions over `Case`.
 
@@ -205,40 +205,49 @@ const TINTS: Record<MoodState, { tint: [string, string]; accent: string }> = {
   default: { tint: ["#eef8f9", "#d7eef0"], accent: "#138a93" },
 };
 
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
-
-/**
- * Mascot state from the case. Mapping:
- * agents running -> thinking; verdict likely_scam -> red, not_verified -> amber, proceed_with_care and
- * no_red_flags_remaining -> green. Before a verdict: an open step about payment -> stop (the payment
- * checkpoint), a hard red flag -> red, any red flag -> amber, cleared checks only -> green, nothing yet -> default.
- */
+/** Verdict and evidence set the colour; the numeric score never establishes a scam. */
 export function mood(c: Case, working: boolean): Mood {
-  const flags = redFlags(c);
-  const n = flags.length;
   const pick = (state: MoodState, title: string, sub: string): Mood => ({ state, title, sub, ...TINTS[state] });
+  if (c.decision?.verdict === "likely_scam") {
+    return pick("red", "This looks like a scam", "Don't pay anything. Warden found evidence of a likely scam.");
+  }
 
+  // Only the orchestrator's targeted confirmation is a payment warning, not every payment question.
+  if (openActions(c).some((a) => a.check_id === "payment_safety" && a.id.startsWith("act_confirm_payment_"))) {
+    return pick("stop", "Don’t pay yet—confirm the payment request", "Check the quoted request and tell Warden what happened. This concern is not yet confirmed.");
+  }
+  const checks = c.checks ?? [];
+  const flaggedAnswer = (c.actions ?? []).some((a) => a.status === "done" && a.outcome === "flags");
+  if (checks.some((k) => k.state === "suspicious") || redFlags(c).length || flaggedAnswer) {
+    return pick("amber", "Don't pay yet", "There are concerns to clear up. Check the evidence and answer the open questions.");
+  }
+  if (c.decision?.verdict === "proceed_with_care") {
+    return pick("amber", "Proceed with care", "Some checks remain unresolved. Review the remaining steps before paying.");
+  }
   if (working) return pick("thinking", "Warden's agents are checking…", "This usually takes under a minute.");
 
-  const v = c.decision?.verdict;
-  if (v === "likely_scam") return pick("red", "This looks like a scam", `Don't pay anything. Warden found ${plural(n, "red flag", "red flags")}.`);
-  if (v === "not_verified") return pick("amber", "Don't pay yet", n ? `Key things aren't verified, and there ${n === 1 ? "is 1 red flag" : `are ${n} red flags`}.` : "Key things aren't verified yet.");
-  if (v === "proceed_with_care") return pick("green", "Proceed with care", "Nothing serious so far. Still see it in person before paying.");
-  if (v === "no_red_flags_remaining") return pick("green", "No red flags remaining", "Warden checked everything it could. Still see it in person before paying.");
+  const allCleared = checks.length === CHECK_ORDER.length &&
+    CHECK_ORDER.every((id) => checks.some((k) => k.id === id && k.state === "cleared"));
+  if (allCleared) {
+    return pick("green", "No red flags remaining", "All checks are cleared on the available evidence. This is not a guarantee.");
+  }
+  return pick("default", "Not verified yet", "Unverified checks remain. Add evidence or complete the open steps before paying.");
+}
 
-  if (openActions(c).some((a) => a.check_id === "payment_safety")) {
-    return pick("stop", "Stop before you pay", "Don't send any money until this is cleared.");
-  }
-  if (flags.some((f) => f.hard_flag)) {
-    return pick("red", "This could be a scam", `Don't pay anything. ${plural(n, "red flag", "red flags")} so far.`);
-  }
-  if (n) return pick("amber", "Some things don't add up", `${plural(n, "red flag", "red flags")} to look into before you pay.`);
-  if ((c.checks ?? []).some((k) => k.state === "cleared")) {
-    return pick("green", "Nothing flagged so far", "Keep going: Warden can check more if you forward it.");
-  }
-  return pick("default", "Forward what they sent you", "Chats, emails, the listing link or the contract.");
+/** Display the exact backend score, using the same status as the headline and mascot. */
+export function riskDisplay(c: Case, status: Mood) {
+  return { value: currentScore(c), color: status.accent, headline: status.title, sub: status.sub };
+}
+
+export type CardStatus = "todo" | "done" | "answered" | "flagged" | "skipped";
+
+/** An answered question only earns a positive badge when its outcome actually clears a check. */
+export function actionCardStatus(a: Action): CardStatus {
+  const status = a.status ?? "open";
+  if (status === "open") return "todo";
+  if (status === "skipped" || status === "impossible") return "skipped";
+  if (a.outcome === "flags") return "flagged";
+  return a.outcome === "clears" ? "done" : "answered";
 }
 
 /** Cleared findings (e.g. "Active on Companies House"), most confident first, for "What checks out". */

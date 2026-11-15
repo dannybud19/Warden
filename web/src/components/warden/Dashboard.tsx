@@ -19,11 +19,11 @@ const card = "rounded-[22px] border border-white bg-white/85 shadow-card backdro
 
 export const PILL: Record<Mood["state"], { bg: string; fg: string; dot: string; label: string }> = {
   red: { bg: "#fcebe7", fg: "#9a3a27", dot: "/warden/dot-red.svg", label: "Likely scam · don't pay" },
-  stop: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Stop · don't pay yet" },
-  amber: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Don't pay yet" },
-  green: { bg: "#e0f4ec", fg: "#1f6e58", dot: "/warden/dot-green.svg", label: "No red flags so far" },
+  stop: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Payment confirmation" },
+  amber: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Needs attention" },
+  green: { bg: "#e0f4ec", fg: "#1f6e58", dot: "/warden/dot-green.svg", label: "No red flags remaining" },
   thinking: { bg: "#e3f4f5", fg: "#0f6d74", dot: "/warden/dot-teal.svg", label: "Checking" },
-  default: { bg: "#e3f4f5", fg: "#0f6d74", dot: "/warden/dot-teal.svg", label: "Waiting for evidence" },
+  default: { bg: "#e3f4f5", fg: "#0f6d74", dot: "/warden/dot-teal.svg", label: "Not verified" },
 };
 
 // ---- Breadcrumb: back to all homes ----

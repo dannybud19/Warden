@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 import { Cell, Pie, PieChart, Tooltip } from "recharts";
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
-import type { Mood } from "@/lib/present";
+import { riskDisplay, type Mood } from "@/lib/present";
 import { SETTLE, sourceOf, tiles } from "@/lib/dashboard";
-import { currentScore, detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors";
+import { detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors";
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
 import { PAYMENT_NOTE, addedBySlot, type AddSlot } from "@/lib/evidence";
 import { useRouter } from "next/navigation";
@@ -20,9 +20,7 @@ import { Mascot, SourceLinks, rise } from "./primitives";
 import { PILL } from "./Dashboard";
 
 const RED = "#e06a52";
-const AMBER = "#d99a2b";
 const GREEN = "#2e9a7c";
-const TEAL = "#138a93";
 const TRACK = "#e6eef0";
 
 const card = "rounded-[24px] border border-white bg-white/90 shadow-card backdrop-blur-[15px]";
@@ -61,64 +59,9 @@ function ago(iso: string | undefined, tick: number | null): string | null {
   return `${d} day${d === 1 ? "" : "s"} ago`;
 }
 
-// ---- risk level from the case ----
-
-interface Risk {
-  label: string;
-  color: string;
-  value: number;
-  headline: string;
-  sub: string;
-  danger: boolean;
-}
-
-function riskOf(c: Case, mood: Mood, flags: number): Risk {
-  const score = Math.round(currentScore(c));
-  const plural = `${flags} red flag${flags === 1 ? "" : "s"}`;
-  if (mood.state === "thinking") {
-    return { label: "Checking", color: TEAL, value: score, headline: "Warden is checking…", sub: "This usually takes under a minute.", danger: false };
-  }
-  // "stop" is the payment checkpoint (an open question about how they'd pay), not a scam verdict:
-  // tell the student not to send money yet, with the real score and no danger styling.
-  if (mood.state === "stop") {
-    return {
-      label: flags ? "Medium risk" : "Unverified", color: AMBER, value: score, headline: `${mood.title}.`,
-      sub: flags ? `${mood.sub} ${plural} to clear up too.` : mood.sub, danger: false,
-    };
-  }
-  if (mood.state === "red") {
-    return {
-      label: "High risk", color: RED, value: Math.max(score, 80), headline: "Don't pay. Walk away from this one.",
-      sub: flags > 1 ? "Any one of these flags is reason enough to stop." : "This flag alone is reason enough to stop.", danger: true,
-    };
-  }
-  if (mood.state === "amber" || flags) {
-    return { label: "Medium risk", color: AMBER, value: Math.min(Math.max(score, 45), 79), headline: "Don't pay yet.", sub: `${plural} to clear up first. Settle the open checks below.`, danger: false };
-  }
-  if (mood.state === "green") {
-    return { label: "Low risk", color: GREEN, value: Math.min(score, 35), headline: "No red flags so far.", sub: "Still see it in person and sign before you pay anything.", danger: false };
-  }
-  return { label: "Not checked", color: "#9db0b4", value: score, headline: "Forward what they sent you.", sub: "Chats, emails, the listing link or the contract.", danger: false };
-}
-
-// ---- Gauge: a stylised radial gauge. A filled arc shades green → yellow → red up to the score, with the score in the middle ----
+// ---- Gauge: the backend score sets the arc length; the case status sets its colour. ----
 
 const DIAL = { cx: 130, cy: 124, r: 100, width: 22, from: 210, sweep: 240, slices: 120 };
-const STOPS: [number, [number, number, number]][] = [
-  [0, [46, 154, 124]], // green
-  [0.5, [230, 180, 60]], // yellow
-  [1, [224, 106, 82]], // red
-];
-
-function zoneColor(t: number): string {
-  const i = t <= STOPS[1][0] ? 0 : 1;
-  const [t0, c0] = STOPS[i];
-  const [t1, c1] = STOPS[i + 1];
-  const k = (t - t0) / (t1 - t0);
-  const [r, g, b] = c0.map((c, j) => Math.round(c + (c1[j] - c) * k));
-  return `rgb(${r} ${g} ${b})`;
-}
-
 /** Point on the dial for a risk value 0..100 (0 bottom-left, 100 bottom-right). */
 function dialPoint(v: number, r = DIAL.r): [number, number] {
   const a = ((DIAL.from - (DIAL.sweep * v) / 100) * Math.PI) / 180;
@@ -131,11 +74,11 @@ function arcPath(v0: number, v1: number): string {
   return `M ${x0} ${y0} A ${DIAL.r} ${DIAL.r} 0 0 1 ${x1} ${y1}`;
 }
 
-// The arc is drawn as thin slices so its colour can follow the green → red scale.
+// Thin slices keep the existing arc animation while using one status colour.
 const SLICES = Array.from({ length: DIAL.slices }, (_, i) => {
   const v0 = (i / DIAL.slices) * 100;
   const v1 = ((i + 1) / DIAL.slices) * 100;
-  return { v0, v1, d: arcPath(v0, Math.min(100, v1 + 0.3)), color: zoneColor((v0 + v1) / 200) };
+  return { v0, v1, d: arcPath(v0, Math.min(100, v1 + 0.3)) };
 });
 
 /** A tapered needle from the hub to just inside the arc. */
@@ -147,12 +90,11 @@ function needlePath(v: number): string {
   return `M ${tx} ${ty} L ${lx} ${ly} L ${bx} ${by} L ${rx} ${ry} Z`;
 }
 
-function RiskGauge({ risk, flags }: { risk: Risk; flags: number }) {
+function RiskGauge({ risk }: { risk: ReturnType<typeof riskDisplay> }) {
   const mv = useMotionValue(0);
-  const shown = useTransform(mv, (v) => Math.round(v));
   const needle = useTransform(mv, needlePath);
   const [n, setN] = useState(0);
-  useEffect(() => shown.on("change", setN), [shown]);
+  useEffect(() => mv.on("change", setN), [mv]);
   useEffect(() => {
     const ctl = animate(mv, risk.value, { duration: 1.4, ease: [0.22, 1, 0.36, 1] });
     return () => ctl.stop();
@@ -162,21 +104,20 @@ function RiskGauge({ risk, flags }: { risk: Risk; flags: number }) {
   const [ex, ey] = dialPoint(Math.max(n, 0.5));
   const [hx, hy] = dialPoint(100);
   return (
-    <div className="relative h-[214px] w-[260px] shrink-0" role="img" aria-label={`${risk.label}: risk ${risk.value} out of 100, ${flags} red flags`}>
+    <div className="relative h-[214px] w-[260px] shrink-0" role="img" aria-label={`Risk score: ${risk.value} out of 100. ${risk.headline}`}>
       <svg width={260} height={200} viewBox="0 0 260 200" className="overflow-visible">
-        {/* the full scale, faded as one layer so the slices don't show seams */}
-        <g opacity={0.18}>
+        <g>
           {SLICES.map((sl) => (
-            <path key={`t${sl.v0}`} d={sl.d} fill="none" stroke={sl.color} strokeWidth={DIAL.width} />
+            <path key={`t${sl.v0}`} d={sl.d} fill="none" stroke={TRACK} strokeWidth={DIAL.width} />
           ))}
-          <circle cx={hx} cy={hy} r={DIAL.width / 2} fill={zoneColor(1)} />
+          <circle cx={hx} cy={hy} r={DIAL.width / 2} fill={TRACK} />
         </g>
-        <circle cx={sx} cy={sy} r={DIAL.width / 2} fill={zoneColor(0)} />
+        <circle cx={sx} cy={sy} r={DIAL.width / 2} fill={risk.color} />
         {/* filled up to the score */}
         {SLICES.filter((sl) => sl.v0 < n).map((sl) => (
-          <path key={sl.v0} d={sl.v1 > n ? arcPath(sl.v0, n) : sl.d} fill="none" stroke={sl.color} strokeWidth={DIAL.width} />
+          <path key={sl.v0} d={sl.v1 > n ? arcPath(sl.v0, n) : sl.d} fill="none" stroke={risk.color} strokeWidth={DIAL.width} />
         ))}
-        <circle cx={ex} cy={ey} r={DIAL.width / 2} fill={zoneColor(Math.max(n, 0.5) / 100)} />
+        <circle cx={ex} cy={ey} r={DIAL.width / 2} fill={risk.color} />
         <circle cx={ex} cy={ey} r={5} fill="white" />
         <motion.path d={needle} fill="#17393e" style={{ filter: "drop-shadow(0 2px 3px rgba(16,40,44,.25))" }} />
         <circle cx={DIAL.cx} cy={DIAL.cy} r={9} fill="#17393e" />
@@ -184,9 +125,9 @@ function RiskGauge({ risk, flags }: { risk: Risk; flags: number }) {
       </svg>
       <div className="absolute inset-x-0 top-[142px] text-center">
         <p className="text-[34px] font-semibold leading-none tracking-[-0.04em] tabular-nums" style={{ color: risk.color }}>
-          {n}<span className="text-[14px] font-medium text-muted">/100</span>
+          {risk.value}<span className="text-[14px] font-medium text-muted">/100</span>
         </p>
-        <p className="mt-1.5 text-[16px] font-medium leading-none" style={{ color: risk.color }}>{risk.label}</p>
+        <p className="mt-1.5 text-[16px] font-medium leading-none" style={{ color: risk.color }}>Risk score</p>
       </div>
     </div>
   );
@@ -298,8 +239,8 @@ function RemoveHome({ caseId }: { caseId: string }) {
 
 // ---- 2. Verdict card: gauge + headline + decision ----
 
-export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: number }) {
-  const risk = riskOf(c, mood, flags);
+export function VerdictCard({ c, mood }: { c: Case; mood: Mood }) {
+  const risk = riskDisplay(c, mood);
   const pill = PILL[mood.state];
   const tick = useSyncExternalStore(subscribeMinute, nowSnapshot, () => null);
   const history = c.score_history ?? [];
@@ -307,7 +248,7 @@ export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: nu
 
   return (
     <motion.section variants={rise} className={`${card} flex items-center gap-8 px-8 py-7`}>
-      <RiskGauge risk={risk} flags={flags} />
+      <RiskGauge risk={risk} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium" style={{ background: pill.bg, color: pill.fg }}>
@@ -322,7 +263,9 @@ export function VerdictCard({ c, mood, flags }: { c: Case; mood: Mood; flags: nu
             <p className="mt-2.5 text-[16px] text-ink/70">{risk.sub}</p>
           </motion.div>
         </AnimatePresence>
-
+        <p className="mt-4 text-[13px] leading-[1.5] text-muted">
+          Unverified checks keep this score high. It is not a probability of a scam.
+        </p>
       </div>
     </motion.section>
   );

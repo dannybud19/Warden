@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test tests/*.test.mjs",
     "pretypecheck": "node scripts/copy-fixture.mjs",
     "typecheck": "tsc --noEmit"
   },
