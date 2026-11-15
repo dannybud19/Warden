@@ -5,7 +5,7 @@ import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, PhoneOff, X } from "lucide-react";
 import { WardenOrb, type OrbMode } from "./WardenOrb";
 import { ApiError, type DebriefAnswer, type DebriefInput, type DebriefLine } from "@/lib/api";
-import { formatQuestions, isOpenAction, openQuestions } from "@/lib/callQuestions";
+import { callBriefing, formatQuestions, isOpenAction, openQuestions } from "@/lib/callQuestions";
 import type { Case } from "@/lib/types";
 
 /** What Warden knows about this home when the call starts (ElevenLabs dynamic variables). */
@@ -110,6 +110,8 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
           .slice(0, 3);
         return formatQuestions(next);
       },
+      // The same briefing, rebuilt from the case as it is now (checks may finish mid-call).
+      get_case_briefing: () => callBriefing(caseRef.current),
       record_answer: (params: Record<string, unknown>) => {
         const actionId = typeof params.action_id === "string" ? params.action_id.trim() : "";
         const answer = typeof params.answer === "string" ? params.answer.trim() : "";
@@ -152,7 +154,12 @@ function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
         startSession({
           conversationToken: body.token,
           connectionType: "webrtc",
-          dynamicVariables: { ...context, open_questions: formatQuestions(openQuestions(caseRef.current, 5)) },
+          dynamicVariables: {
+            ...context,
+            open_questions: formatQuestions(openQuestions(caseRef.current, 5)),
+            // What the checker agents found in the chats, emails and documents so far.
+            case_briefing: callBriefing(caseRef.current),
+          },
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
