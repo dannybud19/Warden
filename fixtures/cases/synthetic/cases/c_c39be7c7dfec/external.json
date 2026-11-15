@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "Northbank Example Lettings Ltd confirms its tenant portal at https://portal.northbank.example/booking/2647; no travel-platform affiliation is claimed.",
+        "title": "agency portal"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/agency_portal"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_c39be7c7dfec_x1",
+      "key": "agency_portal",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Northbank Example Lettings Ltd",
+        "portal"
+      ],
+      "snippet": "Northbank Example Lettings Ltd confirms its tenant portal at https://portal.northbank.example/booking/2647; no travel-platform affiliation is claimed.",
+      "title": "agency portal",
+      "url": "https://records.example/agency_portal"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

@@ -1,0 +1,4 @@
+Alex Reed: Can I reserve Flat 2, 67 Example Mews, London W12 8QT after the viewing?
+Rowan Pike: Use https://airbnb-reservation.example/pay to send the deposit now; this is the official Airbnb payment page.
+Alex Reed: I cannot find that reservation in my account. Can I open it through the app?
+Rowan Pike: Do not use the app. Payment must happen before any viewing and only through that link.

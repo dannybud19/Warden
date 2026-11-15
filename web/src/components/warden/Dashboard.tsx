@@ -11,7 +11,7 @@ import {
   type StepTone, type Tile,
 } from "@/lib/dashboard";
 import { formatRent, shortAddress } from "@/lib/homes";
-import { detailText, sourceUrls } from "@/lib/selectors";
+import { detailText, sourceUrls, quoteSource } from "@/lib/selectors";
 import { Mascot, PillButton, SourceLinks, rise } from "./primitives";
 import { ShareButton } from "./FeaturedHome";
 
@@ -328,7 +328,7 @@ export function CheckMap({
             transition={{ duration: 0.22 }}
             className="p-5"
           >
-            <TileDetail t={t} disabled={disabled} onUpload={onUpload} />
+            <TileDetail c={c} t={t} disabled={disabled} onUpload={onUpload} />
           </motion.div>
         </AnimatePresence>
       </div>
@@ -336,7 +336,7 @@ export function CheckMap({
   );
 }
 
-function TileDetail({ t, disabled, onUpload }: { t: Tile; disabled: boolean; onUpload: (kind: EvidenceKind, file: File) => void }) {
+function TileDetail({ c, t, disabled, onUpload }: { c: Case; t: Tile; disabled: boolean; onUpload: (kind: EvidenceKind, file: File) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const look = TILE_LOOK[t.state];
   const settle = SETTLE[t.id];
@@ -357,9 +357,12 @@ function TileDetail({ t, disabled, onUpload }: { t: Tile; disabled: boolean; onU
                 <p className="text-[16px] font-medium leading-[1.35]">{f.title}</p>
                 <p className="mt-0.5 text-[12.5px] text-muted">{sourceOf(f)}</p>
                 {quote && (
-                  <blockquote className="mt-2 border-l-2 border-aqua pl-3 text-[13.5px] italic leading-[1.5] text-ink/75">
-                    “{quote}”
-                  </blockquote>
+                  <figure className="mt-2">
+                    <blockquote className="border-l-2 border-aqua pl-3 text-[13.5px] italic leading-[1.5] text-ink/75">
+                      “{quote}”
+                    </blockquote>
+                    <figcaption className="mt-1 pl-3 text-[12px] text-muted">{quoteSource(c, f.evidence![0])}</figcaption>
+                  </figure>
                 )}
                 {!quote && detailText(f) && <p className="mt-1.5 text-[13.5px] leading-[1.5] text-ink/75">{detailText(f)}</p>}
                 <SourceLinks urls={sourceUrls(f)} className="mt-1.5" />

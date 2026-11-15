@@ -1,0 +1,4 @@
+Room to rent: Flat 2, 38 Example Mews, London W12 8QT
+Advert URL: https://listings.example/homes/8118
+Rent: GBP 1300 per calendar month.
+Tenancy deposit: GBP 1500.

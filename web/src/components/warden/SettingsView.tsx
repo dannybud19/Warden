@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { STUDENT_NAME_KEY } from "@/lib/config";
 import { useLocalJSON, useLocalString, writeLocal } from "@/lib/localStore";
 import { AnimatedWarden } from "./AnimatedWarden";
-import { PageShell } from "./PageShell";
 import { Dot, PillButton, rise, stagger } from "./primitives";
 
 const card = "rounded-[24px] border border-white bg-white/85 p-6 shadow-card backdrop-blur-[15px]";
@@ -84,7 +83,7 @@ export function SettingsView() {
   }
 
   return (
-    <PageShell active="Settings">
+    <>
       <motion.main variants={stagger} initial="hidden" animate="show" className="mx-auto mt-10 flex max-w-[760px] flex-col gap-5">
         <motion.div variants={rise} className="flex items-center gap-5">
           <AnimatedWarden state="default" width={110} />
@@ -164,6 +163,6 @@ export function SettingsView() {
           </div>
         </motion.section>
       </motion.main>
-    </PageShell>
+    </>
   );
 }

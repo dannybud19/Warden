@@ -1,0 +1,32 @@
+{
+  "http_routes": [
+    {
+      "json": {
+        "content": "The selling agent confirms Mira Vale is selling Flat 2, 64 Example Mews, London W12 8QT and has not authorised Rowan Pike to advertise a tenancy.",
+        "title": "selling agent record"
+      },
+      "method": "GET",
+      "status": 200,
+      "url": "https://records.example/selling_agent_record"
+    }
+  ],
+  "live_network_allowed": false,
+  "records": [
+    {
+      "company_status": null,
+      "id": "c_9e84e913852a_x1",
+      "key": "selling_agent_record",
+      "outcome": "found",
+      "query_alternatives": [],
+      "query_terms": [
+        "Flat 2, 64 Example Mews, London W12 8QT",
+        "sale"
+      ],
+      "snippet": "The selling agent confirms Mira Vale is selling Flat 2, 64 Example Mews, London W12 8QT and has not authorised Rowan Pike to advertise a tenancy.",
+      "title": "selling agent record",
+      "url": "https://records.example/selling_agent_record"
+    }
+  ],
+  "schema_version": "1.0",
+  "unmatched_request": "error"
+}

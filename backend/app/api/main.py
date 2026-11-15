@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.aggregators.scoring.scoring import load_weights
-from app.api import routes_cases, routes_stream
+from app.api import routes_cases, routes_listing, routes_stream
+from app.core.agent import AgentContext
 from app.core.factory import build_context
 from app.core.settings import Settings, get_settings
 from app.orchestrator.conversation import InvalidActionError
@@ -16,34 +17,48 @@ from app.orchestrator.events import EventBus
 from app.orchestrator.registry import build_agents
 from app.orchestrator.service import CaseClosedError, CaseNotFoundError, CaseService
 from app.storage.memory import InMemoryCaseRepo
+from app.storage.mongo import MongoCaseRepo
 from app.storage.repository import CaseRepository
 
 
 def _build_repo(settings: Settings) -> CaseRepository:
     if settings.storage == "mongo":
-        from app.storage.mongo import MongoCaseRepo
-
         return MongoCaseRepo(settings.mongodb_uri, settings.mongodb_db)
     return InMemoryCaseRepo()
+
+
+async def _check_storage(repo: CaseRepository, ctx: AgentContext) -> None:
+    """With Mongo storage, ping the cluster at startup so a bad URI fails now, not mid-demo."""
+    if not isinstance(repo, MongoCaseRepo):
+        return
+    try:
+        await repo.ping()
+    except Exception:
+        ctx.log.exception("MongoDB is unreachable: check MONGODB_URI in .env")
+        raise
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the app: settings, repo, event bus, agents, context and CaseService on app.state."""
     settings = settings or get_settings()
     ctx = build_context(settings)
+    repo = _build_repo(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        await _check_storage(repo, ctx)
         yield
         await app.state.service.shutdown()
         await ctx.http.aclose()
+        if isinstance(repo, MongoCaseRepo):
+            repo.close()
 
     app = FastAPI(title="Rental Scam Shield", lifespan=lifespan)
     bus = EventBus()
     app.state.settings = settings
     app.state.bus = bus
     app.state.service = CaseService(
-        repo=_build_repo(settings),
+        repo=repo,
         bus=bus,
         agents=build_agents(settings),
         ctx=ctx,
@@ -71,6 +86,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(routes_cases.router)
     app.include_router(routes_stream.router)
+    app.include_router(routes_listing.router)
     return app
 
 

@@ -91,7 +91,9 @@ Owned: `app/orchestrator/`, `app/api/`, `app/storage/mongo.py`.
 1. Replace `conversation.parse` with an LLM version. Input: open actions (id, check, text) and the
    student's message. Output model: `list[{action_id, status: done|skipped|impossible, answer, outcome}]`.
    Prompt rules: only mark an action done if the message answers it; "the agent refused" means `flags`;
-   unclear means `neutral`. Keep the keyword version as a fallback when the LLM call fails.
+   unclear means `neutral`. Keep the keyword version as a fallback when the LLM call fails, used only
+   when the reply targets an action or exactly one action is open (built Sat 21:00: see
+   `docs/architecture.md` section 7).
 2. Have `parse` also return structured updates when the student gives them (company number, landlord
    name, rent, deposit, viewing date) and apply them to `case.landlord`, `case.listing` and `case.student`.
 3. Add an `orchestrator_message` composer: one short, plain message per round that tells the student
@@ -172,6 +174,11 @@ Owned: `app/intake/`.
 ### WS D: Message checker (Georgi)
 
 Owned: `app/agents/message_checker/`.
+Evaluation fixes (Bill, delegated by the team): payment rules distinguish demands from denials and
+post-viewing terms; owner facts require an explicit role; an owner abroad with local viewing access is
+not an access warning. All payment hard flags now require student confirmation in the orchestrator,
+while unrelated hard flags remain immediate. No/unsure preserves the concern and requests clarification.
+
 1. `rules.py`: pure functions over `case.messages`, each returning findings:
    - payment before viewing: payment words (deposit, transfer, pay, holding fee, bank details) in agent
      messages AND no evidence of a completed viewing. payment_safety, critical, hard_flag when explicit.

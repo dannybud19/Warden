@@ -1,0 +1,560 @@
+{
+  "case_id": "c_c39be7c7dfec",
+  "family": "fake_platform_link",
+  "variant": "paraphrase",
+  "truth": "genuine",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 10337,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 83.0,
+  "suspicious_checks": [
+    "no_pressure"
+  ],
+  "cleared_checks": [
+    "payment_safety",
+    "in_person_viewing"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_c39be7c7dfec",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_c39be7c7dfec",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/2647",
+      "platform": "rental listing",
+      "address": "Flat 2, 67 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_c39be7c7dfec_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I received https://portal.northbank.example/booking/2647. Is it a platform reservation link?\nRowan Pike: It is Northbank Example Lettings Ltd's own tenant portal, not an Airbnb page. Our independently listed agency contact can direct you to it.\nAlex Reed: We completed the in-person viewing on 13 November 2026 at 16:00. When is payment due?\nRowan Pike: Only after you review and sign the agreement. The rent is GBP 1300 and deposit GBP 1500.\n",
+        "note": null
+      },
+      {
+        "id": "c_c39be7c7dfec_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 67 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_c39be7c7dfec_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 67 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/2647\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_c39be7c7dfec_m1",
+        "evidence_id": "c_c39be7c7dfec_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I received https://portal.northbank.example/booking/2647. Is it a platform reservation link?"
+      },
+      {
+        "id": "c_c39be7c7dfec_m2",
+        "evidence_id": "c_c39be7c7dfec_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "It is Northbank Example Lettings Ltd's own tenant portal, not an Airbnb page. Our independently listed agency contact can direct you to it."
+      },
+      {
+        "id": "c_c39be7c7dfec_m3",
+        "evidence_id": "c_c39be7c7dfec_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "We completed the in-person viewing on 13 November 2026 at 16:00. When is payment due?"
+      },
+      {
+        "id": "c_c39be7c7dfec_m4",
+        "evidence_id": "c_c39be7c7dfec_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Only after you review and sign the agreement. The rent is GBP 1300 and deposit GBP 1500."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "cleared",
+        "clear_confidence": 0.5,
+        "finding_ids": [
+          "message_checker:payment_after_viewing_via_portal"
+        ],
+        "reason": "Payment only after a viewing, through a traceable route"
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "cleared",
+        "clear_confidence": 0.7,
+        "finding_ids": [
+          "message_checker:viewing_completed"
+        ],
+        "reason": "An in-person viewing has taken place"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "suspicious",
+        "clear_confidence": 0.0,
+        "finding_ids": [
+          "emotion_classifier:pressure_authority"
+        ],
+        "reason": "Credibility you cannot check"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for Northbank Example Lettings Ltd's Companies House number so you can look the company up yourself. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:36.502835Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Mira Vale for proof that she owns Flat 2, 67 Example Mews or has the owner's permission to let it, for example the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:36.502835Z"
+      },
+      {
+        "id": "act_contract_received",
+        "check_id": "contract_consistency",
+        "kind": "action",
+        "text": "Ask Mira Vale for the tenancy agreement for Flat 2, 67 Example Mews before you pay anything, and upload it here. Did they send one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:55:36.502835Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.3.0",
+        "status": "ok",
+        "input_hash": "b980b69efc0b4c6c",
+        "findings": [
+          {
+            "id": "message_checker:viewing_completed",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "An in-person viewing has taken place",
+            "detail": "The messages show the property has already been seen in person.",
+            "category": "property",
+            "severity": "info",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "We completed the in-person viewing on 13 November 2026 at 16:00."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "message_checker:payment_after_viewing_via_portal",
+            "agent": "message_checker",
+            "check_id": "payment_safety",
+            "title": "Payment only after a viewing, through a traceable route",
+            "detail": "Money was only mentioned after the viewing, and is taken through a portal, card or the listing platform rather than a direct transfer.",
+            "category": "payment",
+            "severity": "info",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "Only after you review and sign the agreement."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_c39be7c7dfec_e1",
+            "agent": "message_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_c39be7c7dfec_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Did you check that the portal link was given to you by the agency's independently listed contact details?"
+        ],
+        "error": null,
+        "duration_ms": 2494
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "d0c60e934c061ea5",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The cap arithmetic is not disputed. Rent of GBP 1300 per calendar month gives annual rent of GBP 15,600, and 5 weeks is GBP 1,500.00, which equals the stated deposit of GBP 1500. So the amount is at the cap, not above it. This is a limited amount-cap pass only. The contract does not say the property is in England (the address is in London, but jurisdiction is recorded as unknown), and tenancy type and scope are unknown. It also does not confirm that rent and deposit cover the same whole tenancy. No counter-evidence defeats the issue, so it is not dismissed. The result says nothing about deposit protection or authenticity. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_c39be7c7dfec_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_c39be7c7dfec_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 67 Example Mews, London W12 8QT",
+            "source": "c_c39be7c7dfec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_c39be7c7dfec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_c39be7c7dfec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_c39be7c7dfec_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_c39be7c7dfec_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 5544
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "a3083a94dfa49344",
+        "findings": [
+          {
+            "id": "emotion_classifier:pressure_authority",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "Credibility you cannot check",
+            "detail": "This borrows credibility without saying where the contact is listed or by whom; the plain version would name the listing so you can look at it yourself.",
+            "category": "pressure",
+            "severity": "medium",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "independently listed"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The link is the own tenant portal of Northbank Example Lettings Ltd and is not an Airbnb page. • An agency contact described as independently listed can direct the student to the portal. • An in-person viewing took place on 13 November 2026 at 16:00. • Payment is due only after the student reviews and signs the agreement. • The rent is GBP 1300. • The deposit is GBP 1500.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "It is Northbank Example Lettings Ltd's own tenant portal, not an Airbnb page."
+              },
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "Our independently listed agency contact can direct you to it."
+              },
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "We completed the in-person viewing on 13 November 2026 at 16:00."
+              },
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "Only after you review and sign the agreement."
+              },
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "The rent is GBP 1300"
+              },
+              {
+                "evidence_id": "c_c39be7c7dfec_e1",
+                "quote": "deposit GBP 1500"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 8375
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:55:34.546320Z",
+        "score": 83.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 10.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 3.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false
+}

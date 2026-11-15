@@ -16,6 +16,10 @@ class MongoCaseRepo:
     def _doc(case: Case) -> dict[str, Any]:
         return {"_id": case.case_id, **case.model_dump(mode="json")}
 
+    async def ping(self) -> None:
+        """Fail fast when the cluster is unreachable (motor connects lazily)."""
+        await self._client.admin.command("ping")
+
     async def create(self, case: Case) -> Case:
         """Insert a new case and return it."""
         await self._cases.insert_one(self._doc(case))

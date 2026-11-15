@@ -22,23 +22,23 @@ export interface HomeStatusMeta {
 
 export const HOME_STATUS: Record<HomeStatus, HomeStatusMeta> = {
   likely_scam: {
-    label: "Likely scam", countLabel: (n) => `${n} likely scam`, dot: "/warden/dot-red.svg",
+    label: "Likely scam", countLabel: (n) => `${n} ${n === 1 ? "home looks" : "homes look"} like a scam`, dot: "/warden/dot-red.svg",
     bar: "#e06a52", folder: ["#fbe6e1", "#f5d3ca"], rank: 0,
   },
   not_verified: {
-    label: "Don't pay yet", countLabel: (n) => `${n} don't pay yet`, dot: "/warden/dot-amber.svg",
+    label: "Don't pay yet", countLabel: (n) => `${n} ${n === 1 ? "home" : "homes"} to check before paying`, dot: "/warden/dot-amber.svg",
     bar: "#d99a2b", folder: ["#fbf2df", "#f3e3c2"], rank: 1,
   },
   proceed_with_care: {
-    label: "Proceed with care", countLabel: (n) => `${n} proceed with care`, dot: "/warden/dot-green.svg",
+    label: "Proceed with care", countLabel: (n) => `${n} ${n === 1 ? "home looks" : "homes look"} OK so far`, dot: "/warden/dot-green.svg",
     bar: "#2e9a7c", folder: ["#e0f4ec", "#c9eadd"], rank: 3,
   },
   no_red_flags_remaining: {
-    label: "No red flags remaining", countLabel: (n) => `${n} no red flags remaining`, dot: "/warden/dot-green.svg",
+    label: "No red flags remaining", countLabel: (n) => `${n} ${n === 1 ? "home" : "homes"} with no red flags`, dot: "/warden/dot-green.svg",
     bar: "#2e9a7c", folder: ["#e0f4ec", "#c9eadd"], rank: 4,
   },
   checking: {
-    label: "Checking", countLabel: (n) => `${n} checking`, dot: "/warden/dot-teal.svg",
+    label: "Checking", countLabel: (n) => `${n} ${n === 1 ? "home" : "homes"} being checked`, dot: "/warden/dot-teal.svg",
     bar: "#138a93", folder: ["#ddf1f3", "#c4e6e9"], rank: 2,
   },
 };
@@ -176,6 +176,18 @@ export function rememberCase(caseId: string): void {
     if (!ids.includes(caseId)) localStorage.setItem(KEY, JSON.stringify([caseId, ...ids]));
   } catch {
     /* storage unavailable: the home list falls back to samples */
+  }
+  listeners.forEach((l) => l());
+}
+
+/** Removes a home from this browser's list (the case itself stays on the server). */
+export function forgetCase(caseId: string): void {
+  try {
+    const ids = JSON.parse(read()) as string[];
+    localStorage.setItem(KEY, JSON.stringify(ids.filter((id) => id !== caseId)));
+    localStorage.removeItem(`warden.chat.${caseId}`);
+  } catch {
+    /* storage unavailable */
   }
   listeners.forEach((l) => l());
 }

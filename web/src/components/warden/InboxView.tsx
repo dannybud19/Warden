@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { AGENT_PROFILE, shortWhen, useWardenData, type Activity } from "@/lib/activity";
 import { useLocalJSON } from "@/lib/localStore";
 import { AnimatedWarden } from "./AnimatedWarden";
-import { PageShell } from "./PageShell";
 
 interface Message {
   id: string;
@@ -49,7 +48,7 @@ export function InboxView() {
   const markRead = (id: string) => !readSet.has(id) && setRead([...read, id]);
 
   return (
-    <PageShell active="Inbox">
+    <>
       <main className="mx-auto mt-10 max-w-[760px]">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -156,6 +155,6 @@ export function InboxView() {
           )}
         </div>
       </main>
-    </PageShell>
+    </>
   );
 }

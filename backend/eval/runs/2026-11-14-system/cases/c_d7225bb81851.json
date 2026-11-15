@@ -1,0 +1,797 @@
+{
+  "case_id": "c_d7225bb81851",
+  "family": "robustness",
+  "variant": "robustness",
+  "truth": "unknown",
+  "label_review": "pending_agent_owner_review",
+  "run_status": "degraded",
+  "runner_error": null,
+  "latency_ms": 7920,
+  "outcome": "pending",
+  "allowed_outcome": true,
+  "final_score": 87.0,
+  "suspicious_checks": [],
+  "cleared_checks": [
+    "in_person_viewing",
+    "no_pressure"
+  ],
+  "agent_statuses": {
+    "video_analysis": "skipped",
+    "companies_house": "error",
+    "message_checker": "ok",
+    "contract_checker": "ok",
+    "emotion_classifier": "ok",
+    "crosscheck": "ok"
+  },
+  "hard_flags": [],
+  "logs": [
+    {
+      "level": "WARNING",
+      "message": "companies_house: GET https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20 failed: 503 after 3 attempts"
+    }
+  ],
+  "external_audit": {
+    "case_id": "c_d7225bb81851",
+    "policy": "Declared evidence only; missing requests are unavailable, never negative.",
+    "live_network_allowed": false,
+    "requests": [
+      {
+        "sequence": 1,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 2,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      },
+      {
+        "sequence": 3,
+        "transport": "http",
+        "request": "https://api.company-information.service.gov.uk/search/companies?q=Northbank+Example+Lettings+Ltd&items_per_page=20",
+        "classification": "missing_fixture",
+        "status": 503,
+        "method": "GET",
+        "reason": "Endpoint or request parameters are outside the fixture coverage.",
+        "fixture_ids": [],
+        "provenance": [],
+        "fixture_route": null,
+        "response_body": {
+          "error": "No declared evidence for this request"
+        }
+      }
+    ]
+  },
+  "result_case": {
+    "case_id": "c_d7225bb81851",
+    "created_at": "2026-11-14T12:00:00Z",
+    "status": "open",
+    "student": {
+      "budget_pcm": 1500,
+      "move_in_date": "2026-12-01",
+      "university": null,
+      "notes": null
+    },
+    "listing": {
+      "url": "https://listings.example/homes/3794",
+      "platform": "rental listing",
+      "address": "Flat 2, 14 Example Mews, London W12 8QT",
+      "postcode": "W12 8QT",
+      "rent_pcm": 1300,
+      "deposit": 1500,
+      "description": null
+    },
+    "landlord": {
+      "name": "Mira Vale",
+      "company_name": "Northbank Example Lettings Ltd",
+      "company_number": null,
+      "email": null,
+      "phone": null
+    },
+    "evidence": [
+      {
+        "id": "c_d7225bb81851_e1",
+        "kind": "chat_export",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "chat.txt",
+        "file_url": null,
+        "extracted_text": "Alex Reed: I viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00. Please confirm the monthly rent before I sign.\nRowan Pike: The rent for the room is GBP 1400 per calendar month, excluding bills. There are no optional services in that figure.\nAlex Reed: The draft you sent says GBP 1300 per calendar month. Both figures refer to the same room and the same tenancy. Which amount should the agreement use?\nRowan Pike: Please wait before signing or paying. I need to check which draft is current and send a corrected agreement.\n",
+        "note": null
+      },
+      {
+        "id": "c_d7225bb81851_e2",
+        "kind": "contract",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "contract.txt",
+        "file_url": null,
+        "extracted_text": "Tenancy agreement\nProperty: Flat 2, 14 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+        "note": null
+      },
+      {
+        "id": "c_d7225bb81851_e3",
+        "kind": "listing",
+        "uploaded_at": "2026-11-14T12:00:00Z",
+        "filename": "listing.txt",
+        "file_url": null,
+        "extracted_text": "Room to rent: Flat 2, 14 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/3794\nRent: GBP 1300 per calendar month.\nTenancy deposit: GBP 1500.\n",
+        "note": null
+      }
+    ],
+    "messages": [
+      {
+        "id": "c_d7225bb81851_m1",
+        "evidence_id": "c_d7225bb81851_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:56:00Z",
+        "channel": "whatsapp",
+        "text": "I viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00. Please confirm the monthly rent before I sign."
+      },
+      {
+        "id": "c_d7225bb81851_m2",
+        "evidence_id": "c_d7225bb81851_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:57:00Z",
+        "channel": "whatsapp",
+        "text": "The rent for the room is GBP 1400 per calendar month, excluding bills. There are no optional services in that figure."
+      },
+      {
+        "id": "c_d7225bb81851_m3",
+        "evidence_id": "c_d7225bb81851_e1",
+        "sender": "student",
+        "sent_at": "2026-11-14T11:58:00Z",
+        "channel": "whatsapp",
+        "text": "The draft you sent says GBP 1300 per calendar month. Both figures refer to the same room and the same tenancy. Which amount should the agreement use?"
+      },
+      {
+        "id": "c_d7225bb81851_m4",
+        "evidence_id": "c_d7225bb81851_e1",
+        "sender": "agent",
+        "sent_at": "2026-11-14T11:59:00Z",
+        "channel": "whatsapp",
+        "text": "Please wait before signing or paying. I need to check which draft is current and send a corrected agreement."
+      }
+    ],
+    "checks": [
+      {
+        "id": "landlord_identity",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "payment_safety",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "right_to_let",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "in_person_viewing",
+        "state": "cleared",
+        "clear_confidence": 0.7,
+        "finding_ids": [
+          "message_checker:viewing_completed"
+        ],
+        "reason": "An in-person viewing has taken place"
+      },
+      {
+        "id": "contract_consistency",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "deposit_protection",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      },
+      {
+        "id": "no_pressure",
+        "state": "cleared",
+        "clear_confidence": 0.6,
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "reason": "The agent gives you time to decide"
+      },
+      {
+        "id": "fair_price",
+        "state": "unverified",
+        "clear_confidence": 0.0,
+        "finding_ids": [],
+        "reason": null
+      }
+    ],
+    "actions": [
+      {
+        "id": "act_company_number",
+        "check_id": "landlord_identity",
+        "kind": "question",
+        "text": "Ask Mira Vale for the Companies House number for Northbank Example Lettings Ltd. Did they give you one?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:14:55.592989Z"
+      },
+      {
+        "id": "act_payment_method",
+        "check_id": "payment_safety",
+        "kind": "question",
+        "text": "Ask Mira Vale exactly how and when you would pay the £1,500 deposit and the first month's rent. Is it a card payment or bank transfer to the agency's or landlord's own named account, and only after a viewing?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:14:55.592989Z"
+      },
+      {
+        "id": "act_proof_of_ownership",
+        "check_id": "right_to_let",
+        "kind": "question",
+        "text": "Ask Mira Vale for proof that she owns Flat 2, 14 Example Mews or has the owner's permission to let it, such as the Land Registry title. Did they provide it?",
+        "status": "open",
+        "answer": null,
+        "answer_evidence_ids": [],
+        "outcome": null,
+        "asked_at": "2026-11-14T20:14:55.592989Z"
+      }
+    ],
+    "reports": {
+      "video_analysis": {
+        "agent": "video_analysis",
+        "version": "0.1.0",
+        "status": "skipped",
+        "input_hash": "06d40386bcb12acd",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "missing: video",
+        "duration_ms": 0
+      },
+      "companies_house": {
+        "agent": "companies_house",
+        "version": "0.1.0",
+        "status": "error",
+        "input_hash": "897d4167c66f8904",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": "companies house: 503 after 3 attempts",
+        "duration_ms": 0
+      },
+      "message_checker": {
+        "agent": "message_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "ed214dae9e369ba7",
+        "findings": [
+          {
+            "id": "message_checker:viewing_completed",
+            "agent": "message_checker",
+            "check_id": "in_person_viewing",
+            "title": "An in-person viewing has taken place",
+            "detail": "The messages show the property has already been seen in person.",
+            "category": "property",
+            "severity": "info",
+            "confidence": 0.7,
+            "evidence": [
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "I viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 14 Example Mews, London W12 8QT",
+            "source": "c_d7225bb81851_e1",
+            "agent": "message_checker"
+          }
+        ],
+        "questions": [
+          "Which monthly rent does the written agreement and the original listing say, 1300 or 1400? Can you get the agent to confirm it in writing?"
+        ],
+        "error": null,
+        "duration_ms": 3102
+      },
+      "contract_checker": {
+        "agent": "contract_checker",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "2f90cad0f38b09ca",
+        "findings": [
+          {
+            "id": "contract_checker:deposit_cap:3c598a73a4",
+            "agent": "contract_checker",
+            "check_id": "deposit_protection",
+            "title": "Deposit is within the amount cap",
+            "detail": "This amount check does not verify deposit protection or authenticity. Annual rent GBP 15600; cap = 15600 / 52 * 5 (GBP 1500.00 rounded down to pennies); requested GBP 1500. Importance: 85/100. Conditional: Confirm that the rented property is in England. Confirm this is an ordinary private tenancy, not an excluded arrangement. Confirm that rent and deposit cover the same whole tenancy. The arithmetic supports a limited pass. Rent of GBP 1300 per calendar month gives annual rent of GBP 15,600, and the five-week cap is GBP 1,500.00. The quoted deposit of GBP 1500 is exactly at the cap, so it does not exceed it. This applies only if the rule's scope is met. Jurisdiction is \"unknown\" and tenancy type is \"unknown\". Nothing supplied confirms that the property is in England or that this is an ordinary covered private tenancy rather than an excluded arrangement. The rent and deposit appear to refer to the same tenancy (s5, s6), but the answers do not confirm it. Nothing in the contract contradicts the cap calculation, so I found no counter-evidence to dismiss it. A compliant amount says nothing about deposit protection or authenticity, so the pass should not be read as endorsing either. Sources: https://www.gov.uk/guidance/tenant-fees-act-2019-guidance-for-tenants",
+            "category": "document",
+            "severity": "low",
+            "confidence": 0.5,
+            "evidence": [
+              {
+                "evidence_id": "c_d7225bb81851_e2",
+                "quote": "Tenancy deposit: GBP 1500."
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e2",
+                "quote": "Rent: GBP 1300 per calendar month."
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [
+          {
+            "key": "address",
+            "value": "Flat 2, 14 Example Mews, London W12 8QT",
+            "source": "c_d7225bb81851_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "landlord_name",
+            "value": "Mira Vale",
+            "source": "c_d7225bb81851_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "move_in_date",
+            "value": "1 December 2026",
+            "source": "c_d7225bb81851_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "rent_pcm",
+            "value": "1300",
+            "source": "c_d7225bb81851_e2",
+            "agent": "contract_checker"
+          },
+          {
+            "key": "deposit",
+            "value": "1500",
+            "source": "c_d7225bb81851_e2",
+            "agent": "contract_checker"
+          }
+        ],
+        "questions": [
+          "Is this a private tenancy in England with the landlord living elsewhere?",
+          "What rent period and tenancy does the deposit cover, and can the amount be revised?"
+        ],
+        "error": null,
+        "duration_ms": 6071
+      },
+      "emotion_classifier": {
+        "agent": "emotion_classifier",
+        "version": "0.2.0",
+        "status": "ok",
+        "input_hash": "fe633ebe272f5385",
+        "findings": [
+          {
+            "id": "emotion_classifier:no_pressure_stated",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "The agent gives you time to decide",
+            "detail": "The agent explicitly takes time pressure off, and no pressure language was found.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "Please wait before signing or paying."
+              }
+            ],
+            "supports": "cleared",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:stated_facts",
+            "agent": "emotion_classifier",
+            "check_id": "no_pressure",
+            "title": "What the messages actually state",
+            "detail": "• The student viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00. • The rent for the room is GBP 1400 per calendar month. • The rent excludes bills. • There are no optional services included in the rent figure. • The draft agreement sent states rent of GBP 1300 per calendar month. • Both rent figures refer to the same room and the same tenancy. • The agent will check which draft is current. • The agent will send a corrected agreement.",
+            "category": "pressure",
+            "severity": "info",
+            "confidence": 0.75,
+            "evidence": [
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "I viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00."
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "The rent for the room is GBP 1400 per calendar month"
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "excluding bills"
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "There are no optional services in that figure."
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "The draft you sent says GBP 1300 per calendar month."
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "Both figures refer to the same room and the same tenancy."
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "I need to check which draft is current"
+              },
+              {
+                "evidence_id": "c_d7225bb81851_e1",
+                "quote": "send a corrected agreement"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          },
+          {
+            "id": "emotion_classifier:rent_vs_area",
+            "agent": "emotion_classifier",
+            "check_id": "fair_price",
+            "title": "Rent above the area average",
+            "detail": "£1,300 a month against roughly £950 for a room in W12 (approximate area figure): about 37% higher. Not a scam sign, but worth knowing.",
+            "category": "pricing",
+            "severity": "info",
+            "confidence": 0.6,
+            "evidence": [
+              {
+                "evidence_id": "listing",
+                "quote": "£1,300 pcm"
+              }
+            ],
+            "supports": "suspicious",
+            "hard_flag": false
+          }
+        ],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 3899
+      },
+      "crosscheck": {
+        "agent": "crosscheck",
+        "version": "0.1.0",
+        "status": "ok",
+        "input_hash": "",
+        "findings": [],
+        "facts": [],
+        "questions": [],
+        "error": null,
+        "duration_ms": 0
+      }
+    },
+    "score_history": [
+      {
+        "at": "2026-11-14T12:00:00Z",
+        "score": 100.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 10.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 10.0,
+          "fair_price": 5.0
+        }
+      },
+      {
+        "at": "2026-11-14T20:14:53.748752Z",
+        "score": 87.0,
+        "contributions": {
+          "landlord_identity": 20.0,
+          "payment_safety": 20.0,
+          "right_to_let": 15.0,
+          "in_person_viewing": 3.0,
+          "contract_consistency": 10.0,
+          "deposit_protection": 10.0,
+          "no_pressure": 4.0,
+          "fair_price": 5.0
+        }
+      }
+    ],
+    "decision": null
+  },
+  "follow_up_used": false,
+  "grading": {
+    "status": "ok",
+    "case_id": "c_d7225bb81851",
+    "passed": false,
+    "counts": {
+      "met": 2,
+      "missed": 1
+    },
+    "expectations_passed": false,
+    "forbidden_assertions_passed": true,
+    "outcome": "pending",
+    "outcome_allowed": true,
+    "grounding_status": "failed",
+    "grounding_audit": [
+      {
+        "finding_id": "message_checker:viewing_completed",
+        "evidence_index": 0,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "I viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 0,
+        "evidence_id": "c_d7225bb81851_e2",
+        "quote": "Tenancy deposit: GBP 1500.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "evidence_id": "c_d7225bb81851_e2",
+        "quote": "Rent: GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:no_pressure_stated",
+        "evidence_index": 0,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "Please wait before signing or paying.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 0,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "I viewed Flat 2, 14 Example Mews, London W12 8QT on 13 November 2026 at 16:00.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 1,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "The rent for the room is GBP 1400 per calendar month",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 2,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "excluding bills",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 3,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "There are no optional services in that figure.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 4,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "The draft you sent says GBP 1300 per calendar month.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 5,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "Both figures refer to the same room and the same tenancy.",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 6,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "I need to check which draft is current",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:stated_facts",
+        "evidence_index": 7,
+        "evidence_id": "c_d7225bb81851_e1",
+        "quote": "send a corrected agreement",
+        "status": "raw_quote_match",
+        "reason": null
+      },
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "evidence_id": "listing",
+        "quote": "£1,300 pcm",
+        "status": "structured_source_match",
+        "reason": null
+      }
+    ],
+    "expectations": [
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [
+          {
+            "agent": "message_checker",
+            "question_index": 0
+          }
+        ],
+        "expectation_index": 0,
+        "judgement": "met",
+        "explanation": "message_checker question 0 asks which monthly rent (1300 or 1400) applies and asks for written confirmation, without guessing why they differ. The finding emotion_classifier:stated_facts also records the 1400 chat figure against the 1300 draft. No act_* action addresses it, but the question is enough."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 1,
+        "judgement": "missed",
+        "explanation": "emotion_classifier:stated_facts lists both figures, but it is marked 'info' and 'suspicious' under the no_pressure check. It does not call the difference an unresolved contract inconsistency. No finding sits under contract_consistency, and that check stays unverified. The contract_checker deposit finding cites the 1300 contract rent but never mentions the 1400 conflict. The question in message_checker does not count as a concern finding."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "expectation_index": 2,
+        "judgement": "met",
+        "explanation": "No output treats the agent's request to pause before signing or paying as pressure or as a demand for an immediate transfer. emotion_classifier:no_pressure_stated reads it as the agent taking time pressure off."
+      }
+    ],
+    "forbidden_assertions": [
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 0,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output says the rent discrepancy proves fraud. The message_checker question is neutral."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 1,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output attributes the GBP 100 difference to an administration fee."
+      },
+      {
+        "finding_ids": [
+          "emotion_classifier:stated_facts"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 2,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "The outputs report two different rent figures, 1400 in the chat and 1300 in the draft. None says the sources agree."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 3,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output says the student has paid anything."
+      },
+      {
+        "finding_ids": [],
+        "action_ids": [],
+        "agent_questions": [],
+        "forbidden_index": 4,
+        "judgement": "absent",
+        "output_quote": null,
+        "explanation": "No output describes the figures as weekly and monthly equivalents."
+      }
+    ],
+    "unsupported_claims": [
+      {
+        "finding_ids": [
+          "emotion_classifier:no_pressure_stated"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "output_quote": "The agent gives you time to decide",
+        "explanation": "The agent only said to wait while the current draft is checked. That does not clear no_pressure, especially with an unresolved rent conflict. The check state 'cleared' at 0.6 overstates what the source shows."
+      },
+      {
+        "finding_ids": [
+          "message_checker:viewing_completed"
+        ],
+        "action_ids": [],
+        "agent_questions": [],
+        "output_quote": "An in-person viewing has taken place",
+        "explanation": "This rests only on the student's own statement and no third-party evidence. The 0.7 confidence is moderate, so it is a minor overstatement."
+      }
+    ],
+    "grounding_issues": [
+      {
+        "finding_id": "emotion_classifier:rent_vs_area",
+        "evidence_index": 0,
+        "explanation": "The evidence_id 'listing' is not a real evidence ID, which is c_d7225bb81851_e3. The quote matches the structured listing rendering. The '£950 area figure' is also not supported by any source in the case."
+      },
+      {
+        "finding_id": "contract_checker:deposit_cap:3c598a73a4",
+        "evidence_index": 1,
+        "explanation": "The finding calculates the deposit cap from the 1300 contract rent. It does not mention that the chat gives 1400, and a 1400 rent would change the cap. The detail's own statements that it applies only if the rule's scope is met, and that the pass says nothing about deposit protection, partly offset this."
+      }
+    ],
+    "reviewer_note": "The rent conflict appears only as a question and in an info-level stated_facts finding. contract_consistency stays unverified with no linked finding, so the expected concern is missed. The no_pressure clearing is weakly supported."
+  },
+  "usage": {
+    "attempts": 6,
+    "completed_requests": 6,
+    "failed_requests": 0,
+    "unknown_billing_requests": 0,
+    "cost_usd": "0.095094",
+    "cost_usd_by_stage": {
+      "grading": "0.044306",
+      "agents": "0.050788"
+    },
+    "input_tokens": 30287,
+    "output_tokens": 3452,
+    "truncated_responses": 0,
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_verified_on": "2026-11-14",
+    "cost_basis": "Provider token usage at published list prices; before credits/tax.",
+    "budget_policy": "User removed GBP 5 limit for this finite 40-case evaluation."
+  }
+}

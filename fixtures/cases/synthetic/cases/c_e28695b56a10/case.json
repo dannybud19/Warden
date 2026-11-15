@@ -1,0 +1,152 @@
+{
+  "actions": [],
+  "case_id": "c_e28695b56a10",
+  "checks": [
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "landlord_identity",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "payment_safety",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "right_to_let",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "in_person_viewing",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "contract_consistency",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "deposit_protection",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "no_pressure",
+      "reason": null,
+      "state": "unverified"
+    },
+    {
+      "clear_confidence": 0.0,
+      "finding_ids": [],
+      "id": "fair_price",
+      "reason": null,
+      "state": "unverified"
+    }
+  ],
+  "created_at": "2026-11-14T12:00:00Z",
+  "decision": null,
+  "evidence": [
+    {
+      "extracted_text": "Alex Reed: Is Flat 2, 94 Example Mews, London W12 8QT available from 1 December 2026 as a normal tenancy?\nRowan Pike: I am Rowan Pike. I booked it as a guest for two nights, but I can give you a tenancy in Mira Vale's name.\nAlex Reed: Does the owner know you are letting it to me?\nRowan Pike: The owner has not agreed. Please do not mention the tenancy to them.\n",
+      "file_url": null,
+      "filename": "chat.txt",
+      "id": "c_e28695b56a10_e1",
+      "kind": "chat_export",
+      "note": null,
+      "uploaded_at": "2026-11-14T12:00:00Z"
+    },
+    {
+      "extracted_text": "Tenancy agreement\nProperty: Flat 2, 94 Example Mews, London W12 8QT\nLandlord: Mira Vale\nLetting representative: Rowan Pike, acting for Northbank Example Lettings Ltd.\nRent: GBP 600 per calendar month.\nTenancy deposit: GBP 690.\nThe tenancy is periodic from 1 December 2026.\nThe tenant may end the tenancy with two months' written notice.\nNo administration fee is payable.\nThe landlord is responsible for structural and heating repairs, except tenant-caused damage.\n",
+      "file_url": null,
+      "filename": "contract.txt",
+      "id": "c_e28695b56a10_e2",
+      "kind": "contract",
+      "note": null,
+      "uploaded_at": "2026-11-14T12:00:00Z"
+    },
+    {
+      "extracted_text": "Room to rent: Flat 2, 94 Example Mews, London W12 8QT\nAdvert URL: https://listings.example/homes/1704\nRent: GBP 600 per calendar month.\nTenancy deposit: GBP 690.\n",
+      "file_url": null,
+      "filename": "listing.txt",
+      "id": "c_e28695b56a10_e3",
+      "kind": "listing",
+      "note": null,
+      "uploaded_at": "2026-11-14T12:00:00Z"
+    }
+  ],
+  "landlord": {
+    "company_name": "Northbank Example Lettings Ltd",
+    "company_number": null,
+    "email": null,
+    "name": "Mira Vale",
+    "phone": null
+  },
+  "listing": {
+    "address": "Flat 2, 94 Example Mews, London W12 8QT",
+    "deposit": 690,
+    "description": null,
+    "platform": "rental listing",
+    "postcode": "W12 8QT",
+    "rent_pcm": 600,
+    "url": "https://listings.example/homes/1704"
+  },
+  "messages": [
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_e28695b56a10_e1",
+      "id": "c_e28695b56a10_m1",
+      "sender": "student",
+      "sent_at": "2026-11-14T11:56:00Z",
+      "text": "Is Flat 2, 94 Example Mews, London W12 8QT available from 1 December 2026 as a normal tenancy?"
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_e28695b56a10_e1",
+      "id": "c_e28695b56a10_m2",
+      "sender": "agent",
+      "sent_at": "2026-11-14T11:57:00Z",
+      "text": "I am Rowan Pike. I booked it as a guest for two nights, but I can give you a tenancy in Mira Vale's name."
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_e28695b56a10_e1",
+      "id": "c_e28695b56a10_m3",
+      "sender": "student",
+      "sent_at": "2026-11-14T11:58:00Z",
+      "text": "Does the owner know you are letting it to me?"
+    },
+    {
+      "channel": "whatsapp",
+      "evidence_id": "c_e28695b56a10_e1",
+      "id": "c_e28695b56a10_m4",
+      "sender": "agent",
+      "sent_at": "2026-11-14T11:59:00Z",
+      "text": "The owner has not agreed. Please do not mention the tenancy to them."
+    }
+  ],
+  "reports": {},
+  "score_history": [],
+  "status": "open",
+  "student": {
+    "budget_pcm": 1500,
+    "move_in_date": "2026-12-01",
+    "notes": null,
+    "university": null
+  }
+}

@@ -43,7 +43,7 @@ export function SiteNav({ active = "Cases" }: { active?: (typeof ITEMS)[number][
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="sticky top-4 z-30 flex h-14 items-center justify-between rounded-full border border-white/95 py-2 pl-[10px] pr-2 shadow-nav"
+      className="relative flex h-14 items-center justify-between rounded-full border border-white/95 py-2 pl-[10px] pr-2 shadow-nav"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-white/[0.42] backdrop-blur-[14px]" />
       <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.9)]" />

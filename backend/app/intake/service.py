@@ -9,7 +9,7 @@ from typing import Literal
 from app.contracts import Case, Evidence, EvidenceKind, Message
 from app.core.ids import new_id
 from app.core.logging import get_logger
-from app.intake import audio, ocr, pdf, whatsapp
+from app.intake import audio, docx, ocr, pdf, whatsapp
 from app.intake.redact import mask_sensitive
 
 UPLOADS_DIR = Path(__file__).resolve().parents[2] / ".uploads"  # backend/.uploads, gitignored
@@ -24,8 +24,24 @@ def _decode(data: bytes) -> str:
     return data.decode("utf-8", errors="replace").lstrip("﻿")
 
 
-def _document_text(data: bytes) -> str:
-    return pdf.extract_text(data) if data.startswith(b"%PDF") else _decode(data)
+_IMAGE_MAGIC = (b"\x89PNG", b"\xff\xd8\xff", b"GIF8", b"RIFF", b"II*\x00", b"MM\x00*")
+
+
+def _is_image(data: bytes) -> bool:
+    """PNG, JPEG, GIF, WebP, TIFF or HEIC bytes (HEIC: 'ftyp' box at offset 4)."""
+    return data.startswith(_IMAGE_MAGIC) or data[4:12] in (b"ftypheic", b"ftypheix", b"ftypmif1")
+
+
+async def _document_text(data: bytes) -> str:
+    """Text of a PDF, Word (.docx), photo (OCR) or plain-text document."""
+    if data.startswith(b"%PDF"):
+        return pdf.extract_text(data)
+    if docx.is_docx(data):
+        return docx.extract_text(data)
+    if _is_image(data):
+        # NOTE: decoding image bytes as UTF-8 would hand agents garbage; OCR or no text.
+        return await ocr.screenshot_to_text(data)
+    return _decode(data)
 
 
 def _safe_name(filename: str) -> str:
@@ -57,7 +73,7 @@ async def _extract(
                 text = _decode(data)
                 return text, [_single_message(text, evidence_id, "email", "agent")]
             case EvidenceKind.CONTRACT | EvidenceKind.DOCUMENT:
-                return _document_text(data), []
+                return await _document_text(data), []
             case EvidenceKind.LISTING:
                 return _decode(data), []
             case EvidenceKind.CHAT_SCREENSHOT:

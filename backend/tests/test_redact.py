@@ -17,7 +17,14 @@ from app.intake.service import ingest
         ("IBAN DE89 3704 0044 0532 0130 00 please", "IBAN DE** **** **** 3000 please"),
         ("GB29NWBK60161331926819", "GB** **** **** 6819"),
         ("card 4111 1111 1111 1111", "card **** **** **** 1111"),
-        ("call +44 7700 900123", "call +44 7700 ****0123"),
+        ("a/c 87654321 at the bank", "a/c ****4321 at the bank"),
+        ("12-34-56 00001234", "**-**-56 ****1234"),
+        ("Bank transfer: 00001234 (Mark Evans)", "Bank transfer: ****1234 (Mark Evans)"),
+        ("reference 123456789012", "reference ****9012"),
+        (
+            "call 07700 900123 then pay account 00001234",
+            "call 07700 900123 then pay account ****1234",
+        ),
     ],
 )
 def test_financial_identifiers_are_masked(text: str, masked: str) -> None:
@@ -35,9 +42,36 @@ def test_financial_identifiers_are_masked(text: str, masked: str) -> None:
         "CRN: 01234567",
         "Companies House: 11223344",
         "SC123456",
+        # Bare 8-digit numbers with no bank wording near them: company numbers (Danny, PR #1).
+        "Prime City Lettings Ltd 09876543",
+        "We are registered in England, 12345678.",
+        "our number is 01234567",
     ],
 )
 def test_ordinary_and_public_text_is_kept(text: str) -> None:
+    assert mask_sensitive(text) == text
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "call 07700 900123",
+        "call 07700900123 today",
+        "WhatsApp me on +44 7700 900123",
+        "+447700900123",
+        "+44 (0)20 7946 0958",
+        "0044 7700 900 123",
+        "Office: 020 7946 0958.",
+        "(020) 7946 0958",
+        "0161 496 0123",
+        "01632 960123",
+        "0800 123 4567",
+        "07700-900-123",
+        "email mark@primecity-lettings.co.uk or ring 07700 900123",
+    ],
+)
+def test_phone_numbers_and_emails_are_kept(text: str) -> None:
+    """The Companies House contact check needs the full phone number and the email domain."""
     assert mask_sensitive(text) == text
 
 
