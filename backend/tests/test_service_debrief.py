@@ -352,6 +352,43 @@ async def test_when_the_llm_is_down_keywords_answer_no_step_but_recorded_answers
     assert "unmatched" not in note_kinds(service, "case_down")
 
 
+async def test_a_call_after_every_step_is_closed_still_fills_the_company_number(
+    make_service: MakeService, ctx: AgentContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_llm(ctx).responses["registered as 01680058"] = json.dumps(
+        {
+            "updates": [],
+            "fields": [
+                {
+                    "field": "landlord.company_number",
+                    "value": "01680058",
+                    "quote": "registered as 01680058",
+                }
+            ],
+        }
+    )
+    service = make_service([EmptyAgent()])
+    closed = Action(
+        id="act_viewing",
+        check_id=CheckId.IN_PERSON_VIEWING,
+        kind=ActionKind.QUESTION,
+        text="Can you view it?",
+        status=ActionStatus.DONE,
+    )
+    await service.repo.create(Case(case_id="case_closed", created_at=T0, actions=[closed]))
+    keep_notes(service, monkeypatch)
+
+    result = await service.debrief(
+        "case_closed",
+        call(line("student", "The agency told me they are registered as 01680058 in London.")),
+    )
+
+    assert result.landlord is not None and result.landlord.company_number == "01680058"
+    sent = json.loads(fake_llm(ctx).calls[-1]["user"])
+    assert sent["open_actions"] == []  # read for fields only, no step to answer
+    assert "field_changed" in note_kinds(service, "case_closed")
+
+
 async def test_the_same_note_from_two_readings_reaches_the_round_message_once(
     ctx: AgentContext, bus: EventBus, monkeypatch: pytest.MonkeyPatch
 ) -> None:

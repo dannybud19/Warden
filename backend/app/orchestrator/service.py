@@ -364,9 +364,14 @@ class CaseService:
         # hard flag. Answers recorded during the call still apply, and the agents still read it.
         if text and not conversation.is_short_answer(text):
             try:
-                transcript = await conversation.read_reply(
-                    working, text, [evidence_id], None, None, self.ctx
-                )
+                if any(a.status == ActionStatus.OPEN for a in working.actions):
+                    transcript = await conversation.read_reply(
+                        working, text, [evidence_id], None, None, self.ctx
+                    )
+                else:
+                    # No step left to answer: the call can still give a company number, a
+                    # name, the rent, the deposit or the move-in date.
+                    transcript = await conversation.read_fields_only(text, self.ctx)
             except Exception as exc:  # noqa: BLE001 - the transcript must be saved whatever happens
                 # Log the error type only: messages can echo the student's words.
                 self.ctx.log.warning("debrief parse failed: %s", type(exc).__name__)
