@@ -200,7 +200,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
               rows={view.rows}
               chat={chat}
               busy={busy}
-              canReply={!closed && view.open.length > 0}
+              // The orchestrator answers any message while the home is open, also with no step open yet.
+              canReply={!closed}
               closed={closed}
               callCase={c}
               onCallDebrief={onCallDebrief}
