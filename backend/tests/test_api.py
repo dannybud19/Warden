@@ -250,3 +250,37 @@ def test_decide_route_closes_the_case_once(client: TestClient) -> None:
     assert body["status"] == "decided" and body["decision"]["verdict"] == "not_verified"
     assert client.post(f"/cases/{case_id}/decide").status_code == 409
     assert client.post("/cases/case_nope/decide").status_code == 404
+
+
+def test_listing_preview_reads_the_page_without_opening_a_case(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.aggregators.listing_reader.models import ListingDetails
+    from app.api import routes_listing
+
+    async def fake_read(url: str, ctx: object) -> ListingDetails:
+        return ListingDetails(
+            url=url,
+            platform="Rightmove",
+            address="Boardwalk Place, London, E14",
+            postcode="E14",
+            rent_pcm=2400,
+            agency_name="Savills Lettings",
+            quotes={"rent_pcm": "£2,400 pcm"},
+        )
+
+    monkeypatch.setattr(routes_listing, "read_listing", fake_read)
+    url = "https://www.rightmove.co.uk/properties/1"
+    body = client.post("/listing/preview", json={"url": url}).json()
+    assert body["status"] == "ok" and body["rent_pcm"] == 2400
+    assert body["agency_name"] == "Savills Lettings" and body["address"].startswith("Boardwalk")
+    assert body["quotes"] == {"rent_pcm": "£2,400 pcm"}
+    assert "Savills Lettings" in body["message"]
+
+
+def test_listing_preview_in_stub_mode_makes_no_request(client: TestClient) -> None:
+    body = client.post(
+        "/listing/preview", json={"url": "https://www.rightmove.co.uk/properties/1"}
+    ).json()
+    assert body["status"] == "skipped" and body["platform"] == "Rightmove"
+    assert body["message"] is None and body["rent_pcm"] is None

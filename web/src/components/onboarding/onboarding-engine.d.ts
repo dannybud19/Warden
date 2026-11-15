@@ -23,6 +23,17 @@ export type CaseAnswers = {
   risky: boolean;
 };
 
+/** The listing fields the new-case flow can prefill (see `ListingPreview` in lib/api). */
+export type ListingPreviewLike = {
+  status: string;
+  platform?: string | null;
+  address?: string | null;
+  rent_pcm?: number | null;
+  agency_name?: string | null;
+  company_number?: string | null;
+  landlord_name?: string | null;
+};
+
 export type UploadKey = "messages" | "contract" | "video" | "emails" | "payment";
 export type OnboardingFiles = Partial<Record<UploadKey, File>>;
 
@@ -35,5 +46,7 @@ export function startWardenOnboarding(
     profile?: Partial<ProfileAnswers>;
     onFinish: (answers: ProfileAnswers | CaseAnswers, files: OnboardingFiles) => Promise<void> | void;
     onCancel?: () => void;
+    /** Reads a listing link so its details can prefill the form; null when it cannot. */
+    previewListing?: (url: string) => Promise<ListingPreviewLike | null>;
   },
 ): () => void;

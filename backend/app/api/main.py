@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.aggregators.scoring.scoring import load_weights
-from app.api import routes_cases, routes_stream
+from app.api import routes_cases, routes_listing, routes_stream
 from app.core.agent import AgentContext
 from app.core.factory import build_context
 from app.core.settings import Settings, get_settings
@@ -86,6 +86,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(routes_cases.router)
     app.include_router(routes_stream.router)
+    app.include_router(routes_listing.router)
     return app
 
 

@@ -145,6 +145,7 @@ export default function Onboarding({ mode = "onboarding" }: { mode?: "onboarding
         onFinish: (answers, files) =>
           mode === "onboarding" ? finishOnboarding(answers as ProfileAnswers) : finishCase(answers as CaseAnswers, files),
         onCancel: mode === "newcase" ? () => router.push("/") : undefined,
+        previewListing: mode === "newcase" ? api.previewListing : undefined,
       });
     });
     return () => {
