@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { Case } from "./types";
-import { allFindings, openActions } from "./selectors";
+import { allFindings, isRedFlag, openActions } from "./selectors";
 import { DEMO_CASE_ID } from "./demo";
 
 /** How a home reads at a glance. Verdicts map 1:1; "checking" means no verdict yet. */
@@ -131,7 +131,7 @@ export function caseToHome(c: Case, index: number): Home {
   const outward = c.listing?.postcode?.split(" ")[0] ?? null;
   const who = c.landlord?.company_name ?? c.landlord?.name ?? null;
   const open = openActions(c);
-  const flags = allFindings(c).filter((f) => f.supports === "suspicious");
+  const flags = allFindings(c).filter(isRedFlag);
   const title = shortAddress(c.listing?.address);
   return {
     id: c.case_id,

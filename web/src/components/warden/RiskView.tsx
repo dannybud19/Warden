@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import {
-  Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Globe, HelpCircle, KeyRound,
+  Banknote, Building2, Check, ChevronLeft, ChevronRight, Copy, FileText, Globe, HelpCircle, Info, KeyRound,
   Mail, MessageSquare, Mic, PoundSterling, Share, Trash2, ShieldCheck, Sparkles, Timer, Upload, Video, type LucideIcon,
 } from "lucide-react";
 import { Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip } from "recharts";
 import type { Case, CheckId, EvidenceKind, Finding } from "@/lib/types";
 import type { Mood } from "@/lib/present";
 import { SETTLE, sourceOf, tiles } from "@/lib/dashboard";
-import { currentScore, detailText, quoteSource, sourceUrls } from "@/lib/selectors";
+import { currentScore, detailText, infoNotes, quoteSource, sourceUrls } from "@/lib/selectors";
 import { forgetCase, formatRent, shortAddress } from "@/lib/homes";
 import { useRouter } from "next/navigation";
 import { Mascot, SourceLinks, rise } from "./primitives";
@@ -77,7 +77,15 @@ function riskOf(c: Case, mood: Mood, flags: number): Risk {
   if (mood.state === "thinking") {
     return { label: "Checking", color: TEAL, value: score, headline: "Warden is checking…", sub: "This usually takes under a minute.", danger: false };
   }
-  if (mood.state === "red" || mood.state === "stop") {
+  // "stop" is the payment checkpoint (an open question about how they'd pay), not a scam verdict:
+  // tell the student not to send money yet, with the real score and no danger styling.
+  if (mood.state === "stop") {
+    return {
+      label: flags ? "Medium risk" : "Unverified", color: AMBER, value: score, headline: `${mood.title}.`,
+      sub: flags ? `${mood.sub} ${plural} to clear up too.` : mood.sub, danger: false,
+    };
+  }
+  if (mood.state === "red") {
     return {
       label: "High risk", color: RED, value: Math.max(score, 80), headline: "Don't pay. Walk away from this one.",
       sub: flags > 1 ? "Any one of these flags is reason enough to stop." : "This flag alone is reason enough to stop.", danger: true,
@@ -380,30 +388,42 @@ export function IssueList({
   c, flags, disabled, onUpload,
 }: { c: Case; flags: Finding[]; disabled: boolean; onUpload: (kind: EvidenceKind, file: File) => void }) {
   const [openId, setOpenId] = useState<string | null | undefined>(undefined);
-  if (!flags.length) return null;
+  const notes = infoNotes(c);
+  if (!flags.length && !notes.length) return null;
   // the worst issue starts open; after that, one row at a time
-  const current = openId === undefined ? flags[0].id : openId;
+  const current = openId === undefined ? flags[0]?.id : openId;
   return (
     <motion.section variants={rise}>
-      <div className="mb-3 flex items-baseline justify-between px-1">
-        <h2 className="text-[21px] font-medium tracking-[-0.02em]">
-          Why Warden thinks so <span className="text-muted">· {flags.length} issue{flags.length === 1 ? "" : "s"}</span>
-        </h2>
-        <p className="text-[14px] text-muted">Tap an issue for the evidence</p>
-      </div>
-      <ul className={`${card} overflow-hidden`}>
-        {flags.map((f) => (
-          <IssueRow
-            key={f.id}
-            f={f}
-            c={c}
-            open={current === f.id}
-            onToggle={() => setOpenId(current === f.id ? null : f.id)}
-            disabled={disabled}
-            onUpload={onUpload}
-          />
-        ))}
-      </ul>
+      {flags.length > 0 && (
+        <>
+          <div className="mb-3 flex items-baseline justify-between px-1">
+            <h2 className="text-[21px] font-medium tracking-[-0.02em]">
+              Why Warden thinks so <span className="text-muted">· {flags.length} issue{flags.length === 1 ? "" : "s"}</span>
+            </h2>
+            <p className="text-[14px] text-muted">Tap an issue for the evidence</p>
+          </div>
+          <ul className={`${card} overflow-hidden`}>
+            {flags.map((f) => (
+              <IssueRow
+                key={f.id}
+                f={f}
+                c={c}
+                open={current === f.id}
+                onToggle={() => setOpenId(current === f.id ? null : f.id)}
+                disabled={disabled}
+                onUpload={onUpload}
+              />
+            ))}
+          </ul>
+        </>
+      )}
+      {/* Info notes (e.g. a check that couldn't run) are not flags: one muted line each. */}
+      {notes.map((f) => (
+        <p key={f.id} className="mt-3 flex items-start gap-2 px-1 text-[13.5px] text-muted">
+          <Info size={16} className="mt-0.5 shrink-0" aria-hidden />
+          <span>{detailText(f) || f.title}</span>
+        </p>
+      ))}
     </motion.section>
   );
 }

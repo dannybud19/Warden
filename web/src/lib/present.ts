@@ -1,6 +1,6 @@
 import type { Case, CheckId, EvidenceKind, Finding, AgentUiStatus, Action } from "./types";
 import { CHECK_LABELS } from "./labels";
-import { SEVERITY_ORDER, allFindings, detailText, openActions } from "./selectors";
+import { SEVERITY_ORDER, allFindings, detailText, isRedFlag, openActions } from "./selectors";
 
 // Plain-language presentation of a case for the hi-fi screens. Pure functions over `Case`.
 
@@ -123,7 +123,7 @@ export function agentSummary(rows: AgentRow[], needsYou: number): string {
 
 export function redFlags(c: Case): Finding[] {
   return allFindings(c)
-    .filter((f) => f.supports === "suspicious")
+    .filter(isRedFlag)
     .sort((a, b) => severityRank(a) - severityRank(b));
 }
 
@@ -189,7 +189,7 @@ export interface Mood {
 
 const TINTS: Record<MoodState, { tint: [string, string]; accent: string }> = {
   red: { tint: ["#fdf1ee", "#f8ddd6"], accent: "#e06a52" },
-  stop: { tint: ["#fdf1ee", "#f8ddd6"], accent: "#e06a52" },
+  stop: { tint: ["#fdf7ea", "#f6e8c9"], accent: "#d99a2b" },
   amber: { tint: ["#fdf7ea", "#f6e8c9"], accent: "#d99a2b" },
   green: { tint: ["#eef8f3", "#d6efe4"], accent: "#2e9a7c" },
   thinking: { tint: ["#eef8f9", "#d7eef0"], accent: "#138a93" },

@@ -19,7 +19,7 @@ const card = "rounded-[22px] border border-white bg-white/85 shadow-card backdro
 
 export const PILL: Record<Mood["state"], { bg: string; fg: string; dot: string; label: string }> = {
   red: { bg: "#fcebe7", fg: "#9a3a27", dot: "/warden/dot-red.svg", label: "Likely scam · don't pay" },
-  stop: { bg: "#fcebe7", fg: "#9a3a27", dot: "/warden/dot-red.svg", label: "Stop · don't pay" },
+  stop: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Stop · don't pay yet" },
   amber: { bg: "#fbf2df", fg: "#7a5410", dot: "/warden/dot-amber.svg", label: "Don't pay yet" },
   green: { bg: "#e0f4ec", fg: "#1f6e58", dot: "/warden/dot-green.svg", label: "No red flags so far" },
   thinking: { bg: "#e3f4f5", fg: "#0f6d74", dot: "/warden/dot-teal.svg", label: "Checking" },
@@ -141,7 +141,7 @@ export const REPORT_URL = "https://www.actionfraud.police.uk/reporting-fraud-and
 export function AnswerCard({ c, mood, caseId }: { c: Case; mood: Mood; caseId: string }) {
   const decision = useDecision(caseId);
   const unlocked = goAheadUnlocked(c);
-  const danger = mood.state === "red" || mood.state === "stop";
+  const danger = mood.state === "red"; // "stop" is the payment checkpoint, not a verdict
   const advice = danger
     ? "Warden recommends walking away."
     : unlocked
