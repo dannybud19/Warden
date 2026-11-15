@@ -145,7 +145,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
                 onSkip={(id) => void sendReply({ text: "Skip for now", actionId: id, status: "skipped" })}
               />
             )}
-            {action && (
+            {/* The cards already show every open step, the first one included. */}
+            {!SHOW_ACTION_CARDS && action && (
               <NextStep
                 key={action.id}
                 action={action}
