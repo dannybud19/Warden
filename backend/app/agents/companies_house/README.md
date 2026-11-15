@@ -49,7 +49,7 @@ Facts emitted: `company_number` (zero-padded) and `email_domain` only.
 | Key | Used for |
 | --- | --- |
 | `COMPANIES_HOUSE_API_KEY` | register (required in real mode) |
-| `LINKUP_API_KEY` | reputation and phone checks (a missing key shows as a "could not run" note) |
+| `LINKUP_API_KEY` | reputation and phone checks. Without it no search is made and each web check is listed in the "could not run" note as `(Linkup: no API key)`, never as "nothing found" |
 | `ANTHROPIC_API_KEY` | the snippet filter (batches of 12 snippets per call; keyword fallback if a call fails) |
 | `AGENT_MODE_COMPANIES_HOUSE=real` | switch this agent from stub to real in the full app |
 

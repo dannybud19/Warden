@@ -57,8 +57,12 @@ async def web_search(
     """One Linkup query through `ctx.search` with retries, counted against `budget`.
 
     Budget exhausted gives FAILED with error "query budget" (never 'no results'). A 404 from the
-    search service is also a failure here, not an empty result.
+    search service is also a failure here, not an empty result. Without a Linkup key the core
+    hands agents a `FakeSearch` that answers [] to everything, so that is FAILED with error
+    "no API key" before any call or budget is spent.
     """
+    if not ctx.settings.linkup_api_key:
+        return Fetch(Outcome.FAILED, error="no API key")
     if not budget.take():
         return Fetch(Outcome.FAILED, error="query budget")
     timeout = LINKUP_DEEP_TIMEOUT_S if depth == "deep" else LINKUP_STANDARD_TIMEOUT_S

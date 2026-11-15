@@ -185,10 +185,13 @@ async def test_fake_agency_no_match_is_high_not_hard_and_asks_for_the_number(
 async def test_genuine_flat_is_cleared_with_no_suspicious_findings(
     genuine_flat_case: Case, make_ctx
 ) -> None:
-    report = await run_agent(genuine_flat_case, make_ctx, genuine_routes(), search=redress_search())
+    search = redress_search()
+    report = await run_agent(genuine_flat_case, make_ctx, genuine_routes(), search=search)
     assert report.status == AgentStatus.OK
+    assert search.queries  # with a Linkup key the web checks really search
     ids = set(by_id(report))
     assert {"companies_house:registered-active", "companies_house:redress-member"} <= ids
+    assert not any(i.startswith(NOT_RUN) for i in ids)
     assert [f for f in report.findings if f.supports == "suspicious"] == []
     assert [(f.key.value, f.value) for f in report.facts] == [("company_number", "09123456")]
 
@@ -245,6 +248,29 @@ async def test_linkup_down_keeps_register_findings_and_adds_a_not_run_note(
     assert note.severity == "info" and note.confidence == 0.0
     assert "scam reports" in note.detail and "Linkup" in note.detail
     assert "companies_house:redress-member" not in found  # a failure is not a clear either
+
+
+async def test_no_linkup_key_reports_web_checks_as_not_run_without_searching(
+    genuine_flat_case: Case, make_ctx, ch_settings
+) -> None:
+    # Without a key the core hands agents a FakeSearch that answers [] to everything: that must
+    # read as "could not run", never as "no scam reports found".
+    search = redress_search()
+    report = await run_agent(
+        genuine_flat_case,
+        make_ctx,
+        genuine_routes(),
+        search=search,
+        settings=ch_settings.model_copy(update={"linkup_api_key": ""}),
+    )
+    found = by_id(report)
+    assert report.status == AgentStatus.OK
+    assert search.queries == []
+    assert "companies_house:registered-active" in found  # register lookups are unaffected
+    note = found["companies_house:not-run-reputation"].detail
+    for check in ("scam reports", "reviews", "redress scheme membership"):
+        assert f"{check} (Linkup: no API key)" in note
+    assert "companies_house:redress-member" not in found
 
 
 async def test_negotiator_who_is_not_an_officer_never_flips_the_check(

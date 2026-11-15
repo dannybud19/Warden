@@ -23,6 +23,16 @@ export function allFindings(c: Case): Finding[] {
   );
 }
 
+/** A finding that counts against the home: suspicious, and more than an info note. */
+export function isRedFlag(f: Finding): boolean {
+  return f.supports === "suspicious" && f.severity !== "info";
+}
+
+/** Info notes such as "Some background checks could not run": shown to the student, never a red flag. */
+export function infoNotes(c: Case): Finding[] {
+  return allFindings(c).filter((f) => f.supports === "suspicious" && f.severity === "info");
+}
+
 export function findingsByCheck(c: Case): Record<CheckId, Finding[]> {
   const out = {} as Record<CheckId, Finding[]>;
   for (const f of allFindings(c)) {
