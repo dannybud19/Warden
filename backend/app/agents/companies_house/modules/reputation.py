@@ -44,6 +44,7 @@ from app.agents.companies_house.models import (
     RogueRecord,
     Snippet,
 )
+from app.agents.companies_house.modules import register
 from app.agents.companies_house.normalise import (
     domain_of,
     host_matches,
@@ -476,16 +477,60 @@ def _membership_finding(
     return None
 
 
-def _snippet_findings(kept: list[KeptSnippet], name: str) -> list[Finding]:
+def _quote_key(quote: str) -> str:
+    """Quote text with case, punctuation and spacing ignored, so reposts of it compare equal."""
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", quote.lower()).split())
+
+
+def _merge_same_quote(kept: list[KeptSnippet]) -> list[tuple[KeptSnippet, list[str]]]:
+    """One entry per (label, normalised quote): the first snippet and every URL that carried it."""
+    merged: dict[tuple[str, str], tuple[KeptSnippet, list[str]]] = {}
+    for item in kept:
+        key = (item.label, _quote_key(item.quote))
+        if key not in merged:
+            merged[key] = (item, [])
+        urls = merged[key][1]
+        if item.snippet.url not in urls:
+            urls.append(item.snippet.url)
+    return list(merged.values())
+
+
+def _snippet_findings(kept: list[KeptSnippet], name: str, *, established: bool) -> list[Finding]:
+    """Findings from kept web snippets; informational (never flagging) for an established company.
+
+    Several URLs carrying the same quote make one finding that cites them all. For a long-running
+    agency, individual complaints are expected, so they say what was seen and flag nothing.
+    """
     findings: list[Finding] = []
     counts = {"scam_report": 0, "negative_review": 0}
-    for item in kept:
+    for item, urls in _merge_same_quote(kept):
         if counts[item.label] >= MAX_FINDINGS_PER_KIND:
             continue
         counts[item.label] += 1
         evidence = [EvidenceRef(evidence_id=EV_WEB, quote=item.quote)]
         slug_hash = url_hash8(item.snippet.url)
-        if item.label == "scam_report":
+        if established:
+            findings.append(
+                make_finding(
+                    f"{'scam-report' if item.label == 'scam_report' else 'negative-review'}"
+                    f"-{slug_hash}",
+                    title=(
+                        f"A public post mentions a problem with {name}"
+                        if item.label == "scam_report"
+                        else "Some public reviews mention deposit or money problems"
+                    ),
+                    detail=(
+                        f'A public post says: "{item.quote}". {name} has been active for years '
+                        "and large agencies collect complaints like this, so it is not a red flag "
+                        "on its own. Worth reading to see whether it matches your situation."
+                    ),
+                    severity=Severity.INFO,
+                    confidence=CONF["informational"],
+                    evidence=evidence,
+                    sources=urls,
+                )
+            )
+        elif item.label == "scam_report":
             findings.append(
                 make_finding(
                     f"scam-report-{slug_hash}",
@@ -497,7 +542,7 @@ def _snippet_findings(kept: list[KeptSnippet], name: str) -> list[Finding]:
                     severity=Severity.HIGH,
                     confidence=CONF["scam-report"],
                     evidence=evidence,
-                    sources=[item.snippet.url],
+                    sources=urls,
                 )
             )
         elif item.via_llm:
@@ -512,7 +557,7 @@ def _snippet_findings(kept: list[KeptSnippet], name: str) -> list[Finding]:
                     severity=Severity.MEDIUM,
                     confidence=CONF["negative-review"],
                     evidence=evidence,
-                    sources=[item.snippet.url],
+                    sources=urls,
                 )
             )
         else:  # keyword fallback (LLM down): shown, but below the 0.6 flip threshold
@@ -527,7 +572,7 @@ def _snippet_findings(kept: list[KeptSnippet], name: str) -> list[Finding]:
                     severity=Severity.MEDIUM,
                     confidence=CONF["negative-review-fallback"],
                     evidence=evidence,
-                    sources=[item.snippet.url],
+                    sources=urls,
                 )
             )
     return findings
@@ -608,7 +653,16 @@ async def _run(
             supplied_name=supplied or "",
         )
         kept = await filter_snippets(ctx, snippets, context)
-        result.findings.extend(_snippet_findings(kept, name))
+        established = register.is_established(
+            register.Subject(
+                profile=company.profile,
+                number=company.number,
+                matched_by=company.matched_by,
+                supplied_name=company.supplied_name,
+            ),
+            today,
+        )
+        result.findings.extend(_snippet_findings(kept, name, established=established))
 
     for key, domains, schemes, slug in (
         ("redress", REDRESS_DOMAINS, _REDRESS_SCHEMES, "redress-member"),

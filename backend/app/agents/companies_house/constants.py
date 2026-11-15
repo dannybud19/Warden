@@ -54,6 +54,9 @@ STRIKE_OFF_DETAILS: Final = frozenset(
 )
 YOUNG_MONTHS: Final = 12
 ESTABLISHED_MONTHS: Final = 24
+# Active this long with clean filings: web complaints and a non-director contact are expected noise
+# for a large agency, so reputation and officer findings become informational (see README).
+ESTABLISHED_AGENCY_MONTHS: Final = 60
 NAME_MATCH_MIN: Final = 90
 NAME_MATCH_GAP: Final = 5
 NAME_NUMBER_MISMATCH_MAX: Final = 80  # number resolves to a name scoring below this vs the supplied
@@ -169,4 +172,5 @@ CONF: Final = {
     "redress-member": 0.5,
     "cmp-member": 0.5,
     "not-run": 0.0,
+    "informational": 0.0,  # established-agency noise: shown, ignored by the check tracker
 }
