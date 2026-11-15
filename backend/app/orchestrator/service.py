@@ -32,7 +32,7 @@ from app.contracts import (
 )
 from app.core.agent import AgentContext, BaseAgent
 from app.core.ids import new_id
-from app.intake.service import ingest
+from app.intake.service import attach, extract
 from app.orchestrator import checks as checks_mod
 from app.orchestrator import (
     composer,
@@ -62,6 +62,37 @@ FAILED_ANALYSIS_TEXT = (
     "One of the checks failed to run. Your evidence is saved: "
     "send another message or upload to try again."
 )
+
+
+# What the student is told when an upload could not be read (keys: intake OCRError reasons).
+_READ_FAILURES = {
+    "not a chat": (
+        "That image doesn't look like a chat. If it's a document, upload it as a document instead."
+    ),
+    "not a document": (
+        "I couldn't find any text in that image. If it's a chat, upload it as messages."
+    ),
+    "unreadable": (
+        "I couldn't read that screenshot clearly. Try a sharper screenshot, or export the chat "
+        "as text."
+    ),
+    "unsupported": "I can't open that image type. Please upload a PNG or JPG screenshot.",
+    "too_big": "That image is too large. Please upload a smaller screenshot (under 5 MB).",
+    "empty": "That file looks empty. Please try uploading it again.",
+    "timeout": "Reading that image took too long. Please try again in a moment.",
+    "zip": 'Couldn\'t find the chat text in that zip. Export the chat again "Without media".',
+}
+_UNREADABLE_DOCUMENT = (
+    "I couldn't read that image clearly. Try a sharper photo, or upload the PDF or Word file."
+)
+_CHAT_KINDS = (EvidenceKind.CHAT_SCREENSHOT, EvidenceKind.CHAT_EXPORT)
+
+
+def failure_message(kind: EvidenceKind, reason: str) -> str:
+    """The student-facing message for an upload that could not be read (any reason)."""
+    if reason == "unreadable" and kind not in _CHAT_KINDS:
+        return _UNREADABLE_DOCUMENT
+    return _READ_FAILURES.get(reason, _READ_FAILURES["timeout"])
 
 
 class CaseNotFoundError(Exception):
@@ -188,19 +219,28 @@ class CaseService:
         return case
 
     async def add_evidence(self, case_id: str, upload: Upload) -> Case:
-        """Ingest an upload (text and messages) and save it, then analyse in the background."""
+        """Read an upload (text and messages) and save it, then analyse in the background.
+
+        The read (a vision call for images, 5 to 15 s) runs before the state lock is taken, so
+        replies and other uploads to the case are not blocked by it. An image that cannot be read
+        is still saved, with a message telling the student what to do, and starts no analysis.
+        """
+        await self._load(case_id, must_be_open=True)  # 404 / 409 at once, before reading
+        extracted = await extract(
+            upload.kind, upload.filename, upload.data, upload.student_name, self.ctx.llm
+        )
+        events: list[StreamEvent] = []
         async with self._locks[case_id]:
-            case = await self._load(case_id, must_be_open=True)
-            case = await ingest(
-                case,
-                upload.kind,
-                upload.filename,
-                upload.data,
-                upload.note,
-                upload.student_name,
+            case = await self._load(case_id, must_be_open=True)  # may have changed meanwhile
+            case = await attach(
+                case, upload.kind, upload.filename, upload.data, upload.note, extracted
             )
+            if extracted.error:
+                events.append(_say(case, failure_message(upload.kind, extracted.error)))
             await self.repo.save(case)
-        self._schedule(case_id)
+        await self._emit_all(case_id, events)
+        if not extracted.error:  # a failed read adds nothing new for the agents
+            self._schedule(case_id)
         return case
 
     async def analyse(self, case_id: str) -> Case:
