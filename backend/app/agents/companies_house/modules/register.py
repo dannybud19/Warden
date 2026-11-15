@@ -46,6 +46,7 @@ from app.agents.companies_house.normalise import (
     normalise_number,
     parse_dob,
     person_matches_officer,
+    strip_branch_suffix,
     strip_title,
 )
 from app.agents.companies_house.retry import Sleep
@@ -608,6 +609,17 @@ async def run(
             return _fatal(search)
         decision = rank_hits(supplied, search.value)
         student = student_refs(case, [supplied])
+        full_name, base = supplied, strip_branch_suffix(supplied)
+        if decision.kind == "none" and base:
+            # "Chestertons, Camden & Primrose Hill": the register has the company, not the branch.
+            # Same thresholds as for a plain name; only a failed full-name search falls through.
+            base_search = await client.search_companies(base)
+            if not base_search.ok or base_search.value is None:
+                return _fatal(base_search)
+            base_decision = rank_hits(base, base_search.value)
+            if base_decision.kind != "none":
+                supplied, decision = base, base_decision
+                student = student_refs(case, [full_name, base])
         if decision.kind == "ambiguous":
             result.findings.append(finding_ambiguous(supplied, decision, student))
             result.questions.append(ASK_FOR_NUMBER)

@@ -45,6 +45,25 @@ def name_score(a: str, b: str) -> int:
     return round(SequenceMatcher(None, na, nb).ratio() * 100)
 
 
+_BRANCH_PAREN_RE = re.compile(r"\s*[(\[][^()\[\]]*[)\]]\s*$")
+_BRANCH_SEP_RE = re.compile(r"\s*,\s*|\s+[-\u2013\u2014]\s+|\s*\|\s*")
+_BRANCH_MIN_BASE = 3
+
+
+def strip_branch_suffix(name: str) -> str | None:
+    """The agency's base name when `name` ends in a branch ("Chestertons, Camden & Primrose Hill",
+    "Foxtons - Camden", "Hawes and Co (Wimbledon)", "Dexters | Kentish Town"), else None.
+
+    Listings name the agency with its branch, but the register only knows the company. The caller
+    must try the full name first: some real names contain a comma ("Smith, Jones & Co Ltd").
+    """
+    base = _BRANCH_SEP_RE.split(name.strip(), maxsplit=1)[0]
+    base = _BRANCH_PAREN_RE.sub("", base).strip()
+    if base == name.strip() or len(normalise_name(base)) < _BRANCH_MIN_BASE:
+        return None
+    return base
+
+
 def slug(text: str) -> str:
     """Lowercase [a-z0-9]+ words joined by '-', at most 40 chars."""
     return "-".join(re.findall(r"[a-z0-9]+", text.lower()))[:40].strip("-")
