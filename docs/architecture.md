@@ -93,7 +93,7 @@ Warden/
       aggregators/
         scoring/                 scoring.py, weights.yaml, tests/
         consultant/              consultant.py, action_library.yaml, prompts/, tests/
-        crosschecker/            crosschecker.py, stub.py, prompts/, tests/ (WS J, being built)
+        crosschecker/            crosschecker.py, stub.py, prompts/, tests/ (WS J)
       orchestrator/
         registry.py              the ONE list of agents; stub/real switch per agent
         events.py                in-process EventBus (per-case pub/sub for the WebSocket)
