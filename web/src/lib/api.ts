@@ -102,6 +102,41 @@ export async function reply(caseId: string, input: ReplyInput): Promise<Case> {
   });
 }
 
+/** One spoken turn of a voice call (ISO time). */
+export interface DebriefLine {
+  role: "student" | "orchestrator";
+  text: string;
+  at: string;
+}
+
+/** An answer the voice agent recorded for one open action (`record_answer`). */
+export interface DebriefAnswer {
+  action_id: string;
+  answer: string;
+  status: "done" | "skipped";
+}
+
+/** The whole call, sent once when it ends. */
+export interface DebriefInput {
+  source: "call";
+  started_at: string;
+  lines: DebriefLine[];
+  answers: DebriefAnswer[];
+}
+
+/** A voice call ended: the orchestrator saves the transcript and applies what it answered
+ * (POST /cases/{id}/debrief). Returns the case at once; the analysis follows over the stream.
+ * 409 when the home was decided during the call. */
+export async function debrief(caseId: string, input: DebriefInput): Promise<Case> {
+  if (caseId === demo.DEMO_CASE_ID) return demo.getCase();
+  if (USE_MOCK) return mock.getCase();
+  return request<Case>(`/cases/${caseId}/debrief`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 /** Opens the event stream. Calls onState("polling") if the socket fails, so the hook can poll. */
 export function subscribe(
   caseId: string,

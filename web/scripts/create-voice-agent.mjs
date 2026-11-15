@@ -4,8 +4,15 @@
 //   1. Put ELEVENLABS_API_KEY=... in web/.env.local
 //   2. cd web && node scripts/create-voice-agent.mjs
 //
-// Re-run any time you change the prompt below: it updates the existing agent instead of making a new one.
+// Re-run any time you change the prompt or tools below: it updates the existing agent instead of
+// making a new one, and replaces whatever was pasted in the ElevenLabs dashboard.
 // Warden speaks with the "Sheldon" voice. Set ELEVENLABS_VOICE_ID to use a different one.
+//
+// The call (WS V): the agent asks the right questions with two client tools that run in the browser
+// (CaseCall.tsx), never the backend. get_next_questions lists the case's open steps; record_answer
+// keeps an answer in the browser. When the call ends the browser sends the transcript and answers
+// to POST /cases/{id}/debrief once. The {{...}} variables are filled by the app at call start; the
+// placeholders below are only for test calls in the dashboard.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const ENV_FILE = new URL("../.env.local", import.meta.url);
@@ -58,39 +65,75 @@ function pickVoice() {
 
 // ---- Warden's personality and job on a call about one home ----
 // {{...}} values are filled in by the app at the start of every call.
-const PROMPT = `You are Warden, a warm, calm guide on a voice call with {{student_name}}, a renter (usually a student) checking one specific home before they pay anything. You lead a team of autonomous agents that have been checking this home.
+const PROMPT = `You are Warden, a calm, friendly assistant helping a student in London check whether a rental is genuine before they pay anything. You are on a voice call with {{student_name}} about {{home}}.
 
-What your agents know so far:
-- Home: {{home}}
-- Your current read: {{verdict}}
-- Red flags found: {{red_flags}}
-- Progress: {{checks}}
-- The question you want them to ask the letting agent: {{open_question}}
+What Warden knows so far:
+- Current status: {{verdict}}
+- Red flags so far: {{red_flags}}
+- Checks: {{checks}}
+- Most important open question: {{open_question}}
+- Other open questions: {{open_questions}}
 
-Help them understand what the red flags mean in plain words, what to say to the letting agent, and what to do next. Keep every turn short: one or two sentences, at most one question. Reassure them, but never call a place safe and never tell them to pay; the best you ever say is "no red flags remaining". Only talk about what your agents found; if they ask about something not checked yet, say so and suggest adding the evidence on the page. British English, no lists read aloud.
+Your job on this call:
+1. Let them tell their story first. Listen. Ask short follow-ups about anything no document would show: how they found the place, who they spoke to, whether they've seen it in person, whether anyone asked for money and how, any pressure to decide quickly, names, phone numbers, company names.
+2. Then ask the open questions, one at a time. Call get_next_questions whenever you need the next one. Each line starts with an id (like act_viewing) or says "no id, just ask". Never read ids aloud, and ask each question only once.
+3. When they answer a question that has an id, call record_answer with that exact action_id, their answer in their own words, and status "done" (or "skipped" if they can't or won't answer). Never call record_answer for a "no id" question or with an id you weren't given: just listen, because everything they say is checked after the call.
+4. Don't decide anything during the call and never say a place is safe or definitely a scam. Say you'll check everything they said straight after the call.
+5. Keep each turn under 25 words. Plain British English. No legal advice. Never ask for bank details, passwords or ID numbers, and don't repeat them back.
+6. End by summarising in one sentence what you'll check, then say goodbye.`;
 
-If they tell you how the letting agent answered the open question, call record_answer with their answer in their own words, then tell them you've passed it to your team. Don't ask for bank, passport or ID details, and don't repeat sensitive details back. Keep the call under four minutes and finish warmly.`;
+const FIRST_MESSAGE = "Hi {{student_name}}, it's Warden. Tell me what's happened with {{home}} so far, in your own words.";
 
-const FIRST_MESSAGE = "Hi {{student_name}}, it's Warden. I've been looking into {{home}} with my team. What's on your mind?";
+// Both tools are answered in the browser from the case the page holds (no backend call during a call).
+const GET_NEXT_QUESTIONS = {
+  type: "client",
+  name: "get_next_questions",
+  description:
+    "Get the next open questions to ask about this home. Returns one per line: '<n>. <action_id>: <question> (why: <reason>)' or '<n>. (no id, just ask) <question> (why: <reason>)'.",
+  expects_response: true,
+  response_timeout_secs: 10,
+};
 
 const RECORD_ANSWER = {
   type: "client",
   name: "record_answer",
-  description: "Record how the letting agent answered the open question, in the student's own words. Only when there is an open question and they've told you the reply.",
+  description:
+    "Record the student's answer to one open question that has an id. It is kept in the browser and checked after the call.",
   expects_response: true,
   response_timeout_secs: 10,
   parameters: {
     type: "object",
-    required: ["answer"],
-    properties: { answer: { type: "string", description: "The letting agent's reply, as the student reported it." } },
+    required: ["action_id", "answer"],
+    properties: {
+      action_id: { type: "string", description: "The id from get_next_questions, e.g. act_viewing." },
+      answer: { type: "string", description: "The answer in the student's own words." },
+      status: {
+        type: "string",
+        enum: ["done", "skipped"],
+        description: "done when they answered, skipped when they can't or won't answer. Defaults to done.",
+      },
+    },
   },
+};
+
+// Test values for dashboard test calls only; real calls get the app's values.
+const PLACEHOLDERS = {
+  student_name: "Sam",
+  home: "1 Test Street",
+  verdict: "Unverified. Don't send any money until this is cleared.",
+  red_flags: "none found so far",
+  checks: "2 of 8 checks done",
+  open_question: "Ask to view the property in person before paying anything. Did the agent agree?",
+  open_questions:
+    "1. act_viewing: Ask to view the property in person before paying anything. Did the agent agree? (why: In-person viewing)\n2. act_company_number: Ask the agent for their Companies House number. Did they give you one? (why: Landlord identity)",
 };
 
 const conversation_config = {
   agent: {
     first_message: FIRST_MESSAGE,
     language: "en",
-    prompt: { prompt: PROMPT, tools: [RECORD_ANSWER] },
+    prompt: { prompt: PROMPT, tools: [GET_NEXT_QUESTIONS, RECORD_ANSWER] },
+    dynamic_variables: { dynamic_variable_placeholders: PLACEHOLDERS },
   },
   // Spend credits carefully: no call can run longer than 5 minutes.
   conversation: { max_duration_seconds: 300 },

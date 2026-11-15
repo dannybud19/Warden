@@ -40,6 +40,7 @@ from app.orchestrator import (
     composer,
     conversation,
     crosscheck,
+    debrief,
     decision,
     fields,
     payment_confirmation,
@@ -311,6 +312,113 @@ class CaseService:
             self._notes[case_id].extend(
                 [*changed_fields, *rounds.reply_notes(result, dropped, text, checks)]
             )
+        self._schedule(case_id)
+        return case
+
+    async def debrief(self, case_id: str, call: debrief.CallDebrief) -> Case:
+        """Save a finished voice call and apply what it answered, then analyse in the background
+        (plan WS V 4.2).
+
+        The transcript becomes one `call_recording` evidence item, the student's lines become
+        messages and every line a chat turn. Explicit answers are applied first, then the
+        student's side is read like a chat reply. Every parse runs on a snapshot without the
+        state lock, like `reply`. Only the short thanks message is emitted over the stream.
+        """
+        snapshot = await self._load(case_id, must_be_open=True)
+        # NOTE: mask first, so nothing stored or sent to an LLM holds a full bank account.
+        call = debrief.masked(call)
+        if not call.lines:
+            return snapshot  # nothing was said: nothing to save
+        evidence_id = new_id("ev")
+        evidence = debrief.build_evidence(evidence_id, call.lines, datetime.now(UTC))
+        messages = debrief.build_messages(evidence_id, call.lines)
+        turns = debrief.build_chat_turns(call.lines)
+
+        # Explicit answers first (like an action-card reply), each on a working copy where the
+        # earlier ones are already applied, so the transcript reading only sees what is still open.
+        kept, dropped_ids = debrief.split_answers(snapshot, call.answers)
+        working = snapshot.model_copy(deep=True)
+        readings: list[tuple[conversation.ParseResult, str, bool]] = []
+        for answer in kept:
+            try:
+                result = await conversation.read_reply(
+                    working,
+                    answer.answer,
+                    [evidence_id],
+                    answer.action_id,
+                    answer.status,
+                    self.ctx,
+                )
+            except conversation.InvalidActionError:
+                dropped_ids.append(answer.action_id)
+                continue
+            except Exception as exc:  # noqa: BLE001 - the call must be saved whatever happens
+                self.ctx.log.warning("debrief answer parse failed: %s", type(exc).__name__)
+                continue
+            working.actions, _ = conversation.apply(working.actions, result, answer.answer)
+            readings.append((result, answer.answer, False))
+
+        text = debrief.student_text(call.lines)
+        # NOTE: a call where the student said only a few words ("Yes.") is not read: a bare
+        # answer would target an open payment confirmation, and a stray yes must not confirm a
+        # hard flag. Answers recorded during the call still apply, and the agents still read it.
+        if text and not conversation.is_short_answer(text):
+            try:
+                if any(a.status == ActionStatus.OPEN for a in working.actions):
+                    transcript = await conversation.read_reply(
+                        working, text, [evidence_id], None, None, self.ctx
+                    )
+                else:
+                    # No step left to answer: the call can still give a company number, a
+                    # name, the rent, the deposit or the move-in date.
+                    transcript = await conversation.read_fields_only(text, self.ctx)
+            except Exception as exc:  # noqa: BLE001 - the transcript must be saved whatever happens
+                # Log the error type only: messages can echo the student's words.
+                self.ctx.log.warning("debrief parse failed: %s", type(exc).__name__)
+                transcript = conversation.ParseResult()
+            if transcript.used_fallback:
+                # NOTE: keywords guess which step a reply answers. A whole call is a story, not
+                # a reply to one step, so that guess is not applied: the transcript, the
+                # recorded answers and the agents' reading of it are kept, the guess is not.
+                transcript = conversation.ParseResult(
+                    field_updates=transcript.field_updates,
+                    invalid_fields=transcript.invalid_fields,
+                )
+            readings.append((transcript, text, True))
+
+        async with self._locks[case_id]:
+            case = await self._load(case_id, must_be_open=True)
+            case.evidence.append(evidence)
+            case.messages.extend(messages)
+            case.chat.extend(turns)
+            applied = 0
+            changed_fields: list[RoundNote] = []
+            notes: list[RoundNote] = []
+            for result, reading_text, is_transcript in readings:
+                # A call is a story, not a reply to one step: matching no step needs no note.
+                skip = {"dropped", "unmatched"} if is_transcript else {"dropped"}
+                case.actions, dropped = conversation.apply(case.actions, result, reading_text)
+                dropped_ids.extend(dropped)
+                applied += sum(1 for u in result.updates if u.action_id not in dropped)
+                changed = fields.apply_fields(case, result.field_updates)
+                changed_fields.extend(changed)
+                checks = {a.id: a.check_id for a in case.actions}
+                notes.extend(
+                    n
+                    for n in rounds.reply_notes(result, dropped, reading_text, checks)
+                    if n.kind not in skip
+                )
+            if dropped_ids:
+                notes.append(RoundNote(kind="dropped"))  # once, not per action
+            event = _say(case, debrief.THANKS_TEXT)
+            await self.repo.save(case)
+            # NOTE: one call gives several readings; the same note from two of them (e.g. two
+            # upload hints) must not become the same sentence twice in the round message.
+            summary = debrief.summary_note(applied, len(changed_fields))
+            all_notes = [*notes, *changed_fields, summary]
+            self._notes[case_id].extend(dict.fromkeys(all_notes))
+        # Only the thanks message: the browser already showed the call's own lines.
+        await self._emit(case_id, event)
         self._schedule(case_id)
         return case
 

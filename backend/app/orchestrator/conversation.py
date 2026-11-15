@@ -356,6 +356,27 @@ async def read_reply(
     )
 
 
+async def read_fields_only(
+    text: str, ctx: AgentContext, *, today: date | None = None
+) -> ParseResult:
+    """Read only the case fields the student states (company number, names, rent, deposit,
+    move-in date), with no action to answer: the reply parser's prompt with no open actions.
+
+    For a voice call made after every step is closed (`read_reply` would read nothing then).
+    Never raises: an LLM failure returns an empty result with `used_fallback` set.
+    """
+    payload = _payload(text, [], [])
+    try:
+        output = await asyncio.wait_for(
+            ctx.llm.complete_json(parse_prompt(), payload, LLMParseOutput), PARSE_TIMEOUT_S
+        )
+    except Exception as exc:  # any LLM failure: error, timeout, bad JSON, schema error
+        ctx.log.warning("fields fallback: %s", type(exc).__name__)
+        return ParseResult(used_fallback=True)
+    field_updates, invalid = read_fields(output.fields, text, today or date.today())
+    return ParseResult(field_updates=field_updates, invalid_fields=invalid)
+
+
 MIN_QUOTE_WORDS = 3
 
 

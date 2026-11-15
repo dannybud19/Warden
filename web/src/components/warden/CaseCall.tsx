@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { Mic, MicOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, PhoneOff, X } from "lucide-react";
 import { WardenOrb, type OrbMode } from "./WardenOrb";
+import { ApiError, type DebriefAnswer, type DebriefInput, type DebriefLine } from "@/lib/api";
+import { formatQuestions, isOpenAction, openQuestions } from "@/lib/callQuestions";
+import type { Case } from "@/lib/types";
 
 /** What Warden knows about this home when the call starts (ElevenLabs dynamic variables). */
 export type CallContext = {
@@ -16,11 +19,14 @@ export type CallContext = {
 };
 
 type Props = {
+  /** The case as the page holds it now; the call's client tools read it (no backend call). */
+  caseData: Case;
   context: CallContext;
   /** Each spoken line, so it lands in this home's chat history. */
   onLine: (role: "student" | "orchestrator", text: string) => void;
-  /** The student told Warden how the letting agent answered the open question. */
-  onAnswer?: (answer: string) => void;
+  /** Sends the finished call to the orchestrator once, after hang-up. Rejects with ApiError
+   * (409 when the home was decided during the call). */
+  onDebrief: (payload: DebriefInput) => Promise<void>;
   onEnd: () => void;
 };
 
@@ -33,30 +39,101 @@ export function CaseCall(props: Props) {
   );
 }
 
-function Call({ context, onLine, onAnswer, onEnd }: Props) {
+type Phase = "call" | "checking" | "notice" | "retry";
+
+function Call({ caseData, context, onLine, onDebrief, onEnd }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
+  const [phase, setPhase] = useState<Phase>("call");
+  const [notice, setNotice] = useState<string | null>(null);
   const levelRef = useRef(0);
   const micRef = useRef(0);
   const started = useRef(false);
 
+  // The latest case and callbacks, so the client tools and onDisconnect never read stale props.
+  const caseRef = useRef(caseData);
+  const propsRef = useRef({ onDebrief, onEnd });
+  useEffect(() => {
+    caseRef.current = caseData;
+    propsRef.current = { onDebrief, onEnd };
+  });
+
+  // Everything collected during the call; nothing is sent until it ends.
+  const linesRef = useRef<DebriefLine[]>([]);
+  const answersRef = useRef<Map<string, DebriefAnswer>>(new Map());
+  const startedAtRef = useRef<string>(new Date().toISOString());
+  const debriefed = useRef(false);
+
+  /** Ends the call once: debriefs the orchestrator when the student spoke, then closes the bar. */
+  const finish = useCallback(async () => {
+    if (debriefed.current) return;
+    debriefed.current = true;
+    const { onDebrief: send, onEnd: close } = propsRef.current;
+    const lines = [...linesRef.current];
+    if (!lines.some((l) => l.role === "student")) {
+      close();
+      return;
+    }
+    setPhase("checking");
+    try {
+      await send({
+        source: "call",
+        started_at: startedAtRef.current,
+        lines,
+        answers: [...answersRef.current.values()],
+      });
+      propsRef.current.onEnd();
+    } catch (e) {
+      const decided = e instanceof ApiError && e.status === 409;
+      setNotice(decided ? "This home already has a verdict." : "I couldn't save the call. Try again?");
+      // A failed save can be sent again (the lines and answers are still in the refs).
+      if (!decided) debriefed.current = false;
+      setPhase(decided ? "notice" : "retry");
+    }
+  }, []);
+
+  // The bar can unmount mid-call (the chat is expanded, or the page changes): debrief what was
+  // said rather than lose it. Only when the student spoke, so a dev double-mount is harmless.
+  useEffect(
+    () => () => {
+      if (!debriefed.current && linesRef.current.some((l) => l.role === "student")) void finish();
+    },
+    [finish],
+  );
+
   const convo = useConversation({
     clientTools: {
-      record_answer: (params: Record<string, unknown>) => {
-        const answer = String(params.answer ?? "").trim();
-        if (!answer || !onAnswer) return "There's no open question to answer right now.";
-        onAnswer(answer);
-        return "Recorded. Tell them you've passed it to your team and they'll see the check update shortly.";
+      get_next_questions: () => {
+        const done = new Set(answersRef.current.keys());
+        const next = openQuestions(caseRef.current, 50)
+          .filter((q) => q.id === null || !done.has(q.id))
+          .slice(0, 3);
+        return formatQuestions(next);
       },
+      record_answer: (params: Record<string, unknown>) => {
+        const actionId = typeof params.action_id === "string" ? params.action_id.trim() : "";
+        const answer = typeof params.answer === "string" ? params.answer.trim() : "";
+        if (!actionId || !answer || !isOpenAction(caseRef.current, actionId)) {
+          return "I couldn't find that question; I'll pick it up after the call.";
+        }
+        const status = params.status === "skipped" ? "skipped" : "done";
+        answersRef.current.set(actionId, { action_id: actionId, answer, status });
+        return "Noted. I'll check it after the call.";
+      },
+    },
+    onConnect: () => {
+      startedAtRef.current = new Date().toISOString();
     },
     onMessage: (m) => {
       const text = (m.message ?? "").replace(/\[[a-z\s-]+\]\s*/gi, "").trim();
       if (!text || /^\.{2,}$/.test(text)) return;
-      onLine(m.role === "agent" ? "orchestrator" : "student", text);
+      const role = m.role === "agent" ? "orchestrator" : "student";
+      linesRef.current.push({ role, text, at: new Date().toISOString() });
+      onLine(role, text);
     },
     onError: (msg) => setError(typeof msg === "string" ? msg : "The call dropped."),
     onDisconnect: () => {
-      if (started.current) onEnd();
+      void finish();
     },
   });
   const { status, isSpeaking, isMuted, setMuted, endSession, startSession, getOutputVolume, getInputVolume } = convo;
@@ -71,7 +148,12 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
         if (!res.ok || !body.token) throw new Error(body.error ?? "Couldn't start the call.");
         if (cancelled) return;
         started.current = true;
-        startSession({ conversationToken: body.token, connectionType: "webrtc", dynamicVariables: context });
+        startedAtRef.current = new Date().toISOString();
+        startSession({
+          conversationToken: body.token,
+          connectionType: "webrtc",
+          dynamicVariables: { ...context, open_questions: formatQuestions(openQuestions(caseRef.current, 5)) },
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setError(/denied|NotAllowed|Permission/i.test(msg) ? "Allow your microphone to call Warden." : msg);
@@ -100,20 +182,34 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
     };
   }, [status, isSpeaking, getOutputVolume, getInputVolume]);
 
-  const mode: OrbMode = error ? "idle" : status !== "connected" ? "thinking" : isSpeaking ? "speaking" : "listening";
-  const label = error ?? (status === "connected" ? (isSpeaking ? "Warden is talking" : "Listening…") : "Calling Warden…");
+  const busy = phase === "checking";
+  const mode: OrbMode =
+    error || phase === "notice" || phase === "retry"
+      ? "idle"
+      : phase === "checking" || status !== "connected"
+        ? "thinking"
+        : isSpeaking
+          ? "speaking"
+          : "listening";
+  const label =
+    phase === "checking"
+      ? "Checking what you told me…"
+      : phase === "notice" || phase === "retry"
+        ? (notice ?? "")
+        : (error ?? (status === "connected" ? (isSpeaking ? "Warden is talking" : "Listening…") : "Calling Warden…"));
   const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  const sub = phase !== "call" ? "" : status === "connected" ? mmss : error ? "" : "Connecting";
 
   return (
     <div className="relative mt-3 flex items-center gap-3 rounded-[20px] bg-white p-3 pr-4 shadow-card">
       <div className="-my-4 -ml-3 shrink-0">
         <WardenOrb size={104} mode={mode} levelRef={levelRef} micRef={micRef} />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className={`text-[13.5px] font-medium leading-[1.3] ${error ? "text-[#a8402b]" : ""}`}>{label}</p>
-        <p className="text-[12px] tabular-nums text-muted">{status === "connected" ? mmss : error ? "" : "Connecting"}</p>
+      <div className="min-w-0 flex-1" role="status" aria-live="polite">
+        <p className={`text-[13.5px] font-medium leading-[1.3] ${error || phase === "notice" || phase === "retry" ? "text-[#a8402b]" : ""}`}>{label}</p>
+        <p className="text-[12px] tabular-nums text-muted">{sub}</p>
       </div>
-      {!error && (
+      {!error && phase === "call" && (
         <button
           type="button"
           onClick={() => setMuted(!isMuted)}
@@ -125,17 +221,43 @@ function Call({ context, onLine, onAnswer, onEnd }: Props) {
           {isMuted ? <MicOff size={17} /> : <Mic size={17} />}
         </button>
       )}
-      <button
-        type="button"
-        onClick={() => {
-          if (status === "connected") endSession();
-          else onEnd();
-        }}
-        aria-label="End call"
-        className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-[#e06a52] text-white transition hover:brightness-95"
-      >
-        <PhoneOff size={17} />
-      </button>
+      {phase === "retry" && (
+        <button
+          type="button"
+          onClick={() => void finish()}
+          className="flex h-10 cursor-pointer items-center justify-center rounded-full bg-teal px-4 text-[13px] font-medium text-white transition hover:brightness-95"
+        >
+          Try again
+        </button>
+      )}
+      {phase === "notice" || phase === "retry" ? (
+        <button
+          type="button"
+          onClick={() => {
+            debriefed.current = true; // closing gives up the save: no resend on unmount
+            onEnd();
+          }}
+          aria-label="Close"
+          className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-line bg-white text-ink transition hover:bg-field"
+        >
+          <X size={17} />
+        </button>
+      ) : (
+        !busy && (
+          <button
+            type="button"
+            onClick={() => {
+              // Connected: hang up and let onDisconnect debrief. Otherwise there is no session to wait for.
+              if (status === "connected") endSession();
+              else void finish();
+            }}
+            aria-label="End call"
+            className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-[#e06a52] text-white transition hover:brightness-95"
+          >
+            <PhoneOff size={17} />
+          </button>
+        )
+      )}
     </div>
   );
 }
